@@ -169,20 +169,41 @@ function applyLang(lang) {
     if (dict[key] != null) el.innerHTML = dict[key];
   });
   localStorage.setItem(STORAGE_KEY, lang);
-  // Update switcher active state
-  document.querySelectorAll(".lang-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.lang === lang);
+  // Update dropdown display and active option
+  const current = document.querySelector(".lang-current");
+  if (current) current.textContent = LANG_LABELS[lang] || lang;
+  document.querySelectorAll(".lang-option").forEach((opt) => {
+    opt.classList.toggle("active", opt.dataset.lang === lang);
   });
 }
 
 function initI18n() {
   const lang = detectLang();
   applyLang(lang);
-  document.querySelectorAll(".lang-btn").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      applyLang(btn.dataset.lang);
+
+  const switcher = document.querySelector(".lang-switcher");
+  const toggle = document.getElementById("lang-toggle");
+
+  // Toggle dropdown open/close
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    switcher.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", switcher.classList.contains("open"));
+  });
+
+  // Handle option selection
+  document.querySelectorAll(".lang-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      applyLang(opt.dataset.lang);
+      switcher.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
     });
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", () => {
+    switcher.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
   });
 }
 

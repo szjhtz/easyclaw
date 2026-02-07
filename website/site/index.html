@@ -26,11 +26,17 @@
             rel="noopener noreferrer"
             >GitHub</a
           >
-          <span class="lang-switcher">
-            <button class="lang-btn" data-lang="en">EN</button>
-            <button class="lang-btn" data-lang="zh">中文</button>
-            <button class="lang-btn" data-lang="ja">日本語</button>
-          </span>
+          <div class="lang-switcher">
+            <button class="lang-toggle" id="lang-toggle" aria-haspopup="listbox" aria-expanded="false">
+              <span class="lang-current">EN</span>
+              <svg class="lang-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <ul class="lang-menu" id="lang-menu" role="listbox">
+              <li class="lang-option" data-lang="en" role="option">EN</li>
+              <li class="lang-option" data-lang="zh" role="option">中文</li>
+              <li class="lang-option" data-lang="ja" role="option">日本語</li>
+            </ul>
+          </div>
         </nav>
       </div>
     </header>

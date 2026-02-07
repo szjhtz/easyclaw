@@ -131,16 +131,18 @@ code {
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* ----- Language Switcher ----- */
+/* ----- Language Switcher (dropdown) ----- */
 .lang-switcher {
-  display: flex;
-  gap: 4px;
+  position: relative;
   margin-left: 4px;
   border-left: 1px solid rgba(255, 255, 255, 0.15);
   padding-left: 16px;
 }
 
-.lang-btn {
+.lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--color-dark-muted);
@@ -153,15 +155,54 @@ code {
   font-family: inherit;
 }
 
-.lang-btn:hover {
+.lang-toggle:hover {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.35);
 }
 
-.lang-btn.active {
+.lang-arrow {
+  transition: transform 0.2s;
+}
+
+.lang-switcher.open .lang-arrow {
+  transform: rotate(180deg);
+}
+
+.lang-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  list-style: none;
+  background: var(--color-dark);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 90px;
+  z-index: 200;
+}
+
+.lang-switcher.open .lang-menu {
+  display: block;
+}
+
+.lang-option {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-dark-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.lang-option:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lang-option.active {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ============================================================
@@ -499,6 +540,12 @@ code {
   .lang-switcher {
     border-left: none;
     padding-left: 0;
+  }
+
+  .lang-menu {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .hero h1 {
