@@ -8,4 +8,5 @@ dist/
 website/certs/
 website/.env
 website/site/releases/
+website/source-assets/
 apps/desktop/release/

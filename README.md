@@ -1,13 +1,15 @@
-# EasyClaw
+<p align="center">
+  <img src="website/site/assets/LOGO_EN_COMPACT.png" width="600" alt="EasyClaw">
+</p>
 
 Desktop runtime manager for [OpenClaw](https://github.com/nicejudy/openclaw). A system-tray Electron app that launches and manages an OpenClaw gateway, exposes a local management panel for configuring rules, providers, channels, and permissions, and ships with auto-update support.
 
 ## Prerequisites
 
-| Tool | Version |
-|------|---------|
+| Tool    | Version    |
+| ------- | ---------- |
 | Node.js | >= 22.12.0 |
-| pnpm | 10.6.2 |
+| pnpm    | 10.6.2     |
 
 ## Quick Start
 
@@ -53,25 +55,25 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 
 ### Apps
 
-| Package | Description |
-|---------|-------------|
-| `@easyclaw/desktop` | Electron 35 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite. |
-| `@easyclaw/panel` | React 19 + Vite 6 SPA. Pages for rules, providers, channels, permissions, usage, and a first-launch onboarding wizard. |
+| Package             | Description                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `@easyclaw/desktop` | Electron 35 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
+| `@easyclaw/panel`   | React 19 + Vite 6 SPA. Pages for rules, providers, channels, permissions, usage, and a first-launch onboarding wizard. |
 
 ### Packages
 
-| Package | Description |
-|---------|-------------|
-| `@easyclaw/core` | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (OpenAI, Anthropic, DeepSeek, Zhipu, Moonshot, Qwen), region-aware defaults. |
-| `@easyclaw/gateway` | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, skills directory watcher for hot reload. |
-| `@easyclaw/logger` | tslog-based logger. Writes to `~/.easyclaw/logs/`. |
-| `@easyclaw/storage` | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.easyclaw/easyclaw.db`. |
-| `@easyclaw/rules` | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw. |
-| `@easyclaw/secrets` | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests. |
-| `@easyclaw/updater` | Checks `update-manifest.json` on the website, notifies user of new versions. |
-| `@easyclaw/telemetry` | Token usage and session tracking. |
-| `@easyclaw/stt` | Speech-to-text provider abstraction. |
-| `@easyclaw/openclaw-plugin` | OpenClaw plugin SDK integration. |
+| Package                     | Description                                                                                                                                                                            |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@easyclaw/core`            | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (OpenAI, Anthropic, DeepSeek, Zhipu, Moonshot, Qwen), region-aware defaults. |
+| `@easyclaw/gateway`         | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, skills directory watcher for hot reload.                        |
+| `@easyclaw/logger`          | tslog-based logger. Writes to `~/.easyclaw/logs/`.                                                                                                                                     |
+| `@easyclaw/storage`         | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.easyclaw/easyclaw.db`.                             |
+| `@easyclaw/rules`           | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                     |
+| `@easyclaw/secrets`         | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                               |
+| `@easyclaw/updater`         | Checks `update-manifest.json` on the website, notifies user of new versions.                                                                                                           |
+| `@easyclaw/telemetry`       | Token usage and session tracking.                                                                                                                                                      |
+| `@easyclaw/stt`             | Speech-to-text provider abstraction.                                                                                                                                                   |
+| `@easyclaw/openclaw-plugin` | OpenClaw plugin SDK integration.                                                                                                                                                       |
 
 ## Scripts
 
@@ -138,25 +140,25 @@ The desktop app runs as a **tray-only** application (hidden from the dock on mac
 
 The panel server exposes these endpoints:
 
-| Endpoint | Methods | Description |
-|----------|---------|-------------|
-| `/api/rules` | GET, POST, PUT, DELETE | CRUD for rules |
-| `/api/channels` | GET, POST, PUT, DELETE | Channel management |
-| `/api/permissions` | GET, POST, PUT, DELETE | Permission management |
-| `/api/settings` | GET, PUT | Key-value settings store |
-| `/api/providers` | GET | Available LLM providers |
-| `/api/status` | GET | System status (rule count, gateway state) |
+| Endpoint           | Methods                | Description                               |
+| ------------------ | ---------------------- | ----------------------------------------- |
+| `/api/rules`       | GET, POST, PUT, DELETE | CRUD for rules                            |
+| `/api/channels`    | GET, POST, PUT, DELETE | Channel management                        |
+| `/api/permissions` | GET, POST, PUT, DELETE | Permission management                     |
+| `/api/settings`    | GET, PUT               | Key-value settings store                  |
+| `/api/providers`   | GET                    | Available LLM providers                   |
+| `/api/status`      | GET                    | System status (rule count, gateway state) |
 
 ### Data Directories
 
-| Path | Purpose |
-|------|---------|
-| `~/.easyclaw/easyclaw.db` | SQLite database |
-| `~/.easyclaw/logs/` | Application logs |
-| `~/.openclaw/` | OpenClaw state directory |
-| `~/.openclaw/gateway/config.yml` | Gateway configuration |
-| `~/.openclaw/sessions/` | WhatsApp sessions |
-| `~/.openclaw/skills/` | Auto-generated skill files |
+| Path                             | Purpose                    |
+| -------------------------------- | -------------------------- |
+| `~/.easyclaw/easyclaw.db`        | SQLite database            |
+| `~/.easyclaw/logs/`              | Application logs           |
+| `~/.openclaw/`                   | OpenClaw state directory   |
+| `~/.openclaw/gateway/config.yml` | Gateway configuration      |
+| `~/.openclaw/sessions/`          | WhatsApp sessions          |
+| `~/.openclaw/skills/`            | Auto-generated skill files |
 
 ## Building Installers
 
@@ -202,6 +204,7 @@ The `scripts/release.sh` script handles the full pipeline:
 ```
 
 This will:
+
 1. Set version in `apps/desktop/package.json`
 2. Build all workspace packages
 3. Build macOS DMG and Windows NSIS installer
