@@ -1,0 +1,21 @@
+{
+  "name": "@easyclaw/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "electron --experimental-strip-types src/main.ts",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "@easyclaw/core": "workspace:*",
+    "@easyclaw/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^35.1.2",
+    "tsdown": "^0.20.3",
+    "oxlint": "^1.43.0"
+  }
+}

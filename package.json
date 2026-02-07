@@ -1,0 +1,33 @@
+{
+  "name": "easyclaw",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev": "turbo run dev",
+    "format": "oxfmt --check",
+    "format:fix": "oxfmt --write"
+  },
+  "devDependencies": {
+    "oxfmt": "0.28.0",
+    "oxlint": "^1.43.0",
+    "turbo": "^2.4.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.6.2",
+  "dependencies": {
+    "@rolldown/binding-darwin-arm64": "1.0.0-rc.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
+}

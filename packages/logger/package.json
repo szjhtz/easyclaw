@@ -1,0 +1,27 @@
+{
+  "name": "@easyclaw/logger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "oxlint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "tslog": "^4.10.2"
+  },
+  "devDependencies": {
+    "tsdown": "^0.20.3",
+    "oxlint": "^1.43.0",
+    "vitest": "^4.0.18"
+  }
+}

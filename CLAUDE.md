@@ -29,6 +29,11 @@ You are authorized to execute shell commands for this project.
 - Append to ADR if architectural decisions were made
 - Run relevant unit tests
 
+### Testing Requirements
+
+- After finishing each item in `docs/PROGRESS.md`, always add and run unit tests
+- After completing each phase in `docs/PROGRESS.md`, always add and run integration tests (if applicable)
+
 ### Restrictions
 
 - Never assume undocumented behavior
