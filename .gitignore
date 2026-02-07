@@ -7,3 +7,5 @@ dist/
 *.tsbuildinfo
 website/certs/
 website/.env
+website/site/releases/
+apps/desktop/release/
