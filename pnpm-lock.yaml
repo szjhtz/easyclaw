@@ -12,6 +12,9 @@ importers:
         specifier: 1.0.0-rc.3
         version: 1.0.0-rc.3
     devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.19.9
       oxfmt:
         specifier: 0.28.0
         version: 0.28.0

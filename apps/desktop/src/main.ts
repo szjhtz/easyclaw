@@ -1,11 +1,15 @@
 import { app, Tray, shell } from "electron";
 import { createLogger } from "@easyclaw/logger";
-import { GatewayLauncher } from "@easyclaw/gateway";
+import {
+  GatewayLauncher,
+  resolveVendorEntryPath,
+  ensureGatewayConfig,
+} from "@easyclaw/gateway";
+import type { GatewayState } from "@easyclaw/gateway";
 import { createStorage } from "@easyclaw/storage";
 import { createTrayIcon } from "./tray-icon.js";
 import { buildTrayMenu } from "./tray-menu.js";
 import { startPanelServer } from "./panel-server.js";
-import type { GatewayState } from "@easyclaw/gateway";
 
 const log = createLogger("desktop");
 
@@ -20,7 +24,11 @@ app.whenReady().then(() => {
   const storage = createStorage();
 
   // Initialize gateway launcher
-  const launcher = new GatewayLauncher();
+  const configPath = ensureGatewayConfig();
+  const launcher = new GatewayLauncher({
+    entryPath: resolveVendorEntryPath(),
+    configPath,
+  });
   let currentState: GatewayState = "stopped";
 
   // Create tray
@@ -48,10 +56,20 @@ app.whenReady().then(() => {
   tray.setToolTip("EasyClaw");
   updateTray("stopped");
 
-  // Listen to gateway state changes
-  launcher.on("stateChange", (state) => {
-    log.info(`Gateway state: ${state}`);
-    updateTray(state);
+  // Listen to gateway events
+  launcher.on("started", () => {
+    log.info("Gateway started");
+    updateTray("running");
+  });
+
+  launcher.on("stopped", () => {
+    log.info("Gateway stopped");
+    updateTray("stopped");
+  });
+
+  launcher.on("restarting", (attempt, delayMs) => {
+    log.info(`Gateway restarting (attempt ${attempt}, delay ${delayMs}ms)`);
+    updateTray("starting");
   });
 
   launcher.on("error", (error) => {

@@ -12,6 +12,7 @@
     "format:fix": "oxfmt --write"
   },
   "devDependencies": {
+    "@types/node": "^22.15.0",
     "oxfmt": "0.28.0",
     "oxlint": "^1.43.0",
     "turbo": "^2.4.4",

@@ -3,4 +3,5 @@ vendor/openclaw/
 node_modules/
 dist/
 .turbo/
+.vscode/
 *.tsbuildinfo
