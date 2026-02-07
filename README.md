@@ -212,6 +212,14 @@ This will:
 5. Copy installers to `website/site/releases/`
 6. Update `website/site/update-manifest.json` and `website/site/index.html` with new hashes and download links
 
+## Note: better-sqlite3 native module
+
+`desktop dev` auto-rebuilds better-sqlite3 for Electron's Node ABI. This means **tests may fail afterwards** with a `NODE_MODULE_VERSION` mismatch. Fix with:
+
+```bash
+pnpm install   # restores the system-Node prebuilt binary
+```
+
 ## Testing
 
 Tests use [Vitest](https://vitest.dev/). Run all tests:
