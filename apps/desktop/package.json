@@ -7,15 +7,19 @@
   "scripts": {
     "build": "tsdown",
     "dev": "electron --experimental-strip-types src/main.ts",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@easyclaw/core": "workspace:*",
-    "@easyclaw/logger": "workspace:*"
+    "@easyclaw/logger": "workspace:*",
+    "@easyclaw/gateway": "workspace:*",
+    "@easyclaw/storage": "workspace:*"
   },
   "devDependencies": {
     "electron": "^35.1.2",
     "tsdown": "^0.20.3",
-    "oxlint": "^1.43.0"
+    "oxlint": "^1.43.0",
+    "vitest": "^4.0.18"
   }
 }

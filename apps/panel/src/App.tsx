@@ -1,17 +1,27 @@
-import type { EasyClawConfig } from "@easyclaw/core";
+import { useState } from "react";
+import { Layout } from "./layout/Layout.js";
+import { RulesPage } from "./pages/RulesPage.js";
+import { ProvidersPage } from "./pages/ProvidersPage.js";
+import { ChannelsPage } from "./pages/ChannelsPage.js";
+import { PermissionsPage } from "./pages/PermissionsPage.js";
+import { UsagePage } from "./pages/UsagePage.js";
 
-const defaultConfig: EasyClawConfig = {
-  region: "us",
-  language: "en",
-  gatewayVersion: "0.0.0",
-  panelPort: 3210,
+const PAGES: Record<string, () => JSX.Element> = {
+  "/": RulesPage,
+  "/providers": ProvidersPage,
+  "/channels": ChannelsPage,
+  "/permissions": PermissionsPage,
+  "/usage": UsagePage,
 };
 
 export function App() {
+  const [currentPath, setCurrentPath] = useState("/");
+
+  const PageComponent = PAGES[currentPath] ?? RulesPage;
+
   return (
-    <div>
-      <h1>EasyClaw Management Panel</h1>
-      <p>Region: {defaultConfig.region}</p>
-    </div>
+    <Layout currentPath={currentPath} onNavigate={setCurrentPath}>
+      <PageComponent />
+    </Layout>
   );
 }

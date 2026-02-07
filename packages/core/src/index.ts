@@ -8,3 +8,12 @@ export type {
   EasyClawConfig,
 } from "./types/index.js";
 export { easyClawConfigSchema } from "./types/index.js";
+
+export type { LLMProvider, ModelConfig, Region } from "./models.js";
+export {
+  KNOWN_MODELS,
+  getDefaultModelForRegion,
+  getDefaultModelForProvider,
+  resolveModelConfig,
+  getProvidersForRegion,
+} from "./models.js";

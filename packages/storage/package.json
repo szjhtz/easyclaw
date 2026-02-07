@@ -13,10 +13,18 @@
   },
   "scripts": {
     "build": "tsdown",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "@easyclaw/core": "workspace:*",
+    "@easyclaw/logger": "workspace:*"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "tsdown": "^0.20.3",
-    "oxlint": "^1.43.0"
+    "oxlint": "^1.43.0",
+    "vitest": "^4.0.18"
   }
 }
