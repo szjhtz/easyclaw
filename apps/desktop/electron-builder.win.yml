@@ -1,0 +1,41 @@
+# Windows-specific electron-builder configuration
+# Extends the base electron-builder.yml (created by W6-A)
+# Usage: electron-builder --win --config electron-builder.win.yml
+
+extends: electron-builder.yml
+
+win:
+  # Windows application icon (must be .ico format, 256x256 minimum)
+  icon: build/icon.ico
+  publisherName: "EasyClaw"
+  # Code signing via environment variables:
+  #   CSC_LINK  — path or URL to the .pfx / .p12 certificate
+  #   CSC_KEY_PASSWORD — certificate password
+  # Set these in CI or locally before running the build.
+  # If not set, the build will succeed but the binary will be unsigned.
+
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # Installer icon (optional, falls back to win.icon if omitted)
+  installerIcon: build/icon.ico
+  # Uninstaller icon (optional, falls back to win.icon if omitted)
+  uninstallerIcon: build/icon.ico
+  # Display name shown in Add/Remove Programs
+  uninstallDisplayName: "EasyClaw"
+  # Create desktop shortcut during install
+  createDesktopShortcut: true
+  # Create start-menu shortcut during install
+  createStartMenuShortcut: true
+  shortcutName: "EasyClaw"
+
+# No file associations for now
+# fileAssociations: []

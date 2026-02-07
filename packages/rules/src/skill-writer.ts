@@ -8,11 +8,11 @@ const log = createLogger("rules:skill-writer");
 /**
  * Default directory for managed SKILL.md files.
  */
-const DEFAULT_SKILLS_DIR = join(homedir(), ".openclaw", "skills");
+const DEFAULT_SKILLS_DIR = join(homedir(), ".easyclaw", "openclaw", "skills");
 
 /**
  * Resolve the skills directory path.
- * Returns the custom directory if provided, otherwise the default (~/.openclaw/skills/).
+ * Returns the custom directory if provided, otherwise the default (~/.easyclaw/openclaw/skills/).
  */
 export function resolveSkillsDir(customDir?: string): string {
   return customDir ?? DEFAULT_SKILLS_DIR;
@@ -79,7 +79,7 @@ export function extractSkillName(artifactContent: string): string {
  *
  * @param skillName - The skill name (used as the directory name)
  * @param content - The full SKILL.md content (frontmatter + body)
- * @param skillsDir - Optional custom skills directory (defaults to ~/.openclaw/skills/)
+ * @param skillsDir - Optional custom skills directory (defaults to ~/.easyclaw/openclaw/skills/)
  * @returns The absolute path to the written SKILL.md file
  */
 export function writeSkillFile(skillName: string, content: string, skillsDir?: string): string {

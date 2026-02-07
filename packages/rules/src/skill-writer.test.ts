@@ -33,9 +33,9 @@ function makeArtifactContent(name: string, description: string, body: string): s
 // ---------------------------------------------------------------------------
 
 describe("resolveSkillsDir", () => {
-  it("returns the default ~/.openclaw/skills/ path when no custom dir is provided", () => {
+  it("returns the default ~/.easyclaw/openclaw/skills/ path when no custom dir is provided", () => {
     const result = resolveSkillsDir();
-    expect(result).toContain(".openclaw");
+    expect(result).toContain(".easyclaw");
     expect(result).toContain("skills");
     // Should be an absolute path
     expect(result.startsWith("/") || /^[A-Z]:\\/i.test(result)).toBe(true);
@@ -49,7 +49,7 @@ describe("resolveSkillsDir", () => {
 
   it("returns the default when undefined is explicitly passed", () => {
     const result = resolveSkillsDir(undefined);
-    expect(result).toContain(".openclaw");
+    expect(result).toContain(".easyclaw");
     expect(result).toContain("skills");
   });
 });
@@ -159,7 +159,7 @@ describe("writeSkillFile", () => {
     // returned path includes the default directory structure.
     // To avoid polluting the real filesystem, we test only the path resolution.
     const defaultDir = resolveSkillsDir();
-    expect(defaultDir).toContain(".openclaw");
+    expect(defaultDir).toContain(".easyclaw");
     expect(defaultDir).toContain("skills");
   });
 });

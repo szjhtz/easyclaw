@@ -4,6 +4,7 @@ import {
   GatewayLauncher,
   resolveVendorEntryPath,
   ensureGatewayConfig,
+  resolveOpenClawStateDir,
 } from "@easyclaw/gateway";
 import type { GatewayState } from "@easyclaw/gateway";
 import { createStorage } from "@easyclaw/storage";
@@ -24,10 +25,12 @@ app.whenReady().then(() => {
   const storage = createStorage();
 
   // Initialize gateway launcher
+  const stateDir = resolveOpenClawStateDir();
   const configPath = ensureGatewayConfig();
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(),
     configPath,
+    stateDir,
   });
   let currentState: GatewayState = "stopped";
 

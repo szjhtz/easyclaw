@@ -1,0 +1,40 @@
+appId: com.easyclaw.desktop
+productName: EasyClaw
+
+directories:
+  output: release
+
+files:
+  - dist/**
+  - node_modules/**
+  - package.json
+
+extraMetadata:
+  main: dist/main.mjs
+
+asar: true
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: entitlements.mac.plist
+  entitlementsInherit: entitlements.mac.plist
+  identity: null
+  notarize: false
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+afterSign: scripts/notarize.cjs

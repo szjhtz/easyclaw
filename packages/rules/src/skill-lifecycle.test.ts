@@ -30,7 +30,7 @@ vi.mock("./skill-writer.js", () => {
     },
 
     writeSkillFile(skillName: string, content: string, skillsDir?: string): string {
-      const dir = skillsDir ?? pathJoin(require("node:os").homedir(), ".openclaw", "skills");
+      const dir = skillsDir ?? pathJoin(require("node:os").homedir(), ".easyclaw", "openclaw", "skills");
       const skillDir = pathJoin(dir, skillName);
       mkdirSync(skillDir, { recursive: true });
       const filePath = pathJoin(skillDir, "SKILL.md");
@@ -59,7 +59,7 @@ vi.mock("./skill-writer.js", () => {
     },
 
     resolveSkillsDir(customDir?: string): string {
-      return customDir ?? pathJoin(require("node:os").homedir(), ".openclaw", "skills");
+      return customDir ?? pathJoin(require("node:os").homedir(), ".easyclaw", "openclaw", "skills");
     },
   };
 });

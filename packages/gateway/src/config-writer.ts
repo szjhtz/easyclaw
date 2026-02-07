@@ -25,7 +25,7 @@ export const DEFAULT_GATEWAY_PORT = 18789;
 export function resolveOpenClawStateDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return env.OPENCLAW_STATE_DIR?.trim() || join(homedir(), ".openclaw");
+  return env.OPENCLAW_STATE_DIR?.trim() || join(homedir(), ".easyclaw", "openclaw");
 }
 
 /** Resolve the OpenClaw config path, respecting OPENCLAW_CONFIG_PATH env var. */

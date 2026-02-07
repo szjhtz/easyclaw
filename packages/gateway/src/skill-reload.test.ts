@@ -35,14 +35,14 @@ describe("skill-reload", () => {
       expect(result).toBe(join("/custom/state", "skills"));
     });
 
-    it("defaults to ~/.openclaw/skills when no stateDir is given", () => {
+    it("defaults to ~/.easyclaw/openclaw/skills when no stateDir is given", () => {
       const result = resolveSkillsDir();
-      expect(result).toBe(join(homedir(), ".openclaw", "skills"));
+      expect(result).toBe(join(homedir(), ".easyclaw", "openclaw", "skills"));
     });
 
-    it("defaults to ~/.openclaw/skills when stateDir is undefined", () => {
+    it("defaults to ~/.easyclaw/openclaw/skills when stateDir is undefined", () => {
       const result = resolveSkillsDir(undefined);
-      expect(result).toBe(join(homedir(), ".openclaw", "skills"));
+      expect(result).toBe(join(homedir(), ".easyclaw", "openclaw", "skills"));
     });
   });
 

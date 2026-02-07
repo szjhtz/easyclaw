@@ -33,14 +33,14 @@ describe("config-writer", () => {
       expect(result).toBe("/custom/dir");
     });
 
-    it("falls back to ~/.openclaw when env var is empty", () => {
+    it("falls back to ~/.easyclaw/openclaw when env var is empty", () => {
       const result = resolveOpenClawStateDir({ OPENCLAW_STATE_DIR: "" });
-      expect(result).toContain(".openclaw");
+      expect(result).toContain(".easyclaw");
     });
 
-    it("falls back to ~/.openclaw when env var is undefined", () => {
+    it("falls back to ~/.easyclaw/openclaw when env var is undefined", () => {
       const result = resolveOpenClawStateDir({});
-      expect(result).toContain(".openclaw");
+      expect(result).toContain(".easyclaw");
     });
   });
 
@@ -68,7 +68,7 @@ describe("config-writer", () => {
 
     it("uses default state dir when neither env var is set", () => {
       const result = resolveOpenClawConfigPath({});
-      expect(result).toContain(".openclaw");
+      expect(result).toContain(".easyclaw");
       expect(result.endsWith("openclaw.json")).toBe(true);
     });
   });

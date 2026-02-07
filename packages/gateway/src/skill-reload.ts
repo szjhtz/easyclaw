@@ -12,12 +12,12 @@ const SKILL_FILE_RE = /SKILL\.md$/;
  * Resolve the skills directory path.
  *
  * Uses the provided `stateDir` as the parent, or falls back to
- * `~/.openclaw` when none is given.
+ * `~/.easyclaw/openclaw` when none is given.
  *
  * Returns `{stateDir}/skills`.
  */
 export function resolveSkillsDir(stateDir?: string): string {
-  const base = stateDir ?? join(homedir(), ".openclaw");
+  const base = stateDir ?? join(homedir(), ".easyclaw", "openclaw");
   return join(base, "skills");
 }
 

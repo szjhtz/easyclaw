@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "main": "src/main.ts",
+  "author": "EasyClaw",
+  "description": "Desktop runtime manager for OpenClaw",
   "scripts": {
     "build": "tsdown",
     "dev": "electron --experimental-strip-types src/main.ts",
     "lint": "oxlint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "pack": "electron-builder --dir",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win --config electron-builder.win.yml"
   },
   "dependencies": {
     "@easyclaw/core": "workspace:*",
@@ -18,7 +23,9 @@
     "@easyclaw/telemetry": "workspace:*"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.0.0",
     "electron": "^35.1.2",
+    "electron-builder": "^26.0.12",
     "tsdown": "^0.20.3",
     "oxlint": "^1.43.0",
     "vitest": "^4.0.18"
