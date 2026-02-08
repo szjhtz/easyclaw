@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Layout } from "./layout/Layout.js";
 import { RulesPage } from "./pages/RulesPage.js";
 import { ProvidersPage } from "./pages/ProvidersPage.js";
@@ -7,7 +8,7 @@ import { ChannelsPage } from "./pages/ChannelsPage.js";
 import { PermissionsPage } from "./pages/PermissionsPage.js";
 import { UsagePage } from "./pages/UsagePage.js";
 import { OnboardingPage } from "./pages/OnboardingPage.js";
-import { fetchSettings, fetchStatus, updateSettings } from "./api.js";
+import { fetchSettings } from "./api.js";
 
 const PAGES: Record<string, () => ReactNode> = {
   "/": RulesPage,
@@ -18,6 +19,7 @@ const PAGES: Record<string, () => ReactNode> = {
 };
 
 export function App() {
+  const { t } = useTranslation();
   const [currentPath, setCurrentPath] = useState("/");
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
@@ -27,26 +29,21 @@ export function App() {
 
   async function checkOnboarding() {
     try {
-      const [settings, status] = await Promise.all([
-        fetchSettings(),
-        fetchStatus(),
-      ]);
-      const hasProvider = !!settings["llm-provider"];
-      const hasRules = status.ruleCount > 0;
-      const completed = settings["onboarding-completed"] === "true";
+      const settings = await fetchSettings();
+      const provider = settings["llm-provider"];
+      // API keys are masked to "configured" by the server when present
+      const hasApiKey = provider
+        ? settings[`${provider}-api-key`] === "configured"
+        : false;
 
-      setShowOnboarding(!completed && !hasProvider && !hasRules);
+      // Show onboarding until a provider with a valid API key is configured
+      setShowOnboarding(!hasApiKey);
     } catch {
       setShowOnboarding(false);
     }
   }
 
-  async function handleOnboardingComplete() {
-    try {
-      await updateSettings({ "onboarding-completed": "true" });
-    } catch {
-      // non-critical
-    }
+  function handleOnboardingComplete() {
     setShowOnboarding(false);
     setCurrentPath("/");
   }
@@ -62,7 +59,7 @@ export function App() {
           color: "#888",
         }}
       >
-        Loading...
+        {t("common.loading")}
       </div>
     );
   }

@@ -46,7 +46,6 @@ easyclaw/
 │   ├── rules/            # Rule compilation & skill file writer
 │   ├── secrets/          # Keychain / DPAPI / file-based secret stores
 │   ├── updater/          # Auto-update client
-│   ├── telemetry/        # Usage tracking
 │   ├── stt/              # Speech-to-text abstraction
 │   └── openclaw-plugin/  # OpenClaw plugin SDK
 ├── extensions/
@@ -81,7 +80,6 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 | `@easyclaw/rules`           | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                     |
 | `@easyclaw/secrets`         | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                               |
 | `@easyclaw/updater`         | Checks `update-manifest.json` on the website, notifies user of new versions.                                                                                                           |
-| `@easyclaw/telemetry`       | Token usage and session tracking.                                                                                                                                                      |
 | `@easyclaw/stt`             | Speech-to-text provider abstraction.                                                                                                                                                   |
 | `@easyclaw/openclaw-plugin` | OpenClaw plugin SDK integration.                                                                                                                                                       |
 

@@ -33,6 +33,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     Pick<
       GatewayLaunchOptions,
       | "entryPath"
+      | "nodeBin"
       | "maxRestarts"
       | "initialBackoffMs"
       | "maxBackoffMs"
@@ -53,6 +54,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     super();
     this.options = {
       ...options,
+      nodeBin: options.nodeBin ?? "node",
       maxRestarts: options.maxRestarts ?? 0,
       initialBackoffMs: options.initialBackoffMs ?? DEFAULT_INITIAL_BACKOFF_MS,
       maxBackoffMs: options.maxBackoffMs ?? DEFAULT_MAX_BACKOFF_MS,
@@ -70,6 +72,11 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       lastStartedAt: this.lastStartedAt,
       lastError: this.lastError,
     };
+  }
+
+  /** Update the environment variables for the next spawn. */
+  setEnv(env: Record<string, string>): void {
+    this.options.env = env;
   }
 
   /** Start the gateway process. */
@@ -133,7 +140,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       env["OPENCLAW_STATE_DIR"] = this.options.stateDir;
     }
 
-    const child = spawn("node", [this.options.entryPath, "gateway"], {
+    const child = spawn(this.options.nodeBin, [this.options.entryPath, "gateway"], {
       env,
       stdio: ["ignore", "pipe", "pipe"],
     });

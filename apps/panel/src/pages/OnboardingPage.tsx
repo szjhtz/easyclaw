@@ -1,28 +1,10 @@
 import { useState } from "react";
-import { updateSettings, createRule } from "../api.js";
-
-const EXAMPLE_RULES = [
-  "Never delete files without asking for confirmation first",
-  "Always explain what changes you plan to make before executing them",
-  "Limit file writes to the current project directory only",
-];
-
-const PROVIDERS = [
-  { value: "openai", label: "OpenAI" },
-  { value: "anthropic", label: "Anthropic" },
-  { value: "deepseek", label: "DeepSeek" },
-  { value: "zhipu", label: "Zhipu" },
-  { value: "moonshot", label: "Moonshot" },
-  { value: "qwen", label: "Qwen" },
-];
-
-const PANEL_SECTIONS = [
-  { name: "Rules", desc: "Manage behavior rules for your AI agent" },
-  { name: "LLM Providers", desc: "Change provider or update your API key" },
-  { name: "Channels", desc: "Connect messaging platforms (WeCom, DingTalk)" },
-  { name: "Permissions", desc: "Control which files the agent can access" },
-  { name: "Usage", desc: "Monitor token consumption" },
-];
+import { useTranslation } from "react-i18next";
+import { PROVIDER_URLS, getDefaultModelForProvider } from "@easyclaw/core";
+import type { LLMProvider } from "@easyclaw/core";
+import { updateSettings, createProviderKey } from "../api.js";
+import { ProviderSelect } from "../components/ProviderSelect.js";
+import { ModelSelect } from "../components/ModelSelect.js";
 
 function StepDot({ step, currentStep }: { step: number; currentStep: number }) {
   const isActive = step === currentStep;
@@ -53,53 +35,56 @@ export function OnboardingPage({
 }: {
   onComplete: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
 
   // Step 0 state
   const [provider, setProvider] = useState("openai");
+  const [model, setModel] = useState(getDefaultModelForProvider("openai" as LLMProvider).modelId);
   const [apiKey, setApiKey] = useState("");
-  const [providerError, setProviderError] = useState<string | null>(null);
+  const [providerError, setProviderError] = useState<{ key: string; detail?: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [validating, setValidating] = useState(false);
 
-  // Step 1 state
-  const [ruleText, setRuleText] = useState("");
-  const [ruleError, setRuleError] = useState<string | null>(null);
-  const [creatingSaving, setCreatingSaving] = useState(false);
+  const panelSections = [
+    { name: t("onboarding.sectionRules"), desc: t("onboarding.sectionRulesDesc") },
+    { name: t("onboarding.sectionProviders"), desc: t("onboarding.sectionProvidersDesc") },
+    { name: t("onboarding.sectionChannels"), desc: t("onboarding.sectionChannelsDesc") },
+    { name: t("onboarding.sectionPermissions"), desc: t("onboarding.sectionPermissionsDesc") },
+    { name: t("onboarding.sectionUsage"), desc: t("onboarding.sectionUsageDesc") },
+  ];
+
+  function handleProviderChange(newProvider: string) {
+    setProvider(newProvider);
+    setModel(getDefaultModelForProvider(newProvider as LLMProvider).modelId);
+  }
 
   async function handleSaveProvider() {
     if (!apiKey.trim()) {
-      setProviderError("Please enter your API key.");
+      setProviderError({ key: "onboarding.apiKeyRequired" });
       return;
     }
-    setSaving(true);
+    setValidating(true);
     setProviderError(null);
     try {
-      await updateSettings({
-        "llm-provider": provider,
-        "llm-api-key": apiKey,
+      setValidating(false);
+      setSaving(true);
+
+      // Create provider key entry (server validates the key)
+      await createProviderKey({
+        provider,
+        label: "Default",
+        model,
+        apiKey: apiKey.trim(),
       });
+      // Set as active provider
+      await updateSettings({ "llm-provider": provider });
       setCurrentStep(1);
     } catch (err) {
-      setProviderError("Failed to save: " + String(err));
+      setProviderError({ key: "onboarding.failedToSave", detail: String(err) });
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleCreateRule() {
-    if (!ruleText.trim()) {
-      setRuleError("Please enter a rule or select an example below.");
-      return;
-    }
-    setCreatingSaving(true);
-    setRuleError(null);
-    try {
-      await createRule(ruleText.trim());
-      setCurrentStep(2);
-    } catch (err) {
-      setRuleError("Failed to create rule: " + String(err));
-    } finally {
-      setCreatingSaving(false);
+      setValidating(false);
     }
   }
 
@@ -116,22 +101,44 @@ export function OnboardingPage({
         position: "relative",
       }}
     >
-      <button
-        onClick={onComplete}
+      <div
         style={{
           position: "absolute",
           top: 20,
           right: 28,
-          background: "none",
-          border: "none",
-          color: "#888",
-          fontSize: 14,
-          cursor: "pointer",
-          textDecoration: "underline",
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
         }}
       >
-        Skip setup
-      </button>
+        <button
+          onClick={() => i18n.changeLanguage(i18n.language === "zh" ? "en" : "zh")}
+          style={{
+            padding: "4px 12px",
+            border: "1px solid #e0e0e0",
+            borderRadius: 4,
+            backgroundColor: "transparent",
+            cursor: "pointer",
+            fontSize: 13,
+            color: "#555",
+          }}
+        >
+          {i18n.language === "zh" ? "English" : "中文"}
+        </button>
+        <button
+          onClick={onComplete}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#888",
+            fontSize: 14,
+            cursor: "pointer",
+            textDecoration: "underline",
+          }}
+        >
+          {t("onboarding.skipSetup")}
+        </button>
+      </div>
 
       <div
         style={{
@@ -156,55 +163,67 @@ export function OnboardingPage({
           <StepDot step={0} currentStep={currentStep} />
           <div style={{ width: 40, height: 2, backgroundColor: currentStep > 0 ? "#1a73e8" : "#e0e0e0" }} />
           <StepDot step={1} currentStep={currentStep} />
-          <div style={{ width: 40, height: 2, backgroundColor: currentStep > 1 ? "#1a73e8" : "#e0e0e0" }} />
-          <StepDot step={2} currentStep={currentStep} />
         </div>
 
         {/* Step 0: Welcome + Provider */}
         {currentStep === 0 && (
           <div>
             <h1 style={{ fontSize: 24, margin: "0 0 8px" }}>
-              Welcome to EasyClaw
+              {t("onboarding.welcomeTitle")}
             </h1>
             <p style={{ color: "#5f6368", marginBottom: 24 }}>
-              Let's get your AI agent set up. First, configure your LLM provider.
+              {t("onboarding.welcomeDesc")}
             </p>
 
             {providerError && (
               <div style={{ color: "red", marginBottom: 12 }}>
-                {providerError}
+                {t(providerError.key)}{providerError.detail ? ` (${providerError.detail})` : ""}
               </div>
             )}
 
-            <label style={{ display: "block", marginBottom: 12 }}>
-              Provider
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  marginTop: 4,
-                  padding: 8,
-                  borderRadius: 4,
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                {PROVIDERS.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: 4 }}>{t("onboarding.providerLabel")}</div>
+              <ProviderSelect value={provider} onChange={handleProviderChange} />
+              <div style={{ marginTop: 6, fontSize: 12 }}>
+                {t(`providers.hint_${provider}`, { cmd: "", defaultValue: "" }) ? (
+                  <span style={{ color: "#5f6368" }}>
+                    {(() => {
+                      const cmd = provider === "anthropic" ? "claude setup-token" : provider === "amazon-bedrock" ? "aws configure" : "";
+                      const hint = t(`providers.hint_${provider}`, { cmd });
+                      if (!cmd) return hint;
+                      const parts = hint.split(cmd);
+                      return parts.length === 2 ? (
+                        <>{parts[0]}<code style={{ backgroundColor: "#f1f3f4", padding: "1px 5px", borderRadius: 3, fontFamily: "monospace" }}>{cmd}</code>{parts[1]}</>
+                      ) : hint;
+                    })()}
+                    {" "}
+                  </span>
+                ) : null}
+                <a
+                  href={PROVIDER_URLS[provider as LLMProvider]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1a73e8" }}
+                >
+                  {t("providers.viewPricing")} &rarr;
+                </a>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: 4 }}>{t("onboarding.modelLabel")}</div>
+              <ModelSelect provider={provider} value={model} onChange={setModel} />
+            </div>
 
             <label style={{ display: "block", marginBottom: 20 }}>
-              API Key
+              {provider === "anthropic" ? t("onboarding.anthropicTokenLabel") : t("onboarding.apiKeyLabel")}
               <input
-                type="password"
+                type="text"
+                autoComplete="off"
+                data-1p-ignore
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API key"
+                placeholder={provider === "anthropic" ? t("onboarding.anthropicTokenPlaceholder") : t("onboarding.apiKeyPlaceholder")}
                 style={{
                   display: "block",
                   width: "100%",
@@ -213,17 +232,22 @@ export function OnboardingPage({
                   borderRadius: 4,
                   border: "1px solid #e0e0e0",
                   boxSizing: "border-box",
+                  fontFamily: "monospace",
                 }}
               />
               <small style={{ color: "#888" }}>
-                Stored securely in your OS keychain. Never written to config
-                files.
+                {t("onboarding.apiKeyHelp")}
               </small>
+              {provider === "anthropic" && (
+                <div style={{ marginTop: 8, padding: "8px 12px", backgroundColor: "#fff8e1", borderRadius: 4, fontSize: 12, color: "#7a6200", lineHeight: 1.5 }}>
+                  {t("providers.anthropicTokenWarning")}
+                </div>
+              )}
             </label>
 
             <button
               onClick={handleSaveProvider}
-              disabled={saving}
+              disabled={saving || validating}
               style={{
                 padding: "10px 24px",
                 backgroundColor: "#1a73e8",
@@ -232,121 +256,27 @@ export function OnboardingPage({
                 borderRadius: 6,
                 fontSize: 14,
                 fontWeight: 500,
-                cursor: saving ? "default" : "pointer",
-                opacity: saving ? 0.7 : 1,
+                cursor: saving || validating ? "default" : "pointer",
+                opacity: saving || validating ? 0.7 : 1,
               }}
             >
-              {saving ? "Saving..." : "Save & Continue"}
+              {validating ? t("onboarding.validating") : saving ? t("onboarding.saving") : t("onboarding.saveAndContinue")}
             </button>
           </div>
         )}
 
-        {/* Step 1: Create first rule */}
+        {/* Step 1: All set */}
         {currentStep === 1 && (
           <div>
             <h1 style={{ fontSize: 24, margin: "0 0 8px" }}>
-              Create Your First Rule
-            </h1>
-            <p style={{ color: "#5f6368", marginBottom: 16 }}>
-              Rules control how your AI agent behaves. They can enforce
-              policies, guard against dangerous actions, or define new skills.
-            </p>
-
-            {ruleError && (
-              <div style={{ color: "red", marginBottom: 12 }}>
-                {ruleError}
-              </div>
-            )}
-
-            <textarea
-              value={ruleText}
-              onChange={(e) => setRuleText(e.target.value)}
-              placeholder="Enter a rule..."
-              rows={3}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: 8,
-                borderRadius: 4,
-                border: "1px solid #e0e0e0",
-                resize: "vertical",
-                fontFamily: "inherit",
-                fontSize: 14,
-                boxSizing: "border-box",
-                marginBottom: 12,
-              }}
-            />
-
-            <p style={{ fontSize: 13, color: "#888", marginBottom: 8 }}>
-              Or try an example:
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-              {EXAMPLE_RULES.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => setRuleText(ex)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: 16,
-                    border: "1px solid #e0e0e0",
-                    backgroundColor: ruleText === ex ? "#e3f2fd" : "#fff",
-                    fontSize: 13,
-                    cursor: "pointer",
-                    color: "#333",
-                  }}
-                >
-                  {ex}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                onClick={handleCreateRule}
-                disabled={creatingSaving}
-                style={{
-                  padding: "10px 24px",
-                  backgroundColor: "#1a73e8",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 6,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: creatingSaving ? "default" : "pointer",
-                  opacity: creatingSaving ? 0.7 : 1,
-                }}
-              >
-                {creatingSaving ? "Creating..." : "Create Rule & Continue"}
-              </button>
-              <button
-                onClick={() => setCurrentStep(2)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#888",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                Skip this step
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: All set */}
-        {currentStep === 2 && (
-          <div>
-            <h1 style={{ fontSize: 24, margin: "0 0 8px" }}>
-              You're All Set!
+              {t("onboarding.allSetTitle")}
             </h1>
             <p style={{ color: "#5f6368", marginBottom: 20 }}>
-              Here's what you can do in the management panel:
+              {t("onboarding.allSetDesc")}
             </p>
 
             <div style={{ marginBottom: 24 }}>
-              {PANEL_SECTIONS.map((s) => (
+              {panelSections.map((s) => (
                 <div
                   key={s.name}
                   style={{
@@ -377,7 +307,7 @@ export function OnboardingPage({
                 cursor: "pointer",
               }}
             >
-              Go to Dashboard
+              {t("onboarding.goToDashboard")}
             </button>
           </div>
         )}

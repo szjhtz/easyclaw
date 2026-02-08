@@ -5,6 +5,7 @@ import { ArtifactsRepository } from "./repo-artifacts.js";
 import { ChannelsRepository } from "./repo-channels.js";
 import { PermissionsRepository } from "./repo-permissions.js";
 import { SettingsRepository } from "./repo-settings.js";
+import { ProviderKeysRepository } from "./repo-provider-keys.js";
 
 export interface Storage {
   db: Database.Database;
@@ -13,6 +14,7 @@ export interface Storage {
   channels: ChannelsRepository;
   permissions: PermissionsRepository;
   settings: SettingsRepository;
+  providerKeys: ProviderKeysRepository;
   close(): void;
 }
 
@@ -26,6 +28,7 @@ export function createStorage(dbPath?: string): Storage {
     channels: new ChannelsRepository(db),
     permissions: new PermissionsRepository(db),
     settings: new SettingsRepository(db),
+    providerKeys: new ProviderKeysRepository(db),
     close() {
       closeDatabase(db);
     },
@@ -38,4 +41,5 @@ export { ArtifactsRepository } from "./repo-artifacts.js";
 export { ChannelsRepository } from "./repo-channels.js";
 export { PermissionsRepository } from "./repo-permissions.js";
 export { SettingsRepository } from "./repo-settings.js";
+export { ProviderKeysRepository } from "./repo-provider-keys.js";
 export type { Migration } from "./migrations.js";

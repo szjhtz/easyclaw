@@ -5,8 +5,7 @@
 extends: electron-builder.yml
 
 win:
-  # To use a custom icon, place build/icon.ico (256x256 minimum) and uncomment:
-  # icon: build/icon.ico
+  icon: build/icon.ico
   # Code signing via environment variables:
   #   CSC_LINK  — path or URL to the .pfx / .p12 certificate
   #   CSC_KEY_PASSWORD — certificate password
@@ -24,6 +23,7 @@ win:
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  installerSidebar: build/installerSidebar.png
   uninstallDisplayName: "EasyClaw"
   createDesktopShortcut: true
   createStartMenuShortcut: true

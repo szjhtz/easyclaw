@@ -1,19 +1,123 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   fetchPermissions,
   updatePermissions,
+  openFileDialog,
   type Permissions,
 } from "../api.js";
 
+type PermLevel = "read" | "readwrite";
+
+interface PathEntry {
+  path: string;
+  permission: PermLevel;
+}
+
+const tableStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 720,
+  borderCollapse: "collapse",
+};
+const thStyle: React.CSSProperties = {
+  textAlign: "left",
+  padding: "10px 12px",
+  borderBottom: "2px solid #e0e0e0",
+  fontSize: 13,
+  color: "#5f6368",
+  fontWeight: 600,
+};
+const tdStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  borderBottom: "1px solid #f0f0f0",
+  fontSize: 14,
+};
+
+const switcherBtnStyle = (active: boolean): React.CSSProperties => ({
+  padding: "3px 10px",
+  border: "1px solid #ccc",
+  backgroundColor: active ? "#1a73e8" : "transparent",
+  color: active ? "#fff" : "#555",
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: active ? 600 : 400,
+});
+
+/**
+ * Merge readPaths/writePaths into a unified PathEntry list.
+ * - path in readPaths only → "read"
+ * - path in writePaths (and implicitly readPaths) → "readwrite"
+ */
+function mergePermissions(perms: Permissions): PathEntry[] {
+  const writeSet = new Set(perms.writePaths);
+  const allPaths = new Set([...perms.readPaths, ...perms.writePaths]);
+  const entries: PathEntry[] = [];
+  for (const p of allPaths) {
+    entries.push({ path: p, permission: writeSet.has(p) ? "readwrite" : "read" });
+  }
+  return entries;
+}
+
+/**
+ * Split PathEntry list back into readPaths/writePaths.
+ * - "read" → readPaths only
+ * - "readwrite" → both readPaths and writePaths
+ */
+function splitPermissions(entries: PathEntry[]): Permissions {
+  const readPaths: string[] = [];
+  const writePaths: string[] = [];
+  for (const e of entries) {
+    readPaths.push(e.path);
+    if (e.permission === "readwrite") {
+      writePaths.push(e.path);
+    }
+  }
+  return { readPaths, writePaths };
+}
+
+function PermissionSwitcher({
+  value,
+  onChange,
+  t,
+}: {
+  value: PermLevel;
+  onChange: (v: PermLevel) => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <div style={{ display: "inline-flex", borderRadius: 4, overflow: "hidden" }}>
+      <button
+        type="button"
+        onClick={() => onChange("read")}
+        style={{
+          ...switcherBtnStyle(value === "read"),
+          borderRadius: "4px 0 0 4px",
+          borderRight: "none",
+        }}
+      >
+        {t("permissions.readOnly")}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("readwrite")}
+        style={{
+          ...switcherBtnStyle(value === "readwrite"),
+          borderRadius: "0 4px 4px 0",
+        }}
+      >
+        {t("permissions.readWrite")}
+      </button>
+    </div>
+  );
+}
+
 export function PermissionsPage() {
-  const [permissions, setPermissions] = useState<Permissions>({
-    readPaths: [],
-    writePaths: [],
-  });
-  const [readInput, setReadInput] = useState("");
-  const [writeInput, setWriteInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [entries, setEntries] = useState<PathEntry[]>([]);
+  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
   const [saved, setSaved] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [pendingPerm, setPendingPerm] = useState<PermLevel>("read");
 
   useEffect(() => {
     loadPermissions();
@@ -22,118 +126,192 @@ export function PermissionsPage() {
   async function loadPermissions() {
     try {
       const perms = await fetchPermissions();
-      setPermissions(perms);
+      setEntries(mergePermissions(perms));
       setError(null);
     } catch (err) {
-      setError("Failed to load permissions: " + String(err));
+      setError({ key: "permissions.failedToLoad", detail: String(err) });
     }
   }
 
-  function addReadPath() {
-    if (!readInput.trim()) return;
-    setPermissions((p) => ({
-      ...p,
-      readPaths: [...p.readPaths, readInput.trim()],
-    }));
-    setReadInput("");
+  async function handleBrowse() {
+    setError(null);
+    try {
+      const selected = await openFileDialog();
+      if (!selected) return;
+      // Duplicate check
+      if (entries.some((e) => e.path === selected)) {
+        setError({ key: "permissions.duplicatePath" });
+        return;
+      }
+      setPendingPath(selected);
+      setPendingPerm("read");
+    } catch (err) {
+      setError({ key: "permissions.failedToOpenDialog", detail: String(err) });
+    }
   }
 
-  function addWritePath() {
-    if (!writeInput.trim()) return;
-    setPermissions((p) => ({
-      ...p,
-      writePaths: [...p.writePaths, writeInput.trim()],
-    }));
-    setWriteInput("");
+  function handleConfirmAdd() {
+    if (!pendingPath) return;
+    setEntries((prev) => [...prev, { path: pendingPath, permission: pendingPerm }]);
+    setPendingPath(null);
   }
 
-  function removeReadPath(index: number) {
-    setPermissions((p) => ({
-      ...p,
-      readPaths: p.readPaths.filter((_, i) => i !== index),
-    }));
+  function handleCancelAdd() {
+    setPendingPath(null);
   }
 
-  function removeWritePath(index: number) {
-    setPermissions((p) => ({
-      ...p,
-      writePaths: p.writePaths.filter((_, i) => i !== index),
-    }));
+  function handleTogglePermission(index: number, perm: PermLevel) {
+    setEntries((prev) => prev.map((e, i) => (i === index ? { ...e, permission: perm } : e)));
+  }
+
+  function handleRemove(index: number) {
+    setEntries((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSave() {
     try {
-      await updatePermissions(permissions);
+      await updatePermissions(splitPermissions(entries));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError("Failed to save permissions: " + String(err));
+      setError({ key: "permissions.failedToSave", detail: String(err) });
     }
   }
 
   return (
     <div>
-      <h1>File Permissions</h1>
-      <p>Control which file paths the agent can read and write.</p>
+      <h1>{t("permissions.title")}</h1>
+      <p>{t("permissions.description")}</p>
 
       {error && (
-        <div style={{ color: "red", marginBottom: 16 }}>{error}</div>
+        <div style={{ color: "red", marginBottom: 16 }}>{t(error.key)}{error.detail ?? ""}</div>
       )}
 
-      <div style={{ maxWidth: 600 }}>
-        <h3>Read Paths</h3>
-        <div style={{ marginBottom: 8 }}>
-          <input
-            value={readInput}
-            onChange={(e) => setReadInput(e.target.value)}
-            placeholder="/path/to/allow"
-            style={{ padding: 8, marginRight: 8 }}
-          />
-          <button onClick={addReadPath}>Add</button>
-        </div>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {permissions.readPaths.map((p, i) => (
-            <li key={i} style={{ marginBottom: 4 }}>
-              <code>{p}</code>
+      <div style={{ maxWidth: 720 }}>
+        {/* Add path area */}
+        <div style={{ marginBottom: 16 }}>
+          {pendingPath ? (
+            <div
+              style={{
+                padding: "12px 16px",
+                border: "1px solid #1a73e8",
+                borderRadius: 8,
+                backgroundColor: "#e8f0fe",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <code style={{ backgroundColor: "#fff", padding: "2px 8px", borderRadius: 3, fontSize: 13 }}>
+                {pendingPath}
+              </code>
+              <PermissionSwitcher value={pendingPerm} onChange={setPendingPerm} t={t} />
               <button
-                onClick={() => removeReadPath(i)}
-                style={{ marginLeft: 8, color: "red", cursor: "pointer" }}
+                onClick={handleConfirmAdd}
+                style={{
+                  padding: "4px 14px",
+                  backgroundColor: "#1a73e8",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
               >
-                Remove
+                {t("common.add")}
               </button>
-            </li>
-          ))}
-        </ul>
-
-        <h3>Write Paths</h3>
-        <div style={{ marginBottom: 8 }}>
-          <input
-            value={writeInput}
-            onChange={(e) => setWriteInput(e.target.value)}
-            placeholder="/path/to/allow"
-            style={{ padding: 8, marginRight: 8 }}
-          />
-          <button onClick={addWritePath}>Add</button>
-        </div>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {permissions.writePaths.map((p, i) => (
-            <li key={i} style={{ marginBottom: 4 }}>
-              <code>{p}</code>
               <button
-                onClick={() => removeWritePath(i)}
-                style={{ marginLeft: 8, color: "red", cursor: "pointer" }}
+                onClick={handleCancelAdd}
+                style={{
+                  padding: "4px 14px",
+                  border: "1px solid #888",
+                  borderRadius: 4,
+                  backgroundColor: "transparent",
+                  color: "#555",
+                  cursor: "pointer",
+                  fontSize: 13,
+                }}
               >
-                Remove
+                {t("common.cancel")}
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+          ) : (
+            <button
+              onClick={handleBrowse}
+              style={{
+                padding: "8px 16px",
+                border: "1px solid #1a73e8",
+                borderRadius: 4,
+                backgroundColor: "transparent",
+                color: "#1a73e8",
+                cursor: "pointer",
+                fontSize: 13,
+              }}
+            >
+              {t("permissions.browsePath")}
+            </button>
+          )}
+        </div>
 
-        <button onClick={handleSave} style={{ marginTop: 16 }}>
-          Save Permissions
+        {/* Permissions table */}
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              <th style={thStyle}>{t("permissions.colPath")}</th>
+              <th style={thStyle}>{t("permissions.colPermission")}</th>
+              <th style={{ ...thStyle, width: 80 }}>{t("permissions.colActions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.length === 0 ? (
+              <tr>
+                <td colSpan={3} style={{ ...tdStyle, textAlign: "center", color: "#888", padding: "24px 12px" }}>
+                  {t("permissions.noPaths")}
+                </td>
+              </tr>
+            ) : (
+              entries.map((entry, i) => (
+                <tr key={entry.path}>
+                  <td style={tdStyle}>
+                    <code style={{ backgroundColor: "#f1f3f4", padding: "1px 5px", borderRadius: 3, fontSize: 13 }}>
+                      {entry.path}
+                    </code>
+                  </td>
+                  <td style={tdStyle}>
+                    <PermissionSwitcher
+                      value={entry.permission}
+                      onChange={(perm) => handleTogglePermission(i, perm)}
+                      t={t}
+                    />
+                  </td>
+                  <td style={tdStyle}>
+                    <button
+                      onClick={() => handleRemove(i)}
+                      style={{
+                        padding: "3px 8px",
+                        border: "1px solid #e57373",
+                        borderRadius: 4,
+                        backgroundColor: "transparent",
+                        color: "#c62828",
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      {t("common.remove")}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        <button onClick={handleSave} style={{ marginTop: 24 }}>
+          {t("permissions.savePermissions")}
         </button>
         {saved && (
-          <span style={{ marginLeft: 12, color: "green" }}>Saved!</span>
+          <span style={{ marginLeft: 12, color: "green" }}>{t("common.saved")}</span>
         )}
       </div>
     </div>

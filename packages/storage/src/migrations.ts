@@ -49,4 +49,19 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    id: 2,
+    name: "add_provider_keys_table",
+    sql: `
+      CREATE TABLE IF NOT EXISTS provider_keys (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        label TEXT NOT NULL DEFAULT '',
+        model TEXT NOT NULL DEFAULT '',
+        is_default INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `,
+  },
 ];

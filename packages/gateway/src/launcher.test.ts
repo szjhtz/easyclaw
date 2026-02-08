@@ -319,4 +319,30 @@ describe("GatewayLauncher", () => {
       expect(launcher.getStatus().lastError).toBe("spawn failed");
     });
   });
+
+  describe("setEnv()", () => {
+    it("updates env used for next spawn", async () => {
+      const { spawn } = await import("node:child_process");
+
+      const launcher = createLauncher({ env: { FOO: "bar" } });
+      await launcher.start();
+
+      // First spawn should have FOO=bar (merged with process.env)
+      const firstCall = vi.mocked(spawn).mock.calls.at(-1);
+      expect(firstCall?.[2]?.env).toHaveProperty("FOO", "bar");
+
+      // Stop gracefully, then update env
+      const stopPromise = launcher.stop();
+      mockChild.emit("exit", 0, null);
+      await stopPromise;
+
+      launcher.setEnv({ BAZ: "qux" });
+      await launcher.start();
+
+      // Second spawn should have BAZ=qux but not FOO
+      const secondCall = vi.mocked(spawn).mock.calls.at(-1);
+      expect(secondCall?.[2]?.env).toHaveProperty("BAZ", "qux");
+      expect(secondCall?.[2]?.env).not.toHaveProperty("FOO");
+    });
+  });
 });

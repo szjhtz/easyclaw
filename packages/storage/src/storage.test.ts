@@ -382,6 +382,88 @@ describe("SettingsRepository", () => {
   });
 });
 
+describe("ProviderKeysRepository", () => {
+  it("should create and retrieve a provider key", () => {
+    const key = storage.providerKeys.create({
+      id: "key-1",
+      provider: "openai",
+      label: "Default",
+      model: "gpt-4o",
+      isDefault: true,
+      createdAt: "",
+      updatedAt: "",
+    });
+
+    expect(key.id).toBe("key-1");
+    expect(key.provider).toBe("openai");
+    expect(key.label).toBe("Default");
+    expect(key.model).toBe("gpt-4o");
+    expect(key.isDefault).toBe(true);
+    expect(key.createdAt).toBeTruthy();
+
+    const fetched = storage.providerKeys.getById("key-1");
+    expect(fetched).toEqual(key);
+  });
+
+  it("should return undefined for non-existent key", () => {
+    expect(storage.providerKeys.getById("nope")).toBeUndefined();
+  });
+
+  it("should get all keys", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({ id: "k2", provider: "anthropic", label: "B", model: "claude-sonnet-4-5-20250929", isDefault: true, createdAt: "", updatedAt: "" });
+
+    const all = storage.providerKeys.getAll();
+    expect(all).toHaveLength(2);
+  });
+
+  it("should get keys by provider", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: false, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({ id: "k3", provider: "anthropic", label: "C", model: "claude-sonnet-4-5-20250929", isDefault: true, createdAt: "", updatedAt: "" });
+
+    const openaiKeys = storage.providerKeys.getByProvider("openai");
+    expect(openaiKeys).toHaveLength(2);
+    expect(openaiKeys[0].provider).toBe("openai");
+  });
+
+  it("should get default key for provider", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: false, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: true, createdAt: "", updatedAt: "" });
+
+    const def = storage.providerKeys.getDefault("openai");
+    expect(def?.id).toBe("k2");
+  });
+
+  it("should update a key", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "Old", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+
+    const updated = storage.providerKeys.update("k1", { label: "New", model: "gpt-4o-mini" });
+    expect(updated?.label).toBe("New");
+    expect(updated?.model).toBe("gpt-4o-mini");
+  });
+
+  it("should set default and clear others", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    storage.providerKeys.create({ id: "k2", provider: "openai", label: "B", model: "gpt-4o-mini", isDefault: false, createdAt: "", updatedAt: "" });
+
+    storage.providerKeys.setDefault("k2");
+
+    expect(storage.providerKeys.getById("k1")?.isDefault).toBe(false);
+    expect(storage.providerKeys.getById("k2")?.isDefault).toBe(true);
+  });
+
+  it("should delete a key", () => {
+    storage.providerKeys.create({ id: "k1", provider: "openai", label: "A", model: "gpt-4o", isDefault: true, createdAt: "", updatedAt: "" });
+    expect(storage.providerKeys.delete("k1")).toBe(true);
+    expect(storage.providerKeys.getById("k1")).toBeUndefined();
+  });
+
+  it("should return false when deleting non-existent key", () => {
+    expect(storage.providerKeys.delete("nope")).toBe(false);
+  });
+});
+
 describe("Database", () => {
   it("should create storage with in-memory database", () => {
     expect(storage.db).toBeDefined();
@@ -390,6 +472,7 @@ describe("Database", () => {
     expect(storage.channels).toBeDefined();
     expect(storage.permissions).toBeDefined();
     expect(storage.settings).toBeDefined();
+    expect(storage.providerKeys).toBeDefined();
   });
 
   it("should track applied migrations", () => {
@@ -397,9 +480,11 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string; applied_at: string }>;
 
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
     expect(rows[0].id).toBe(1);
     expect(rows[0].name).toBe("initial_schema");
+    expect(rows[1].id).toBe(2);
+    expect(rows[1].name).toBe("add_provider_keys_table");
   });
 
   it("should not re-apply migrations on second open", () => {
@@ -411,6 +496,6 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string }>;
 
-    expect(rows).toHaveLength(1);
+    expect(rows).toHaveLength(2);
   });
 });

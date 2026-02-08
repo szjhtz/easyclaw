@@ -3,6 +3,8 @@ export type GatewayState = "stopped" | "starting" | "running" | "stopping";
 export interface GatewayLaunchOptions {
   /** Path to the openclaw.mjs entry file */
   entryPath: string;
+  /** Path to the Node.js binary. Default: "node" from PATH */
+  nodeBin?: string;
   /** Path to the OpenClaw config file */
   configPath?: string;
   /** Path to the OpenClaw state directory */

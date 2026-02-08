@@ -12,6 +12,7 @@ export {
   readExistingConfig,
   resolveOpenClawStateDir,
   resolveOpenClawConfigPath,
+  generateGatewayToken,
   DEFAULT_GATEWAY_PORT,
 } from "./config-writer.js";
 export type {
@@ -25,7 +26,6 @@ export type {
   GatewayEvents,
 } from "./types.js";
 export {
-  SECRET_ENV_MAP,
   resolveSecretEnv,
   buildGatewayEnv,
 } from "./secret-injector.js";
@@ -35,3 +35,9 @@ export {
   watchSkillsDir,
   isSkillFile,
 } from "./skill-reload.js";
+export {
+  readGatewayModelCatalog,
+  readVendorModelCatalog,
+  readFullModelCatalog,
+} from "./model-catalog.js";
+export type { CatalogModelEntry } from "./model-catalog.js";

@@ -1,25 +1,27 @@
 import type { SecretStore } from "@easyclaw/secrets";
+import { ALL_PROVIDERS, PROVIDER_ENV_VARS, providerSecretKey } from "@easyclaw/core";
 import { createLogger } from "@easyclaw/logger";
 
 const log = createLogger("gateway:secret-injector");
 
 /**
- * Mapping from well-known secret keys to the environment variable names
- * that the gateway process expects.
+ * Static mapping for non-LLM secrets (channel tokens, STT keys, etc.).
  */
-export const SECRET_ENV_MAP: Record<string, string> = {
-  "llm-api-key": "OPENAI_API_KEY",
+const STATIC_SECRET_ENV_MAP: Record<string, string> = {
   "wecom-corp-secret": "WECOM_CORP_SECRET",
   "wecom-token": "WECOM_TOKEN",
   "wecom-encoding-aes-key": "WECOM_ENCODING_AES_KEY",
-  "dingtalk-app-secret": "DINGTALK_APP_SECRET",
-  "dingtalk-token": "DINGTALK_TOKEN",
   "stt-api-key": "STT_API_KEY",
 };
 
 /**
  * Resolve all known secrets into an env-var record suitable for passing
  * to the gateway child process.
+ *
+ * For LLM providers, each provider has its own secret key
+ * (e.g. "openai-api-key" -> OPENAI_API_KEY, "anthropic-api-key" -> ANTHROPIC_API_KEY).
+ * All configured provider keys are injected simultaneously so the gateway
+ * can use any of them.
  *
  * Secrets that are not set (null) are silently skipped -- the gateway
  * will function with whatever subset of keys is available.
@@ -31,7 +33,37 @@ export async function resolveSecretEnv(
 ): Promise<Record<string, string>> {
   const env: Record<string, string> = {};
 
-  for (const [secretKey, envVar] of Object.entries(SECRET_ENV_MAP)) {
+  // Inject all configured LLM provider API keys
+  for (const provider of ALL_PROVIDERS) {
+    const secretKey = providerSecretKey(provider);
+    const value = await store.get(secretKey);
+    if (value !== null) {
+      // For Anthropic: detect OAuth/setup tokens (sk-ant-oat01-...) and inject
+      // as ANTHROPIC_OAUTH_TOKEN instead of ANTHROPIC_API_KEY. OpenClaw checks
+      // ANTHROPIC_OAUTH_TOKEN first, so this ensures the right auth flow is used.
+      if (provider === "anthropic" && value.startsWith("sk-ant-oat01-")) {
+        env["ANTHROPIC_OAUTH_TOKEN"] = value;
+        log.debug("Injecting secret: " + secretKey + " -> ANTHROPIC_OAUTH_TOKEN (OAuth token detected)");
+      } else {
+        const envVar = PROVIDER_ENV_VARS[provider];
+        env[envVar] = value;
+        log.debug("Injecting secret: " + secretKey + " -> " + envVar);
+      }
+    }
+  }
+
+  // Also check legacy "llm-api-key" for backwards compatibility
+  // (maps to OPENAI_API_KEY if no openai-specific key is set)
+  if (!env["OPENAI_API_KEY"]) {
+    const legacyKey = await store.get("llm-api-key");
+    if (legacyKey !== null) {
+      env["OPENAI_API_KEY"] = legacyKey;
+      log.debug("Injecting legacy secret: llm-api-key -> OPENAI_API_KEY");
+    }
+  }
+
+  // Inject non-LLM secrets
+  for (const [secretKey, envVar] of Object.entries(STATIC_SECRET_ENV_MAP)) {
     const value = await store.get(secretKey);
     if (value !== null) {
       env[envVar] = value;

@@ -1,7 +1,9 @@
-export { compileRule } from "./compiler.js";
+export { compileRule, compileRuleWithLLM } from "./compiler.js";
 export type { CompileResult } from "./compiler.js";
 export { ArtifactPipeline } from "./pipeline.js";
-export type { ArtifactPipelineEvents } from "./pipeline.js";
+export type { ArtifactPipelineEvents, ArtifactPipelineOptions } from "./pipeline.js";
+export { chatCompletion } from "./llm-client.js";
+export type { LLMConfig } from "./llm-client.js";
 export {
   resolveSkillsDir,
   extractSkillName,

@@ -2,13 +2,12 @@
   "name": "@easyclaw/desktop",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "src/main.ts",
+  "main": "dist/main.cjs",
   "author": "EasyClaw",
   "description": "Desktop runtime manager for OpenClaw",
   "scripts": {
     "build": "tsdown",
-    "dev": "electron --experimental-strip-types src/main.ts",
+    "dev": "electron-rebuild -f -o better-sqlite3 && tsdown && PANEL_DEV_URL=http://localhost:5180 ELECTRON_RUN_AS_NODE= electron .",
     "lint": "oxlint",
     "test": "vitest run",
     "pack": "electron-builder --dir",
@@ -17,17 +16,20 @@
   },
   "dependencies": {
     "@easyclaw/core": "workspace:*",
-    "@easyclaw/logger": "workspace:*",
     "@easyclaw/gateway": "workspace:*",
+    "@easyclaw/logger": "workspace:*",
+    "@easyclaw/rules": "workspace:*",
+    "@easyclaw/secrets": "workspace:*",
     "@easyclaw/storage": "workspace:*",
-    "@easyclaw/telemetry": "workspace:*"
+    "better-sqlite3": "^11.9.1"
   },
   "devDependencies": {
     "@electron/notarize": "^3.0.0",
+    "@electron/rebuild": "^4.0.3",
     "electron": "^35.1.2",
     "electron-builder": "^26.0.12",
-    "tsdown": "^0.20.3",
     "oxlint": "^1.43.0",
+    "tsdown": "^0.20.3",
     "vitest": "^4.0.18"
   }
 }

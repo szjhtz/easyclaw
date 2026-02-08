@@ -71,30 +71,18 @@ export function dematerializeSkill(artifact: RuleArtifact): boolean {
  *
  * Returns the resulting artifact.
  */
-export function syncSkillsForRule(
+export async function syncSkillsForRule(
   pipeline: ArtifactPipeline,
   rule: Rule,
   skillsDir?: string,
-): RuleArtifact {
-  // Capture the existing artifact before recompilation so we can detect type changes.
-  // We access storage indirectly through the pipeline's public API — but the pipeline
-  // doesn't expose storage directly. Instead we look at what the pipeline returns.
-  // However, we need the *previous* artifact to detect type changes, so we'll
-  // peek at storage via the pipeline's storage (accessed through the compile result).
-  //
-  // The pipeline's compileRule already handles storage internally. We rely on the
-  // pipeline's event or the returned artifact. To detect the *old* type we need
-  // to grab the existing artifact before compiling.
-
-  // Access the pipeline's internal storage through its "storage" property.
-  // The ArtifactPipeline stores a private `storage` field — we use a workaround
-  // by reading artifacts from the pipeline before compilation.
+): Promise<RuleArtifact> {
+  // Access the pipeline's internal storage to read previous artifact state
   const pipelineAny = pipeline as unknown as { storage: { artifacts: { getByRuleId(ruleId: string): RuleArtifact[]; update(id: string, fields: Partial<Pick<RuleArtifact, "content" | "outputPath" | "status" | "compiledAt">>): RuleArtifact | undefined } } };
   const existingArtifacts = pipelineAny.storage.artifacts.getByRuleId(rule.id);
   const previousArtifact = existingArtifacts.length > 0 ? existingArtifacts[0] : undefined;
 
   // Compile the rule (creates or updates artifact in storage)
-  const artifact = pipeline.compileRule(rule);
+  const artifact = await pipeline.compileRule(rule);
 
   // If compilation failed, don't touch skill files
   if (artifact.status !== "ok") {
@@ -111,7 +99,6 @@ export function syncSkillsForRule(
     artifact.type !== "action-bundle"
   ) {
     dematerializeSkill(previousArtifact);
-    // Clear the outputPath on the new artifact (it's no longer action-bundle)
     if (artifact.outputPath) {
       pipelineAny.storage.artifacts.update(artifact.id, {
         outputPath: undefined,
@@ -128,7 +115,6 @@ export function syncSkillsForRule(
 
     const outputPath = materializeSkill(artifact, skillsDir);
     if (outputPath) {
-      // Persist the outputPath to storage
       pipelineAny.storage.artifacts.update(artifact.id, { outputPath });
       artifact.outputPath = outputPath;
     }

@@ -5,24 +5,38 @@ import {
   resolveModelConfig,
   getProvidersForRegion,
   KNOWN_MODELS,
+  ALL_PROVIDERS,
+  PROVIDER_LABELS,
 } from "./models.js";
 
 describe("KNOWN_MODELS", () => {
-  it("should have models for all providers", () => {
+  it("should have models for common providers", () => {
     const providers = ["openai", "anthropic", "deepseek", "zhipu", "moonshot", "qwen"] as const;
     for (const p of providers) {
-      expect(KNOWN_MODELS[p].length).toBeGreaterThan(0);
+      expect(KNOWN_MODELS[p]!.length).toBeGreaterThan(0);
     }
   });
 
   it("should have valid model configs", () => {
     for (const [provider, models] of Object.entries(KNOWN_MODELS)) {
-      for (const model of models) {
+      for (const model of models!) {
         expect(model.provider).toBe(provider);
         expect(model.modelId).toBeTruthy();
         expect(model.displayName).toBeTruthy();
       }
     }
+  });
+});
+
+describe("ALL_PROVIDERS / PROVIDER_LABELS", () => {
+  it("should have labels for all providers", () => {
+    for (const p of ALL_PROVIDERS) {
+      expect(PROVIDER_LABELS[p]).toBeTruthy();
+    }
+  });
+
+  it("should include at least 10 providers", () => {
+    expect(ALL_PROVIDERS.length).toBeGreaterThanOrEqual(10);
   });
 });
 
@@ -110,13 +124,13 @@ describe("getProvidersForRegion", () => {
     expect(providers).toContain("zhipu");
     expect(providers).toContain("moonshot");
     expect(providers).toContain("qwen");
-    expect(providers).toContain("openai");
   });
 
   it("should list US providers with OpenAI first", () => {
     const providers = getProvidersForRegion("us");
     expect(providers[0]).toBe("openai");
     expect(providers).toContain("anthropic");
+    expect(providers).toContain("google");
   });
 
   it("should return default list for unknown region", () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { fetchUsage, type UsageSummary } from "../api.js";
 
 type TimeRange = "7d" | "30d" | "all";
@@ -14,13 +15,24 @@ function formatTokens(n: number): string {
 }
 
 export function UsagePage() {
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   useEffect(() => {
     loadUsage();
+  }, [timeRange]);
+
+  // Auto-refresh every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadUsage();
+    }, 60_000); // 60 seconds
+
+    return () => clearInterval(interval);
   }, [timeRange]);
 
   async function loadUsage() {
@@ -39,48 +51,77 @@ export function UsagePage() {
       }
       const data = await fetchUsage(filter);
       setSummary(data);
+      setLastRefresh(new Date());
     } catch (err) {
-      setError("Failed to load usage data: " + String(err));
+      setError({ key: "usage.failedToLoad", detail: String(err) });
     } finally {
       setLoading(false);
     }
   }
 
+  function handleManualRefresh() {
+    loadUsage();
+  }
+
+  const rangeLabels: Record<TimeRange, string> = {
+    "7d": t("usage.last7d"),
+    "30d": t("usage.last30d"),
+    all: t("usage.allTime"),
+  };
+
   return (
     <div>
-      <h1>Token Usage</h1>
-      <p>View token usage and cost tracking.</p>
+      <h1>{t("usage.title")}</h1>
+      <p>{t("usage.description")}</p>
 
-      {/* Time range filter */}
-      <div style={{ marginBottom: 24, display: "flex", gap: 8 }}>
-        {(["7d", "30d", "all"] as TimeRange[]).map((range) => (
+      {/* Time range filter and refresh button */}
+      <div style={{ marginBottom: 24, display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {(["7d", "30d", "all"] as TimeRange[]).map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              style={{
+                padding: "6px 16px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+                backgroundColor: timeRange === range ? "#1a73e8" : "#fff",
+                color: timeRange === range ? "#fff" : "#333",
+                cursor: "pointer",
+                fontWeight: timeRange === range ? 600 : 400,
+              }}
+            >
+              {rangeLabels[range]}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "#888" }}>
+            Last updated: {lastRefresh.toLocaleTimeString()}
+          </span>
           <button
-            key={range}
-            onClick={() => setTimeRange(range)}
+            onClick={handleManualRefresh}
+            disabled={loading}
             style={{
               padding: "6px 16px",
               borderRadius: 4,
               border: "1px solid #ccc",
-              backgroundColor: timeRange === range ? "#1a73e8" : "#fff",
-              color: timeRange === range ? "#fff" : "#333",
-              cursor: "pointer",
-              fontWeight: timeRange === range ? 600 : 400,
+              backgroundColor: "#fff",
+              color: "#333",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
             }}
           >
-            {range === "7d"
-              ? "Last 7 days"
-              : range === "30d"
-                ? "Last 30 days"
-                : "All time"}
+            🔄 Refresh
           </button>
-        ))}
+        </div>
       </div>
 
       {error && (
-        <div style={{ color: "red", marginBottom: 16 }}>{error}</div>
+        <div style={{ color: "red", marginBottom: 16 }}>{t(error.key)}{error.detail ?? ""}</div>
       )}
 
-      {loading && <p style={{ color: "#888" }}>Loading usage data...</p>}
+      {loading && <p style={{ color: "#888" }}>{t("usage.loadingData")}</p>}
 
       {!loading && !error && summary && (
         <>
@@ -94,31 +135,31 @@ export function UsagePage() {
             }}
           >
             <SummaryCard
-              label="Total Tokens"
+              label={t("usage.totalTokens")}
               value={formatTokens(summary.totalTokens)}
             />
             <SummaryCard
-              label="Input Tokens"
+              label={t("usage.inputTokens")}
               value={formatTokens(summary.totalInputTokens)}
             />
             <SummaryCard
-              label="Output Tokens"
+              label={t("usage.outputTokens")}
               value={formatTokens(summary.totalOutputTokens)}
             />
             <SummaryCard
-              label="Estimated Cost"
+              label={t("usage.estimatedCost")}
               value={formatCost(summary.totalEstimatedCostUsd)}
             />
             <SummaryCard
-              label="API Calls"
+              label={t("usage.apiCalls")}
               value={String(summary.recordCount)}
             />
           </div>
 
           {/* By Model */}
-          <h2 style={{ fontSize: 18, marginBottom: 12 }}>By Model</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>{t("usage.byModel")}</h2>
           {Object.keys(summary.byModel).length === 0 ? (
-            <p style={{ color: "#888" }}>No usage data available.</p>
+            <p style={{ color: "#888" }}>{t("usage.noData")}</p>
           ) : (
             <table
               style={{
@@ -129,12 +170,12 @@ export function UsagePage() {
             >
               <thead>
                 <tr>
-                  <Th>Model</Th>
-                  <Th>Calls</Th>
-                  <Th>Input</Th>
-                  <Th>Output</Th>
-                  <Th>Total</Th>
-                  <Th>Cost</Th>
+                  <Th>{t("usage.model")}</Th>
+                  <Th>{t("usage.calls")}</Th>
+                  <Th>{t("usage.input")}</Th>
+                  <Th>{t("usage.output")}</Th>
+                  <Th>{t("usage.total")}</Th>
+                  <Th>{t("usage.cost")}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -153,9 +194,9 @@ export function UsagePage() {
           )}
 
           {/* By Provider */}
-          <h2 style={{ fontSize: 18, marginBottom: 12 }}>By Provider</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 12 }}>{t("usage.byProvider")}</h2>
           {Object.keys(summary.byProvider).length === 0 ? (
-            <p style={{ color: "#888" }}>No usage data available.</p>
+            <p style={{ color: "#888" }}>{t("usage.noData")}</p>
           ) : (
             <table
               style={{
@@ -166,12 +207,12 @@ export function UsagePage() {
             >
               <thead>
                 <tr>
-                  <Th>Provider</Th>
-                  <Th>Calls</Th>
-                  <Th>Input</Th>
-                  <Th>Output</Th>
-                  <Th>Total</Th>
-                  <Th>Cost</Th>
+                  <Th>{t("usage.provider")}</Th>
+                  <Th>{t("usage.calls")}</Th>
+                  <Th>{t("usage.input")}</Th>
+                  <Th>{t("usage.output")}</Th>
+                  <Th>{t("usage.total")}</Th>
+                  <Th>{t("usage.cost")}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -204,10 +245,9 @@ export function UsagePage() {
             color: "#888",
           }}
         >
-          <p>No usage data recorded yet.</p>
+          <p>{t("usage.noRecords")}</p>
           <p style={{ fontSize: 12 }}>
-            Token usage will appear here as API calls are made through the
-            gateway.
+            {t("usage.noRecordsHelp")}
           </p>
         </div>
       )}

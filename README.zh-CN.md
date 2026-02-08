@@ -46,7 +46,6 @@ easyclaw/
 │   ├── rules/            # 规则编译 & Skill 文件写入
 │   ├── secrets/          # Keychain / DPAPI / 文件密钥存储
 │   ├── updater/          # 自动更新客户端
-│   ├── telemetry/        # 用量追踪
 │   ├── stt/              # 语音转文字抽象层
 │   └── openclaw-plugin/  # OpenClaw 插件 SDK
 ├── extensions/
@@ -81,7 +80,6 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 | `@easyclaw/rules`           | 规则编译、Skill 生命周期（激活/停用）、Skill 文件写入器（将规则具象化为 OpenClaw 的 SKILL.md 文件）。                           |
 | `@easyclaw/secrets`         | 平台感知的密钥存储。macOS Keychain、文件回退方案、测试用内存存储。                                                             |
 | `@easyclaw/updater`         | 检查网站上的 `update-manifest.json`，通知用户新版本。                                                                          |
-| `@easyclaw/telemetry`       | Token 用量和会话追踪。                                                                                                         |
 | `@easyclaw/stt`             | 语音转文字服务商抽象层。                                                                                                       |
 | `@easyclaw/openclaw-plugin` | OpenClaw 插件 SDK 集成。                                                                                                       |
 

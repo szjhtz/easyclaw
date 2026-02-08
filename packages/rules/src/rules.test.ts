@@ -20,7 +20,7 @@ function makeRule(text: string, id?: string): Rule {
 }
 
 // ---------------------------------------------------------------------------
-// Compiler tests
+// Compiler tests (heuristic fallback — synchronous)
 // ---------------------------------------------------------------------------
 
 describe("compileRule (compiler)", () => {
@@ -111,7 +111,7 @@ describe("compileRule (compiler)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Pipeline tests
+// Pipeline tests (no LLM config → uses heuristic fallback)
 // ---------------------------------------------------------------------------
 
 describe("ArtifactPipeline", () => {
@@ -120,7 +120,8 @@ describe("ArtifactPipeline", () => {
 
   beforeEach(() => {
     storage = createStorage(":memory:");
-    pipeline = new ArtifactPipeline(storage);
+    // No resolveLLMConfig → will use heuristic fallback
+    pipeline = new ArtifactPipeline({ storage });
   });
 
   afterEach(() => {
@@ -128,11 +129,11 @@ describe("ArtifactPipeline", () => {
   });
 
   describe("compileRule", () => {
-    it("compiles a rule and persists artifact to storage", () => {
+    it("compiles a rule and persists artifact to storage", async () => {
       const rule = makeRule("Always be helpful");
       storage.rules.create(rule);
 
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.ruleId).toBe(rule.id);
       expect(artifact.type).toBe("policy-fragment");
@@ -146,14 +147,14 @@ describe("ArtifactPipeline", () => {
       expect(stored[0]!.id).toBe(artifact.id);
     });
 
-    it("emits 'compiled' event on success", () => {
+    it("emits 'compiled' event on success", async () => {
       const rule = makeRule("Be concise");
       storage.rules.create(rule);
 
       const handler = vi.fn();
       pipeline.on("compiled", handler);
 
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       expect(handler).toHaveBeenCalledOnce();
       expect(handler).toHaveBeenCalledWith(
@@ -162,11 +163,11 @@ describe("ArtifactPipeline", () => {
       );
     });
 
-    it("compiles a guard rule correctly", () => {
+    it("compiles a guard rule correctly", async () => {
       const rule = makeRule("Block access to admin routes");
       storage.rules.create(rule);
 
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.type).toBe("guard");
       expect(artifact.status).toBe("ok");
@@ -175,26 +176,40 @@ describe("ArtifactPipeline", () => {
       expect(parsed.action).toBe("block");
     });
 
-    it("compiles an action-bundle rule correctly", () => {
+    it("compiles an action-bundle rule correctly", async () => {
       const rule = makeRule("Enable the capability to search the web");
       storage.rules.create(rule);
 
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.type).toBe("action-bundle");
       expect(artifact.status).toBe("ok");
       expect(artifact.content).toContain("---");
       expect(artifact.content).toContain("name:");
     });
+
+    it("sets status to pending during compilation", async () => {
+      const rule = makeRule("Always be helpful");
+      storage.rules.create(rule);
+
+      // Compile creates a pending placeholder, then updates to ok
+      const artifact = await pipeline.compileRule(rule);
+      expect(artifact.status).toBe("ok");
+
+      // The stored artifact should also be ok after compilation
+      const stored = storage.artifacts.getByRuleId(rule.id);
+      expect(stored).toHaveLength(1);
+      expect(stored[0]!.status).toBe("ok");
+    });
   });
 
   describe("recompile updates existing artifact (no duplicates)", () => {
-    it("updates in place when recompiling the same rule", () => {
+    it("updates in place when recompiling the same rule", async () => {
       const rule = makeRule("Be respectful");
       storage.rules.create(rule);
 
-      const first = pipeline.compileRule(rule);
-      const second = pipeline.compileRule(rule);
+      const first = await pipeline.compileRule(rule);
+      const second = await pipeline.compileRule(rule);
 
       // Same artifact ID, updated in place
       expect(second.id).toBe(first.id);
@@ -205,14 +220,14 @@ describe("ArtifactPipeline", () => {
       expect(stored).toHaveLength(1);
     });
 
-    it("handles type change on recompile by recreating artifact", () => {
+    it("handles type change on recompile by recreating artifact", async () => {
       const ruleId = randomUUID();
       const rule1 = makeRule("Be polite");
       rule1.id = ruleId;
       storage.rules.create(rule1);
 
       // First compile: policy-fragment
-      const first = pipeline.compileRule(rule1);
+      const first = await pipeline.compileRule(rule1);
       expect(first.type).toBe("policy-fragment");
 
       // Update rule text to trigger guard classification
@@ -220,7 +235,7 @@ describe("ArtifactPipeline", () => {
       storage.rules.update(ruleId, { text: rule2.text });
 
       // Second compile: guard (type changed)
-      const second = pipeline.compileRule(rule2);
+      const second = await pipeline.compileRule(rule2);
       expect(second.type).toBe("guard");
 
       // Still only one artifact
@@ -230,41 +245,24 @@ describe("ArtifactPipeline", () => {
   });
 
   describe("failure handling", () => {
-    it("keeps last-known-good on compile failure and emits 'failed'", () => {
+    it("keeps last-known-good on compile failure and emits 'failed'", async () => {
       const rule = makeRule("Be kind");
       storage.rules.create(rule);
 
       // First: successful compile
-      const good = pipeline.compileRule(rule);
+      const good = await pipeline.compileRule(rule);
       expect(good.status).toBe("ok");
       const goodContent = good.content;
 
-      // Simulate failure by monkey-patching the compiler import.
-      // We'll use a rule that we make the pipeline fail on by
-      // temporarily breaking the storage artifact update.
-      // Instead, let's test the concept: if we manually set up a scenario
-      // where the compile function throws, the pipeline should preserve
-      // the old artifact content.
-
-      // Since compileRule itself is a pure function that doesn't throw
-      // on any string input, we test the "failed" path by verifying
-      // the event mechanism directly. Let's mock the compile function
-      // by replacing the module-level compileRule within the pipeline.
-      // Instead we verify the behavior through storage state.
-
-      // For a realistic test, we'll verify that recompiling with valid
-      // text preserves the artifact ID and content updates correctly.
+      // Recompiling with valid text preserves the artifact ID and content updates correctly.
       const rule2: Rule = { ...rule, text: "Block everything" };
-      const recompiled = pipeline.compileRule(rule2);
+      const recompiled = await pipeline.compileRule(rule2);
       expect(recompiled.id).toBe(good.id);
       expect(recompiled.content).not.toBe(goodContent);
       expect(recompiled.status).toBe("ok");
     });
 
-    it("emits 'failed' event and marks artifact as failed on error", () => {
-      // We test the failure path by directly manipulating storage
-      // to simulate a broken state, then verifying the pipeline
-      // handles it gracefully.
+    it("emits 'failed' event and marks artifact as failed on error", async () => {
       const rule = makeRule("Be kind");
       storage.rules.create(rule);
 
@@ -272,23 +270,22 @@ describe("ArtifactPipeline", () => {
       pipeline.on("failed", failedHandler);
 
       // First compile succeeds
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
       expect(artifact.status).toBe("ok");
 
-      // Close the database to force a failure on next compile
+      // Break storage to force a failure on next compile
       const originalUpdate = storage.artifacts.update.bind(storage.artifacts);
       storage.artifacts.update = () => {
         throw new Error("Simulated storage failure");
       };
 
-      const result = pipeline.compileRule(rule);
+      const result = await pipeline.compileRule(rule);
 
       // Should have emitted "failed"
       expect(failedHandler).toHaveBeenCalledOnce();
       expect(failedHandler).toHaveBeenCalledWith(rule.id, expect.any(Error));
 
-      // The artifact should still be marked as "failed" but content preserved
-      // (the pipeline catches the error and tries to mark status as failed)
+      // The artifact should still be marked as "failed"
       expect(result.status).toBe("failed");
 
       // Restore
@@ -297,7 +294,7 @@ describe("ArtifactPipeline", () => {
   });
 
   describe("recompileAll", () => {
-    it("recompiles all rules and returns counts", () => {
+    it("recompiles all rules and returns counts", async () => {
       const rules = [
         makeRule("Be polite"),
         makeRule("Block access to secrets"),
@@ -307,7 +304,7 @@ describe("ArtifactPipeline", () => {
         storage.rules.create(r);
       }
 
-      const result = pipeline.recompileAll();
+      const result = await pipeline.recompileAll();
 
       expect(result.succeeded).toBe(3);
       expect(result.failed).toBe(0);
@@ -317,15 +314,15 @@ describe("ArtifactPipeline", () => {
       expect(allArtifacts).toHaveLength(3);
     });
 
-    it("returns zero counts when no rules exist", () => {
-      const result = pipeline.recompileAll();
+    it("returns zero counts when no rules exist", async () => {
+      const result = await pipeline.recompileAll();
       expect(result.succeeded).toBe(0);
       expect(result.failed).toBe(0);
     });
   });
 
   describe("getCompiledPolicyView", () => {
-    it("concatenates all ok policy-fragment artifacts", () => {
+    it("concatenates all ok policy-fragment artifacts", async () => {
       const rules = [
         makeRule("Be polite"),
         makeRule("Be accurate"),
@@ -333,7 +330,7 @@ describe("ArtifactPipeline", () => {
       ];
       for (const r of rules) {
         storage.rules.create(r);
-        pipeline.compileRule(r);
+        await pipeline.compileRule(r);
       }
 
       const view = pipeline.getCompiledPolicyView();
@@ -347,14 +344,14 @@ describe("ArtifactPipeline", () => {
       );
     });
 
-    it("excludes non-policy-fragment artifacts", () => {
+    it("excludes non-policy-fragment artifacts", async () => {
       const policyRule = makeRule("Be polite");
       const guardRule = makeRule("Block dangerous commands");
 
       storage.rules.create(policyRule);
       storage.rules.create(guardRule);
-      pipeline.compileRule(policyRule);
-      pipeline.compileRule(guardRule);
+      await pipeline.compileRule(policyRule);
+      await pipeline.compileRule(guardRule);
 
       const view = pipeline.getCompiledPolicyView();
 
@@ -362,10 +359,10 @@ describe("ArtifactPipeline", () => {
       expect(view).not.toContain("Block dangerous commands");
     });
 
-    it("excludes failed policy-fragment artifacts", () => {
+    it("excludes failed policy-fragment artifacts", async () => {
       const rule = makeRule("Be polite");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       // Manually mark the artifact as failed
       const artifacts = storage.artifacts.getByRuleId(rule.id);
@@ -375,14 +372,14 @@ describe("ArtifactPipeline", () => {
       expect(view).toBe("");
     });
 
-    it("bounds output to maxLength", () => {
+    it("bounds output to maxLength", async () => {
       // Create enough policy rules to exceed the limit
       const rules: Rule[] = [];
       for (let i = 0; i < 100; i++) {
         const r = makeRule(`Policy number ${i} with some extra text to fill space`);
         rules.push(r);
         storage.rules.create(r);
-        pipeline.compileRule(r);
+        await pipeline.compileRule(r);
       }
 
       const view = pipeline.getCompiledPolicyView(200);
@@ -392,16 +389,16 @@ describe("ArtifactPipeline", () => {
       expect(view).toContain("[POLICY]");
     });
 
-    it("returns empty string when no policy fragments exist", () => {
+    it("returns empty string when no policy fragments exist", async () => {
       const rule = makeRule("Block everything");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       const view = pipeline.getCompiledPolicyView();
       expect(view).toBe("");
     });
 
-    it("uses default maxLength of 4000", () => {
+    it("uses default maxLength of 4000", async () => {
       // Create many policies that together exceed 4000 chars
       const rules: Rule[] = [];
       for (let i = 0; i < 200; i++) {
@@ -410,7 +407,7 @@ describe("ArtifactPipeline", () => {
         );
         rules.push(r);
         storage.rules.create(r);
-        pipeline.compileRule(r);
+        await pipeline.compileRule(r);
       }
 
       const view = pipeline.getCompiledPolicyView();
@@ -419,14 +416,14 @@ describe("ArtifactPipeline", () => {
   });
 
   describe("getActiveGuards", () => {
-    it("returns only guard artifacts with status ok", () => {
+    it("returns only guard artifacts with status ok", async () => {
       const guardRule = makeRule("Block access to admin");
       const policyRule = makeRule("Be polite");
 
       storage.rules.create(guardRule);
       storage.rules.create(policyRule);
-      pipeline.compileRule(guardRule);
-      pipeline.compileRule(policyRule);
+      await pipeline.compileRule(guardRule);
+      await pipeline.compileRule(policyRule);
 
       const guards = pipeline.getActiveGuards();
 
@@ -435,10 +432,10 @@ describe("ArtifactPipeline", () => {
       expect(guards[0]!.ruleId).toBe(guardRule.id);
     });
 
-    it("excludes failed guard artifacts", () => {
+    it("excludes failed guard artifacts", async () => {
       const rule = makeRule("Block dangerous actions");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       // Manually mark as failed
       const artifacts = storage.artifacts.getByRuleId(rule.id);
@@ -448,7 +445,7 @@ describe("ArtifactPipeline", () => {
       expect(guards).toHaveLength(0);
     });
 
-    it("returns multiple active guards", () => {
+    it("returns multiple active guards", async () => {
       const rules = [
         makeRule("Block file deletion"),
         makeRule("Deny network access"),
@@ -456,7 +453,7 @@ describe("ArtifactPipeline", () => {
       ];
       for (const r of rules) {
         storage.rules.create(r);
-        pipeline.compileRule(r);
+        await pipeline.compileRule(r);
       }
 
       const guards = pipeline.getActiveGuards();
@@ -467,10 +464,10 @@ describe("ArtifactPipeline", () => {
       }
     });
 
-    it("returns empty array when no guards exist", () => {
+    it("returns empty array when no guards exist", async () => {
       const rule = makeRule("Be polite");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       const guards = pipeline.getActiveGuards();
       expect(guards).toHaveLength(0);
@@ -478,10 +475,10 @@ describe("ArtifactPipeline", () => {
   });
 
   describe("removeArtifacts", () => {
-    it("removes all artifacts for a given rule", () => {
+    it("removes all artifacts for a given rule", async () => {
       const rule = makeRule("Be polite");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       // Verify artifact exists
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(1);
@@ -492,14 +489,14 @@ describe("ArtifactPipeline", () => {
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(0);
     });
 
-    it("does not affect artifacts of other rules", () => {
+    it("does not affect artifacts of other rules", async () => {
       const rule1 = makeRule("Be polite");
       const rule2 = makeRule("Block dangerous things");
 
       storage.rules.create(rule1);
       storage.rules.create(rule2);
-      pipeline.compileRule(rule1);
-      pipeline.compileRule(rule2);
+      await pipeline.compileRule(rule1);
+      await pipeline.compileRule(rule2);
 
       pipeline.removeArtifacts(rule1.id);
 
@@ -512,10 +509,10 @@ describe("ArtifactPipeline", () => {
       expect(() => pipeline.removeArtifacts(randomUUID())).not.toThrow();
     });
 
-    it("removed artifacts no longer appear in getCompiledPolicyView", () => {
+    it("removed artifacts no longer appear in getCompiledPolicyView", async () => {
       const rule = makeRule("Important policy");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       expect(pipeline.getCompiledPolicyView()).toContain("[POLICY] Important policy");
 
@@ -524,10 +521,10 @@ describe("ArtifactPipeline", () => {
       expect(pipeline.getCompiledPolicyView()).toBe("");
     });
 
-    it("removed guard artifacts no longer appear in getActiveGuards", () => {
+    it("removed guard artifacts no longer appear in getActiveGuards", async () => {
       const rule = makeRule("Block everything");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       expect(pipeline.getActiveGuards()).toHaveLength(1);
 

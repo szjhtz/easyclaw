@@ -1,16 +1,33 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { randomBytes } from "node:crypto";
 import { createLogger } from "@easyclaw/logger";
 
 const log = createLogger("gateway:config");
+
+/** Generate a random hex token for gateway auth. */
+export function generateGatewayToken(): string {
+  return randomBytes(32).toString("hex");
+}
 
 /** Minimal OpenClaw config structure that EasyClaw manages. */
 export interface OpenClawGatewayConfig {
   gateway?: {
     port?: number;
+    auth?: {
+      mode?: "token";
+      token?: string;
+    };
   };
-  plugins?: string[];
+  agents?: {
+    defaults?: {
+      model?: {
+        primary?: string;
+      };
+    };
+  };
+  plugins?: Record<string, unknown>;
   skills?: {
     load?: {
       extraDirs?: string[];
@@ -65,10 +82,16 @@ export interface WriteGatewayConfigOptions {
   configPath?: string;
   /** The gateway HTTP port. */
   gatewayPort?: number;
-  /** Array of plugin paths for OpenClaw to load. */
-  pluginPaths?: string[];
+  /** Auth token for the gateway. Auto-generated if not provided in ensureGatewayConfig. */
+  gatewayToken?: string;
+  /** Default model configuration (provider + model ID). */
+  defaultModel?: { provider: string; modelId: string };
+  /** Plugin configuration object for OpenClaw. */
+  plugins?: Record<string, unknown>;
   /** Array of extra skill directories for OpenClaw to load. */
   extraSkillDirs?: string[];
+  /** Enable the OpenAI-compatible /v1/chat/completions endpoint (disabled by default in OpenClaw). */
+  enableChatCompletions?: boolean;
 }
 
 /**
@@ -94,18 +117,89 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   const config: Record<string, unknown> = { ...existing };
 
   // Gateway section
-  if (options.gatewayPort !== undefined) {
-    config.gateway = {
-      ...(typeof config.gateway === "object" && config.gateway !== null
+  if (options.gatewayPort !== undefined || options.gatewayToken !== undefined) {
+    const existingGateway =
+      typeof config.gateway === "object" && config.gateway !== null
         ? (config.gateway as Record<string, unknown>)
-        : {}),
-      port: options.gatewayPort,
+        : {};
+
+    const merged: Record<string, unknown> = { ...existingGateway };
+
+    if (options.gatewayPort !== undefined) {
+      merged.port = options.gatewayPort;
+      merged.mode = existingGateway.mode ?? "local";
+    }
+
+    if (options.gatewayToken !== undefined) {
+      const existingAuth =
+        typeof existingGateway.auth === "object" && existingGateway.auth !== null
+          ? (existingGateway.auth as Record<string, unknown>)
+          : {};
+      merged.auth = {
+        ...existingAuth,
+        mode: "token",
+        token: options.gatewayToken,
+      };
+    }
+
+    config.gateway = merged;
+  }
+
+  // Enable /v1/chat/completions endpoint (used by rule compilation pipeline)
+  if (options.enableChatCompletions !== undefined) {
+    const existingGateway =
+      typeof config.gateway === "object" && config.gateway !== null
+        ? (config.gateway as Record<string, unknown>)
+        : {};
+    const existingHttp =
+      typeof existingGateway.http === "object" && existingGateway.http !== null
+        ? (existingGateway.http as Record<string, unknown>)
+        : {};
+    const existingEndpoints =
+      typeof existingHttp.endpoints === "object" && existingHttp.endpoints !== null
+        ? (existingHttp.endpoints as Record<string, unknown>)
+        : {};
+    config.gateway = {
+      ...existingGateway,
+      http: {
+        ...existingHttp,
+        endpoints: {
+          ...existingEndpoints,
+          chatCompletions: { enabled: options.enableChatCompletions },
+        },
+      },
     };
   }
 
-  // Plugins (EasyClaw owns this list entirely)
-  if (options.pluginPaths !== undefined) {
-    config.plugins = options.pluginPaths;
+  // Default model selection → agents.defaults.model.primary
+  if (options.defaultModel !== undefined) {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const existingModel =
+      typeof existingDefaults.model === "object" && existingDefaults.model !== null
+        ? (existingDefaults.model as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        model: {
+          ...existingModel,
+          primary: `${options.defaultModel.provider}/${options.defaultModel.modelId}`,
+        },
+      },
+    };
+  }
+
+  // Plugins (EasyClaw owns this object entirely)
+  if (options.plugins !== undefined) {
+    config.plugins = options.plugins;
   }
 
   // Skills extra dirs
@@ -151,7 +245,9 @@ export function ensureGatewayConfig(options?: {
     return writeGatewayConfig({
       configPath,
       gatewayPort: options?.gatewayPort ?? DEFAULT_GATEWAY_PORT,
-      pluginPaths: [],
+      gatewayToken: generateGatewayToken(),
+      enableChatCompletions: true,
+      plugins: {},
       extraSkillDirs: [],
     });
   }

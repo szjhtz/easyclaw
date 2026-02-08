@@ -89,7 +89,7 @@ describe("skill-lifecycle", () => {
 
   beforeEach(() => {
     storage = createStorage(":memory:");
-    pipeline = new ArtifactPipeline(storage);
+    pipeline = new ArtifactPipeline({ storage });
     tmpDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-test-"));
   });
 
@@ -103,10 +103,10 @@ describe("skill-lifecycle", () => {
   // -------------------------------------------------------------------------
 
   describe("materializeSkill", () => {
-    it("writes a SKILL.md file and returns the output path for action-bundle artifacts", () => {
+    it("writes a SKILL.md file and returns the output path for action-bundle artifacts", async () => {
       const rule = makeRule("Enable the capability to search the web");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.type).toBe("action-bundle");
 
@@ -121,10 +121,10 @@ describe("skill-lifecycle", () => {
       expect(fileContent).toBe(artifact.content);
     });
 
-    it("returns undefined for non-action-bundle artifacts (policy-fragment)", () => {
+    it("returns undefined for non-action-bundle artifacts (policy-fragment)", async () => {
       const rule = makeRule("Always be polite and helpful");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.type).toBe("policy-fragment");
 
@@ -132,10 +132,10 @@ describe("skill-lifecycle", () => {
       expect(result).toBeUndefined();
     });
 
-    it("returns undefined for non-action-bundle artifacts (guard)", () => {
+    it("returns undefined for non-action-bundle artifacts (guard)", async () => {
       const rule = makeRule("Block all access to admin panel");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       expect(artifact.type).toBe("guard");
 
@@ -143,10 +143,10 @@ describe("skill-lifecycle", () => {
       expect(result).toBeUndefined();
     });
 
-    it("writes the skill file into a subdirectory named after the skill", () => {
+    it("writes the skill file into a subdirectory named after the skill", async () => {
       const rule = makeRule("Add a skill to summarize documents");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       const outputPath = materializeSkill(artifact, tmpDir);
 
@@ -163,10 +163,10 @@ describe("skill-lifecycle", () => {
   // -------------------------------------------------------------------------
 
   describe("dematerializeSkill", () => {
-    it("removes a skill file when artifact has outputPath", () => {
+    it("removes a skill file when artifact has outputPath", async () => {
       const rule = makeRule("Enable the capability to parse PDFs");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       // First materialize
       const outputPath = materializeSkill(artifact, tmpDir);
@@ -183,20 +183,20 @@ describe("skill-lifecycle", () => {
       expect(existsSync(outputPath!)).toBe(false);
     });
 
-    it("returns false when artifact has no outputPath", () => {
+    it("returns false when artifact has no outputPath", async () => {
       const rule = makeRule("Enable the capability to search");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       // No outputPath set
       const removed = dematerializeSkill(artifact);
       expect(removed).toBe(false);
     });
 
-    it("returns false when the file does not exist", () => {
+    it("returns false when the file does not exist", async () => {
       const rule = makeRule("Enable the capability to run scripts");
       storage.rules.create(rule);
-      const artifact = pipeline.compileRule(rule);
+      const artifact = await pipeline.compileRule(rule);
 
       // Set a non-existent path
       artifact.outputPath = join(tmpDir, "nonexistent", "SKILL.md");
@@ -211,11 +211,11 @@ describe("skill-lifecycle", () => {
   // -------------------------------------------------------------------------
 
   describe("syncSkillsForRule", () => {
-    it("compiles an action-bundle rule, materializes skill, and updates outputPath in storage", () => {
+    it("compiles an action-bundle rule, materializes skill, and updates outputPath in storage", async () => {
       const rule = makeRule("Enable the capability to translate languages");
       storage.rules.create(rule);
 
-      const artifact = syncSkillsForRule(pipeline, rule, tmpDir);
+      const artifact = await syncSkillsForRule(pipeline, rule, tmpDir);
 
       expect(artifact.type).toBe("action-bundle");
       expect(artifact.status).toBe("ok");
@@ -228,25 +228,25 @@ describe("skill-lifecycle", () => {
       expect(storedArtifacts[0]!.outputPath).toBe(artifact.outputPath);
     });
 
-    it("compiles a policy-fragment rule without materializing any skill", () => {
+    it("compiles a policy-fragment rule without materializing any skill", async () => {
       const rule = makeRule("Always respond in a professional tone");
       storage.rules.create(rule);
 
-      const artifact = syncSkillsForRule(pipeline, rule, tmpDir);
+      const artifact = await syncSkillsForRule(pipeline, rule, tmpDir);
 
       expect(artifact.type).toBe("policy-fragment");
       expect(artifact.status).toBe("ok");
       expect(artifact.outputPath).toBeUndefined();
     });
 
-    it("dematerializes old skill when artifact type changes from action-bundle to non-action-bundle", () => {
+    it("dematerializes old skill when artifact type changes from action-bundle to non-action-bundle", async () => {
       const ruleId = randomUUID();
 
       // First: create as action-bundle
       const rule1 = makeRule("Enable the capability to run scripts", ruleId);
       storage.rules.create(rule1);
 
-      const artifact1 = syncSkillsForRule(pipeline, rule1, tmpDir);
+      const artifact1 = await syncSkillsForRule(pipeline, rule1, tmpDir);
       expect(artifact1.type).toBe("action-bundle");
       expect(artifact1.outputPath).toBeDefined();
       const skillPath = artifact1.outputPath!;
@@ -256,14 +256,14 @@ describe("skill-lifecycle", () => {
       const rule2: Rule = { ...rule1, text: "Block all dangerous file operations" };
       storage.rules.update(ruleId, { text: rule2.text });
 
-      const artifact2 = syncSkillsForRule(pipeline, rule2, tmpDir);
+      const artifact2 = await syncSkillsForRule(pipeline, rule2, tmpDir);
 
       expect(artifact2.type).toBe("guard");
       // The old skill file should have been removed
       expect(existsSync(skillPath)).toBe(false);
     });
 
-    it("end-to-end: create rule -> compile -> skill appears on disk", () => {
+    it("end-to-end: create rule -> compile -> skill appears on disk", async () => {
       const rule = makeRule("Add a skill to summarize documents");
       storage.rules.create(rule);
 
@@ -271,7 +271,7 @@ describe("skill-lifecycle", () => {
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(0);
 
       // Sync
-      const artifact = syncSkillsForRule(pipeline, rule, tmpDir);
+      const artifact = await syncSkillsForRule(pipeline, rule, tmpDir);
 
       // After sync: artifact exists, file on disk
       expect(artifact.type).toBe("action-bundle");
@@ -288,12 +288,12 @@ describe("skill-lifecycle", () => {
       expect(stored[0]!.outputPath).toBe(artifact.outputPath);
     });
 
-    it("recompiles an action-bundle rule and updates the skill file", () => {
+    it("recompiles an action-bundle rule and updates the skill file", async () => {
       const ruleId = randomUUID();
       const rule1 = makeRule("Enable the capability to search the web", ruleId);
       storage.rules.create(rule1);
 
-      const artifact1 = syncSkillsForRule(pipeline, rule1, tmpDir);
+      const artifact1 = await syncSkillsForRule(pipeline, rule1, tmpDir);
       expect(artifact1.outputPath).toBeDefined();
       const firstPath = artifact1.outputPath!;
 
@@ -301,7 +301,7 @@ describe("skill-lifecycle", () => {
       const rule2: Rule = { ...rule1, text: "Enable the capability to parse JSON data" };
       storage.rules.update(ruleId, { text: rule2.text });
 
-      const artifact2 = syncSkillsForRule(pipeline, rule2, tmpDir);
+      const artifact2 = await syncSkillsForRule(pipeline, rule2, tmpDir);
       expect(artifact2.type).toBe("action-bundle");
       expect(artifact2.outputPath).toBeDefined();
 
@@ -321,12 +321,12 @@ describe("skill-lifecycle", () => {
   // -------------------------------------------------------------------------
 
   describe("cleanupSkillsForDeletedRule", () => {
-    it("removes skill file and artifacts when a rule is deleted", () => {
+    it("removes skill file and artifacts when a rule is deleted", async () => {
       const rule = makeRule("Enable the capability to search files");
       storage.rules.create(rule);
 
       // Sync to create artifact and skill file
-      const artifact = syncSkillsForRule(pipeline, rule, tmpDir);
+      const artifact = await syncSkillsForRule(pipeline, rule, tmpDir);
       expect(artifact.type).toBe("action-bundle");
       expect(artifact.outputPath).toBeDefined();
       expect(existsSync(artifact.outputPath!)).toBe(true);
@@ -344,10 +344,10 @@ describe("skill-lifecycle", () => {
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(0);
     });
 
-    it("removes artifacts even for non-action-bundle rules (no skill file to remove)", () => {
+    it("removes artifacts even for non-action-bundle rules (no skill file to remove)", async () => {
       const rule = makeRule("Always be polite");
       storage.rules.create(rule);
-      pipeline.compileRule(rule);
+      await pipeline.compileRule(rule);
 
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(1);
 
@@ -365,12 +365,12 @@ describe("skill-lifecycle", () => {
       ).not.toThrow();
     });
 
-    it("handles multiple action-bundle artifacts for the same rule (edge case)", () => {
+    it("handles multiple action-bundle artifacts for the same rule (edge case)", async () => {
       // In practice there should be exactly one, but test robustness
       const rule = makeRule("Enable the capability to translate");
       storage.rules.create(rule);
 
-      const artifact = syncSkillsForRule(pipeline, rule, tmpDir);
+      const artifact = await syncSkillsForRule(pipeline, rule, tmpDir);
       expect(artifact.outputPath).toBeDefined();
       expect(existsSync(artifact.outputPath!)).toBe(true);
 

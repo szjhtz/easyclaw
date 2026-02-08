@@ -59,6 +59,80 @@ export async function updateSettings(settings: Record<string, string>): Promise<
   });
 }
 
+export async function validateApiKey(
+  provider: string,
+  apiKey: string,
+): Promise<{ valid: boolean; error?: string }> {
+  return fetchJson("/settings/validate-key", {
+    method: "POST",
+    body: JSON.stringify({ provider, apiKey }),
+  });
+}
+
+// --- Provider Keys ---
+
+export interface ProviderKeyEntry {
+  id: string;
+  provider: string;
+  label: string;
+  model: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchProviderKeys(): Promise<ProviderKeyEntry[]> {
+  const data = await fetchJson<{ keys: ProviderKeyEntry[] }>("/provider-keys");
+  return data.keys;
+}
+
+export async function createProviderKey(data: {
+  provider: string;
+  label: string;
+  model: string;
+  apiKey: string;
+}): Promise<ProviderKeyEntry> {
+  return fetchJson<ProviderKeyEntry>("/provider-keys", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProviderKey(
+  id: string,
+  fields: { label?: string; model?: string },
+): Promise<ProviderKeyEntry> {
+  return fetchJson<ProviderKeyEntry>("/provider-keys/" + id, {
+    method: "PUT",
+    body: JSON.stringify(fields),
+  });
+}
+
+export async function activateProviderKey(id: string): Promise<void> {
+  await fetchJson("/provider-keys/" + id + "/activate", { method: "POST" });
+}
+
+export async function deleteProviderKey(id: string): Promise<void> {
+  await fetchJson("/provider-keys/" + id, { method: "DELETE" });
+}
+
+// --- Model Catalog ---
+
+export interface CatalogModelEntry {
+  id: string;
+  name: string;
+}
+
+/**
+ * Fetch the dynamic model catalog from the gateway's models.json.
+ * Returns a map of provider → model list.
+ * Empty object if models.json doesn't exist yet (gateway not started).
+ */
+export async function fetchModelCatalog(): Promise<Record<string, CatalogModelEntry[]>> {
+  const data = await fetchJson<{ models: Record<string, CatalogModelEntry[]> }>("/models");
+  return data.models;
+}
+
 // --- Channels ---
 
 export interface Channel {
@@ -74,11 +148,15 @@ export async function fetchChannels(): Promise<Channel[]> {
   return data.channels;
 }
 
-export async function updateChannels(channels: Channel[]): Promise<void> {
-  await fetchJson("/channels", {
-    method: "PUT",
-    body: JSON.stringify({ channels }),
+export async function createChannel(channel: Omit<Channel, "id">): Promise<Channel> {
+  return fetchJson<Channel>("/channels", {
+    method: "POST",
+    body: JSON.stringify(channel),
   });
+}
+
+export async function deleteChannel(id: string): Promise<void> {
+  await fetchJson("/channels/" + id, { method: "DELETE" });
 }
 
 // --- Permissions ---
@@ -98,6 +176,15 @@ export async function updatePermissions(permissions: Permissions): Promise<void>
     method: "PUT",
     body: JSON.stringify(permissions),
   });
+}
+
+// --- File Dialog ---
+
+export async function openFileDialog(): Promise<string | null> {
+  const data = await fetchJson<{ path: string | null }>("/file-dialog", {
+    method: "POST",
+  });
+  return data.path;
 }
 
 // --- Status ---

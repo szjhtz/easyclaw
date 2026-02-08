@@ -6,16 +6,20 @@ directories:
 
 files:
   - dist/**
+  - build/trayIcon.png
+  - build/trayIcon@2x.png
   - node_modules/**
   - package.json
 
 extraMetadata:
-  main: dist/main.mjs
+  main: dist/main.cjs
 
 asar: true
+icon: build/icon
 
 mac:
   category: public.app-category.developer-tools
+  icon: build/icon.icns
   target:
     - target: dmg
       arch: universal
@@ -29,11 +33,15 @@ mac:
   notarize: false
 
 dmg:
+  background: build/dmg-background.png
+  window:
+    width: 540
+    height: 380
   contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
+    - x: 140
+      y: 200
+    - x: 400
+      y: 200
       type: link
       path: /Applications
 
