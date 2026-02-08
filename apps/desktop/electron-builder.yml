@@ -27,7 +27,6 @@ extraResources:
       - "openclaw.mjs"
       - "package.json"
       - "dist/**"
-      - "node_modules/**"
       - "extensions/**"
       - "!extensions/**/node_modules/**"
       - "packages/**"
@@ -64,4 +63,5 @@ dmg:
       type: link
       path: /Applications
 
+afterPack: scripts/copy-vendor-deps.cjs
 afterSign: scripts/notarize.cjs
