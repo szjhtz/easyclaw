@@ -78,13 +78,13 @@ let vendorCatalogCache: Record<string, CatalogModelEntry[]> | null = null;
  *
  * Results are cached in memory after the first call.
  */
-export async function readVendorModelCatalog(): Promise<
-  Record<string, CatalogModelEntry[]>
-> {
+export async function readVendorModelCatalog(
+  vendorDirOverride?: string,
+): Promise<Record<string, CatalogModelEntry[]>> {
   if (vendorCatalogCache) return vendorCatalogCache;
 
   try {
-    const vendorDir = resolveVendorDir();
+    const vendorDir = resolveVendorDir(vendorDirOverride);
     const piAiModelsPath = join(
       vendorDir,
       "node_modules",
@@ -152,9 +152,10 @@ export async function readVendorModelCatalog(): Promise<
  */
 export async function readFullModelCatalog(
   env?: Record<string, string | undefined>,
+  vendorDir?: string,
 ): Promise<Record<string, CatalogModelEntry[]>> {
   const [vendor, gateway] = await Promise.all([
-    readVendorModelCatalog(),
+    readVendorModelCatalog(vendorDir),
     Promise.resolve(readGatewayModelCatalog(env)),
   ]);
 

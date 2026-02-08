@@ -592,6 +592,8 @@ export interface PanelServerOptions {
   onPermissionsChange?: () => void;
   /** Callback fired when a channel account is created or updated. */
   onChannelConfigured?: (channelId: string) => void;
+  /** Override path to the vendored OpenClaw directory (for packaged app). */
+  vendorDir?: string;
 }
 
 /**
@@ -769,7 +771,7 @@ async function syncActiveKey(
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? 3210;
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured } = options;
+  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, vendorDir } = options;
 
   // Start pairing notifier to send follow-up messages to Telegram users
   const pairingNotifier = startPairingNotifier();
@@ -1357,7 +1359,7 @@ async function handleApiRoute(
 
   // --- Model Catalog ---
   if (pathname === "/api/models" && req.method === "GET") {
-    const catalog = await readFullModelCatalog();
+    const catalog = await readFullModelCatalog(undefined, vendorDir);
     sendJson(res, 200, { models: catalog });
     return;
   }

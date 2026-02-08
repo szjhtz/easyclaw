@@ -506,8 +506,8 @@ describe("config-writer", () => {
   });
 
   describe("DEFAULT_GATEWAY_PORT", () => {
-    it("is 18789", () => {
-      expect(DEFAULT_GATEWAY_PORT).toBe(18789);
+    it("is 28789", () => {
+      expect(DEFAULT_GATEWAY_PORT).toBe(28789);
     });
   });
 

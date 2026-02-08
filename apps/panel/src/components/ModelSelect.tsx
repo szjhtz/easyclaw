@@ -13,7 +13,10 @@ function loadCatalog(): Promise<Record<string, CatalogModelEntry[]>> {
   if (fetchPromise) return fetchPromise;
   fetchPromise = fetchModelCatalog()
     .then((catalog) => {
-      cachedCatalog = catalog;
+      // Only cache non-empty results; empty means gateway/vendor not ready yet
+      if (Object.keys(catalog).length > 0) {
+        cachedCatalog = catalog;
+      }
       fetchPromise = null;
       return catalog;
     })

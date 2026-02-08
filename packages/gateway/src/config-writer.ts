@@ -86,8 +86,8 @@ export interface OpenClawGatewayConfig {
   };
 }
 
-/** Default OpenClaw gateway port. */
-export const DEFAULT_GATEWAY_PORT = 18789;
+/** Default OpenClaw gateway port (28789 to avoid collision with standalone OpenClaw on 18789). */
+export const DEFAULT_GATEWAY_PORT = 28789;
 
 /** Resolve the OpenClaw state directory, respecting OPENCLAW_STATE_DIR env var. */
 export function resolveOpenClawStateDir(

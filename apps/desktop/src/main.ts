@@ -608,6 +608,7 @@ app.whenReady().then(async () => {
   startPanelServer({
     port: PANEL_PORT,
     panelDistDir,
+    vendorDir,
     storage,
     secretStore,
     getRpcClient: () => rpcClient,

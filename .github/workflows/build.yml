@@ -22,11 +22,13 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Clone OpenClaw dependency
+      - name: Setup OpenClaw vendor
         run: |
           git clone https://github.com/openclaw/openclaw.git vendor/openclaw
           cd vendor/openclaw
           git checkout e78ae48e6
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -85,11 +87,13 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Clone OpenClaw dependency
+      - name: Setup OpenClaw vendor
         run: |
           git clone https://github.com/openclaw/openclaw.git vendor/openclaw
           cd vendor/openclaw
           git checkout e78ae48e6
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
