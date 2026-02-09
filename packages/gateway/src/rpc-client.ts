@@ -47,6 +47,12 @@ export interface GatewayRpcClientOptions {
   onClose?: () => void;
   /** Callback fired on gateway events */
   onEvent?: (evt: GatewayEventFrame) => void;
+  /** Enable automatic reconnection (default: true) */
+  autoReconnect?: boolean;
+  /** Initial reconnect delay in ms (default: 1000). Doubles each attempt up to maxReconnectDelay. */
+  reconnectDelay?: number;
+  /** Maximum reconnect delay in ms (default: 30000) */
+  maxReconnectDelay?: number;
 }
 
 /**
@@ -58,6 +64,8 @@ export class GatewayRpcClient {
   private pending = new Map<string, Pending>();
   private closed = false;
   private connected = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempt = 0;
 
   constructor(private opts: GatewayRpcClientOptions) {}
 
@@ -66,7 +74,13 @@ export class GatewayRpcClient {
    */
   async start(): Promise<void> {
     this.closed = false;
-    await this.connect();
+    this.reconnectAttempt = 0;
+    try {
+      await this.connect();
+    } catch {
+      // Initial connect failed — scheduleReconnect() was already called from the
+      // close handler, so we don't throw; the client will keep retrying in the background.
+    }
   }
 
   /**
@@ -74,6 +88,11 @@ export class GatewayRpcClient {
    */
   stop(): void {
     this.closed = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempt = 0;
     this.ws?.close();
     this.ws = null;
     this.connected = false;
@@ -143,16 +162,22 @@ export class GatewayRpcClient {
       log.info(`Connecting to gateway at ${this.opts.url}...`);
 
       this.ws = new WebSocket(this.opts.url);
+      let settled = false;
 
       this.ws.on("open", () => {
         log.info("Gateway WebSocket opened");
         void this.sendConnect()
           .then(() => {
             this.connected = true;
+            this.reconnectAttempt = 0;
             this.opts.onConnect?.();
+            settled = true;
             resolve();
           })
-          .catch(reject);
+          .catch((err) => {
+            settled = true;
+            reject(err);
+          });
       });
 
       this.ws.on("message", (data) => {
@@ -165,15 +190,38 @@ export class GatewayRpcClient {
         this.connected = false;
         this.flushPending(new Error(`Gateway closed (${code}): ${reason.toString()}`));
         this.opts.onClose?.();
+        this.scheduleReconnect();
       });
 
       this.ws.on("error", (err) => {
         log.error("Gateway WebSocket error:", err);
-        if (!this.connected) {
+        if (!settled) {
+          settled = true;
           reject(err);
         }
       });
     });
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closed || (this.opts.autoReconnect === false)) {
+      return;
+    }
+
+    const baseDelay = this.opts.reconnectDelay ?? 1000;
+    const maxDelay = this.opts.maxReconnectDelay ?? 30000;
+    const delay = Math.min(baseDelay * Math.pow(2, this.reconnectAttempt), maxDelay);
+    this.reconnectAttempt++;
+
+    log.info(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempt})`);
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect().catch((err) => {
+        log.error("Reconnect failed:", err);
+        // connect() failure triggers ws close → scheduleReconnect() will be called again
+      });
+    }, delay);
   }
 
   private async sendConnect(): Promise<void> {

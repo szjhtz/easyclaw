@@ -340,12 +340,7 @@ app.whenReady().then(async () => {
       },
     });
 
-    try {
-      await rpcClient.start();
-    } catch (err) {
-      log.error("Failed to connect RPC client:", err);
-      rpcClient = null;
-    }
+    await rpcClient.start();
   }
 
   function disconnectRpcClient(): void {
@@ -514,13 +509,12 @@ app.whenReady().then(async () => {
     log.info("Config updated, using SIGUSR1 graceful reload");
     await launcher.reload();
 
-    // Reconnect RPC client after reload to ensure fresh WebSocket connection
-    // The gateway's graceful reload may close existing WS connections
-    setTimeout(() => {
-      connectRpcClient().catch((err) => {
-        log.error("Failed to reconnect RPC client after config reload:", err);
-      });
-    }, 2000); // Wait 2s for gateway to complete reload
+    // Reconnect RPC client after reload to ensure fresh WebSocket connection.
+    // The gateway's graceful reload closes existing WS connections;
+    // auto-reconnect with backoff handles the timing.
+    connectRpcClient().catch((err) => {
+      log.error("Failed to initiate RPC client reconnect after config reload:", err);
+    });
   }
 
   // Determine system locale for tray menu i18n
@@ -557,12 +551,10 @@ app.whenReady().then(async () => {
     log.info("Gateway started");
     updateTray("running");
 
-    // Connect RPC client when gateway is ready
-    setTimeout(() => {
-      connectRpcClient().catch((err) => {
-        log.error("Failed to connect RPC client after gateway start:", err);
-      });
-    }, 3500); // Wait 3.5s for gateway to fully initialize (including proxy router startup)
+    // Connect RPC client — auto-reconnect with backoff handles gateway not being ready yet
+    connectRpcClient().catch((err) => {
+      log.error("Failed to initiate RPC client after gateway start:", err);
+    });
 
     if (firstStart) {
       firstStart = false;
