@@ -1,4 +1,4 @@
-import { app, Tray, shell, dialog } from "electron";
+import { app, Tray, shell, dialog, Notification } from "electron";
 import { createLogger, enableFileLogging } from "@easyclaw/logger";
 import {
   GatewayLauncher,
@@ -223,6 +223,19 @@ app.whenReady().then(async () => {
     latestUpdateResult = result;
     if (result.updateAvailable) {
       log.info(`Update available: v${result.latestVersion}`);
+      const isZh = systemLocale === "zh";
+      const notification = new Notification({
+        title: isZh ? "EasyClaw 有新版本" : "EasyClaw Update Available",
+        body: isZh
+          ? `新版本 v${result.latestVersion} 已发布，点击查看详情。`
+          : `A new version v${result.latestVersion} is available. Click to download.`,
+      });
+      if (result.download) {
+        notification.on("click", () => {
+          shell.openExternal(result.download!.url);
+        });
+      }
+      notification.show();
     }
     // Refresh tray to show/hide update item
     updateTray(currentState);
@@ -562,10 +575,42 @@ app.whenReady().then(async () => {
           await launcher.stop();
           await launcher.start();
         },
-        onCheckForUpdates: () => {
-          performUpdateCheck().catch((err) => {
+        onCheckForUpdates: async () => {
+          try {
+            await performUpdateCheck();
+            const isZh = systemLocale === "zh";
+            if (latestUpdateResult?.updateAvailable && latestUpdateResult.download) {
+              const { response } = await dialog.showMessageBox({
+                type: "info",
+                title: isZh ? "发现新版本" : "Update Available",
+                message: isZh
+                  ? `新版本 v${latestUpdateResult.latestVersion} 已发布，当前版本为 v${app.getVersion()}。`
+                  : `A new version v${latestUpdateResult.latestVersion} is available. You are currently on v${app.getVersion()}.`,
+                buttons: isZh ? ["下载", "稍后"] : ["Download", "Later"],
+              });
+              if (response === 0) {
+                shell.openExternal(latestUpdateResult.download.url);
+              }
+            } else {
+              dialog.showMessageBox({
+                type: "info",
+                title: isZh ? "检查更新" : "Check for Updates",
+                message: isZh
+                  ? `当前版本 v${app.getVersion()} 已是最新。`
+                  : `v${app.getVersion()} is already the latest version.`,
+                buttons: isZh ? ["好"] : ["OK"],
+              });
+            }
+          } catch (err) {
             log.warn("Manual update check failed:", err);
-          });
+            const isZh = systemLocale === "zh";
+            dialog.showMessageBox({
+              type: "error",
+              title: isZh ? "检查更新" : "Check for Updates",
+              message: isZh ? "检查更新失败，请稍后重试。" : "Failed to check for updates. Please try again later.",
+              buttons: isZh ? ["好"] : ["OK"],
+            });
+          }
         },
         onQuit: () => {
           app.quit();
