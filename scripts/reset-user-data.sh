@@ -28,7 +28,9 @@ OPENCLAW_DIR="$HOME/.openclaw"
 
 check_running_processes() {
   local pids
-  pids=$(pgrep -f 'easyclaw|openclaw.*gateway' 2>/dev/null || true)
+  # Match the Electron app or the openclaw gateway process, but NOT dev tools
+  # like turbo/node/pnpm that happen to run inside the easyclaw directory.
+  pids=$(pgrep -f 'EasyClaw\.app|easyclaw.*Electron|openclaw.*gateway' 2>/dev/null || true)
   if [[ -n "$pids" ]]; then
     echo -e "${YELLOW}Warning: EasyClaw/OpenClaw processes are still running:${NC}"
     ps -p "$pids" -o pid,command 2>/dev/null || true

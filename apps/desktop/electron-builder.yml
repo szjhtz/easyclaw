@@ -46,8 +46,6 @@ extraResources:
 mac:
   category: public.app-category.developer-tools
   icon: build/icon.icns
-  extendInfo:
-    LSUIElement: true
   target:
     - target: dmg
       arch: universal

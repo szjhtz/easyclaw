@@ -281,7 +281,7 @@ export function ChatPage() {
         setExternalRunActive(false);
         // Surface error to user if we're waiting for a response
         if (runIdRef.current) {
-          const raw = payload.errorMessage ?? "An error occurred.";
+          const raw = payload.errorMessage ?? t("chat.unknownError");
           const errText = NO_PROVIDER_RE.test(raw) ? t("chat.noProviderError") : raw;
           setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
           setStreaming(null);
@@ -316,7 +316,7 @@ export function ChatPage() {
       }
       case "error": {
         console.error("[chat] error event:", payload.errorMessage ?? "unknown error", "runId:", payload.runId);
-        const raw = payload.errorMessage ?? "An error occurred.";
+        const raw = payload.errorMessage ?? t("chat.unknownError");
         const errText = NO_PROVIDER_RE.test(raw) ? t("chat.noProviderError") : raw;
         setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
         setStreaming(null);
@@ -456,7 +456,7 @@ export function ChatPage() {
 
     clientRef.current.request("chat.send", params).catch((err) => {
       // RPC-level failure — clear runId so UI doesn't get stuck in streaming mode
-      const raw = (err as Error).message || "Failed to send message.";
+      const raw = (err as Error).message || t("chat.sendError");
       const errText = NO_PROVIDER_RE.test(raw) ? t("chat.noProviderError") : raw;
       setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
       setStreaming(null);

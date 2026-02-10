@@ -157,7 +157,8 @@ export function ChannelsPage() {
 
     try {
       await deleteChannelAccount(channelId, accountId);
-      await loadChannelStatus(false);
+      // Delay re-fetch to give the gateway time to reload config after deletion
+      setTimeout(() => loadChannelStatus(false), 1500);
     } catch (err) {
       alert(`Failed to delete: ${String(err)}`);
     }
@@ -169,7 +170,8 @@ export function ChannelsPage() {
   }
 
   function handleModalSuccess() {
-    loadChannelStatus(false);
+    // Delay re-fetch to give the gateway time to reload config after changes
+    setTimeout(() => loadChannelStatus(false), 1500);
   }
 
   function handleManageAllowlist(channelId: string) {

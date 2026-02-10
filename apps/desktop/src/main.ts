@@ -353,6 +353,7 @@ app.whenReady().then(async () => {
     },
     extraProviders: buildExtraProviderConfigs(),
     forceStandaloneBrowser: true,
+    agentWorkspace: join(stateDir, "workspace"),
   });
 
   // Clean up any existing gateway processes before starting
@@ -685,7 +686,6 @@ app.whenReady().then(async () => {
     if (!isQuitting) {
       e.preventDefault();
       mainWindow!.hide();
-      app.dock?.hide();
     }
   });
 

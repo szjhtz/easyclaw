@@ -41,6 +41,8 @@ export default {
     imageTooLarge: "图片不能超过 5MB。",
     imageTypeError: "仅支持图片文件（JPEG、PNG、GIF、WebP）。",
     removeImage: "移除",
+    unknownError: "发生错误。",
+    sendError: "消息发送失败。",
   },
   rules: {
     title: "规则",

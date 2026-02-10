@@ -222,6 +222,9 @@ export interface WriteGatewayConfigOptions {
   filePermissionsPluginPath?: string;
   /** Skip OpenClaw bootstrap (prevents creating template files like AGENTS.md on first startup). */
   skipBootstrap?: boolean;
+  /** Agent workspace directory. Written as agents.defaults.workspace so OpenClaw stores
+   *  SOUL.md, USER.md, memory/ etc. under the EasyClaw-managed state dir instead of ~/.openclaw/workspace. */
+  agentWorkspace?: string;
   /**
    * Force standalone browser mode ("openclaw" driver) and disable Chrome extension relay.
    * When true, sets browser.defaultProfile to "openclaw" and overrides the "chrome" profile
@@ -364,7 +367,8 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
   }
 
   // Skip bootstrap (prevents OpenClaw from creating template files on first startup)
-  if (options.skipBootstrap !== undefined) {
+  // Agent workspace directory (agents.defaults.workspace)
+  if (options.skipBootstrap !== undefined || options.agentWorkspace !== undefined) {
     const existingAgents =
       typeof config.agents === "object" && config.agents !== null
         ? (config.agents as Record<string, unknown>)
@@ -373,11 +377,18 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
         ? (existingAgents.defaults as Record<string, unknown>)
         : {};
+    const patch: Record<string, unknown> = {};
+    if (options.skipBootstrap !== undefined) {
+      patch.skipBootstrap = options.skipBootstrap;
+    }
+    if (options.agentWorkspace !== undefined) {
+      patch.workspace = options.agentWorkspace;
+    }
     config.agents = {
       ...existingAgents,
       defaults: {
         ...existingDefaults,
-        skipBootstrap: options.skipBootstrap,
+        ...patch,
       },
     };
   }

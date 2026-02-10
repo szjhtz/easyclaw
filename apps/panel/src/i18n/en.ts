@@ -41,6 +41,8 @@ export default {
     imageTooLarge: "Image must be under 5MB.",
     imageTypeError: "Only image files (JPEG, PNG, GIF, WebP) are supported.",
     removeImage: "Remove",
+    unknownError: "An error occurred.",
+    sendError: "Failed to send message.",
   },
   rules: {
     title: "Rules",

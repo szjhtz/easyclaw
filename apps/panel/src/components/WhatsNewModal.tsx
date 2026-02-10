@@ -31,6 +31,7 @@ export function WhatsNewModal({
       onClose={handleClose}
       title={isZh ? "更新内容" : "What's New"}
       maxWidth={480}
+      hideCloseButton
     >
       {entry && (
         <>
