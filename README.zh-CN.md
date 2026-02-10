@@ -49,13 +49,7 @@ EasyClaw 通过 OpenClaw 插件在工具调用*执行前*拦截并验证文件�
 
 ```bash
 # 1. 克隆并构建内置的 OpenClaw 运行时
-git clone https://github.com/openclaw/openclaw.git vendor/openclaw
-cd vendor/openclaw
-git checkout e78ae48e6
-echo 'node-linker=hoisted' > .npmrc
-pnpm install --no-frozen-lockfile
-pnpm run build
-cd ../..
+./scripts/setup-vendor.sh
 
 # 2. 安装工作区依赖并构建
 pnpm install

@@ -49,13 +49,7 @@ EasyClaw enforces file access permissions through an OpenClaw plugin that interc
 
 ```bash
 # 1. Clone and build the vendored OpenClaw runtime
-git clone https://github.com/openclaw/openclaw.git vendor/openclaw
-cd vendor/openclaw
-git checkout e78ae48e6
-echo 'node-linker=hoisted' > .npmrc
-pnpm install --no-frozen-lockfile
-pnpm run build
-cd ../..
+./scripts/setup-vendor.sh
 
 # 2. Install workspace dependencies and build
 pnpm install

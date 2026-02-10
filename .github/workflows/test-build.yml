@@ -22,14 +22,7 @@ jobs:
 
       - name: Setup OpenClaw vendor
         shell: bash
-        run: |
-          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
-          cd vendor/openclaw
-          git checkout e78ae48e6
-          echo 'node-linker=hoisted' > .npmrc
-          pnpm install --no-frozen-lockfile
-          pnpm run build
-          rm -f .gitignore
+        run: ./scripts/setup-vendor.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -55,14 +48,7 @@ jobs:
           cache: pnpm
 
       - name: Setup OpenClaw vendor
-        run: |
-          git clone https://github.com/openclaw/openclaw.git vendor/openclaw
-          cd vendor/openclaw
-          git checkout e78ae48e6
-          echo 'node-linker=hoisted' > .npmrc
-          pnpm install --no-frozen-lockfile
-          pnpm run build
-          rm -f .gitignore
+        run: ./scripts/setup-vendor.sh
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
