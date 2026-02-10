@@ -505,7 +505,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       defaultProfile: "openclaw",
       profiles: {
         ...existingProfiles,
-        chrome: { driver: "clawd", color: "#00AA00" },
+        chrome: { driver: "clawd", cdpPort: (options.gatewayPort ?? DEFAULT_GATEWAY_PORT) + 12, color: "#00AA00" },
       },
     };
   }
