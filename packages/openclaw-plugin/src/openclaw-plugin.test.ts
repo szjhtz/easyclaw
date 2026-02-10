@@ -33,7 +33,7 @@ function makeGuardContent(
 }
 
 // ---------------------------------------------------------------------------
-// Policy Injector Tests
+// Policy Injector Tests (without guards)
 // ---------------------------------------------------------------------------
 
 describe("createPolicyInjector", () => {
@@ -99,6 +99,215 @@ describe("createPolicyInjector", () => {
     expect(result.prependContext).toContain("Rule: always explain.");
     // Should not have a trailing newline + empty context appended
     expect(result.prependContext).not.toContain("\n\n\n");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Policy Injector Tests (with guard injection)
+// ---------------------------------------------------------------------------
+
+describe("createPolicyInjector with guards", () => {
+  it("injects guard directives into prependContext", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent(
+            "Current time is after 22:00",
+            "block",
+            "Don't disturb after 10pm",
+          ),
+        },
+      ]),
+    );
+    const ctx: AgentStartContext = { prependContext: "" };
+
+    const result = handler(ctx);
+
+    expect(result.prependContext).toContain("--- EasyClaw Guards (MUST enforce) ---");
+    expect(result.prependContext).toContain("[BLOCK]");
+    expect(result.prependContext).toContain("Current time is after 22:00");
+    expect(result.prependContext).toContain("Don't disturb after 10pm");
+    expect(result.prependContext).toContain("--- End Guards ---");
+  });
+
+  it("injects both policy and guards in correct order", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider("Be polite."),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent("tool:write_file", "block", "No writing"),
+        },
+      ]),
+    );
+    const ctx: AgentStartContext = { prependContext: "existing" };
+
+    const result = handler(ctx);
+
+    // Policy comes first
+    const policyIdx = result.prependContext.indexOf("--- EasyClaw Policy ---");
+    const guardsIdx = result.prependContext.indexOf("--- EasyClaw Guards");
+    const existingIdx = result.prependContext.indexOf("existing");
+
+    expect(policyIdx).toBeLessThan(guardsIdx);
+    expect(guardsIdx).toBeLessThan(existingIdx);
+  });
+
+  it("formats guard with different condition and reason", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent(
+            "Time is after 22:00",
+            "block",
+            "Quiet hours!",
+          ),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    // Should show both condition and reason separated by —
+    expect(result.prependContext).toContain("[BLOCK] Time is after 22:00 — Quiet hours!");
+  });
+
+  it("formats guard with same condition and reason without duplication", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent(
+            "Block all file deletions after 6pm",
+            "block",
+            "Block all file deletions after 6pm",
+          ),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    // Should NOT duplicate the text
+    expect(result.prependContext).toContain("[BLOCK] Block all file deletions after 6pm");
+    expect(result.prependContext).not.toContain("—");
+  });
+
+  it("injects multiple guards as separate lines", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent("tool:write_file", "block", "No writing"),
+        },
+        {
+          id: "g2",
+          ruleId: "r2",
+          content: makeGuardContent("path:/etc/*", "block", "System protected"),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    expect(result.prependContext).toContain("[BLOCK] tool:write_file — No writing");
+    expect(result.prependContext).toContain("[BLOCK] path:/etc/* — System protected");
+  });
+
+  it("passes through when no policy and no guards", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([]),
+    );
+    const result = handler({ prependContext: "original" });
+
+    expect(result.prependContext).toBe("original");
+  });
+
+  it("injects guards even when no policy exists", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent("tool:*", "block", "All blocked"),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    expect(result.prependContext).not.toContain("--- EasyClaw Policy ---");
+    expect(result.prependContext).toContain("--- EasyClaw Guards");
+    expect(result.prependContext).toContain("[BLOCK] tool:* — All blocked");
+  });
+
+  it("skips malformed guard content gracefully", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        { id: "g1", ruleId: "r1", content: "not json" },
+        {
+          id: "g2",
+          ruleId: "r2",
+          content: makeGuardContent("tool:exec", "block", "No exec"),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    // Malformed guard skipped, valid one injected
+    expect(result.prependContext).toContain("[BLOCK]");
+    expect(result.prependContext).toContain("No exec");
+  });
+
+  it("skips guard with no condition and no reason", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: JSON.stringify({ type: "guard", action: "block" }),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    // No guards to inject → pass through
+    expect(result.prependContext).toBe("");
+  });
+
+  it("uppercases the action in the directive", () => {
+    const handler = createPolicyInjector(
+      makePolicyProvider(""),
+      makeGuardProvider([
+        {
+          id: "g1",
+          ruleId: "r1",
+          content: makeGuardContent("tool:*", "confirm", "Please confirm"),
+        },
+      ]),
+    );
+    const result = handler({ prependContext: "" });
+
+    expect(result.prependContext).toContain("[CONFIRM]");
+  });
+
+  it("works without guardProvider (backward compatible)", () => {
+    const handler = createPolicyInjector(makePolicyProvider("A policy."));
+    const result = handler({ prependContext: "" });
+
+    expect(result.prependContext).toContain("A policy.");
+    expect(result.prependContext).not.toContain("Guards");
   });
 });
 
@@ -366,7 +575,7 @@ describe("createEasyClawPlugin", () => {
     expect(plugin.name).toBe("easyclaw");
   });
 
-  it("plugin registers both hooks", () => {
+  it("plugin registers only before_agent_start hook", () => {
     const plugin = createEasyClawPlugin({
       policyProvider: makePolicyProvider("Test policy"),
       guardProvider: makeGuardProvider([]),
@@ -382,11 +591,11 @@ describe("createEasyClawPlugin", () => {
     plugin.register(mockAPI);
 
     expect(registeredHooks).toContain("before_agent_start");
-    expect(registeredHooks).toContain("before_tool_call");
-    expect(registeredHooks).toHaveLength(2);
+    expect(registeredHooks).not.toContain("before_tool_call");
+    expect(registeredHooks).toHaveLength(1);
   });
 
-  it("full integration: policy injection + guard enforcement together", () => {
+  it("full integration: policy + guard prompt injection via before_agent_start", () => {
     const policyProvider = makePolicyProvider("Never modify system files.");
     const guardProvider = makeGuardProvider([
       {
@@ -402,16 +611,9 @@ describe("createEasyClawPlugin", () => {
 
     const plugin = createEasyClawPlugin({ policyProvider, guardProvider });
 
-    // Capture registered handlers
+    // Capture registered handler
     let agentStartHandler:
       | ((ctx: AgentStartContext) => { prependContext: string })
-      | undefined;
-    let toolCallHandler:
-      | ((ctx: ToolCallContext) => {
-          block?: boolean;
-          blockReason?: string;
-          params?: Record<string, unknown>;
-        })
       | undefined;
 
     const mockAPI: OpenClawPluginAPI = {
@@ -419,8 +621,6 @@ describe("createEasyClawPlugin", () => {
         (hookName: string, handler: (...args: unknown[]) => unknown) => {
           if (hookName === "before_agent_start") {
             agentStartHandler = handler as typeof agentStartHandler;
-          } else if (hookName === "before_tool_call") {
-            toolCallHandler = handler as typeof toolCallHandler;
           }
         },
       ) as unknown as OpenClawPluginAPI["registerHook"],
@@ -435,23 +635,8 @@ describe("createEasyClawPlugin", () => {
     expect(agentResult.prependContext).toContain(
       "Never modify system files.",
     );
-
-    // Verify guard enforcement works
-    expect(toolCallHandler).toBeDefined();
-
-    // Blocked call
-    const blockedResult = toolCallHandler!({
-      toolName: "write_file",
-      params: { path: "/etc/hosts" },
-    });
-    expect(blockedResult.block).toBe(true);
-    expect(blockedResult.blockReason).toBe("System directory protected");
-
-    // Allowed call
-    const allowedResult = toolCallHandler!({
-      toolName: "write_file",
-      params: { path: "/home/user/notes.txt" },
-    });
-    expect(allowedResult.block).toBeUndefined();
+    // Guard should also be injected into the prompt
+    expect(agentResult.prependContext).toContain("--- EasyClaw Guards (MUST enforce) ---");
+    expect(agentResult.prependContext).toContain("System directory protected");
   });
 });
