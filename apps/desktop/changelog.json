@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.1.3",
+    "date": "2026-02-10",
+    "en": [
+      "Fixed Mac dock icon: prevent child processes from showing extra dock icons",
+      "Minor UI polish for What's New dialog"
+    ],
+    "zh": [
+      "修复 Mac Dock 图标问题：阻止子进程显示多余的 Dock 图标",
+      "「新功能」弹窗 UI 微调"
+    ]
+  },
+  {
     "version": "1.1.2",
     "date": "2026-02-10",
     "en": [
