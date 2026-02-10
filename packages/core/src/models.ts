@@ -90,6 +90,29 @@ export const PROVIDER_URLS: Record<LLMProvider, string> = {
 };
 
 /**
+ * URL where users can create / manage API keys for each provider.
+ */
+export const PROVIDER_API_KEY_URLS: Record<LLMProvider, string> = {
+  openai: "https://platform.openai.com/api-keys",
+  anthropic: "https://console.anthropic.com/settings/keys",
+  google: "https://aistudio.google.com/app/apikey",
+  deepseek: "https://platform.deepseek.com/api_keys",
+  zhipu: "https://open.bigmodel.cn/usercenter/apikeys",
+  zai: "https://open.bigmodel.cn/usercenter/apikeys",
+  moonshot: "https://platform.moonshot.cn/console/api-keys",
+  qwen: "https://bailian.console.aliyun.com/#/model-market/api-key",
+  groq: "https://console.groq.com/keys",
+  mistral: "https://console.mistral.ai/api-keys",
+  xai: "https://console.x.ai/team/default/api-keys",
+  openrouter: "https://openrouter.ai/settings/keys",
+  minimax: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
+  venice: "https://venice.ai/settings/api",
+  xiaomi: "https://mimo.xiaomi.com/",
+  volcengine: "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey",
+  "amazon-bedrock": "https://console.aws.amazon.com/iam/home#/security_credentials",
+};
+
+/**
  * Maps each provider to its well-known environment variable name.
  * Used by the secret injector to pass API keys to the gateway process.
  */
@@ -146,7 +169,7 @@ export type Region = "us" | "eu" | "cn" | (string & {});
  * These are our own additions that won't appear in OpenClaw's models.json.
  */
 // CNY → USD conversion rate used for cost estimates below.
-const CNY_USD = 7.0;
+export const CNY_USD = 7.0;
 const cny = (yuan: number) => Math.round((yuan / CNY_USD) * 100) / 100;
 const FREE_COST: ModelCost = {
   input: 0,

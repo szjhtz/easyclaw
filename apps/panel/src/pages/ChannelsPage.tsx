@@ -20,6 +20,11 @@ const KNOWN_CHANNELS = [
   { id: "msteams", labelKey: "channels.channelMsteams", tutorialUrl: "https://docs.openclaw.ai/channels/msteams", tooltip: "channels.tooltipMsteams" },
 ] as const;
 
+// Channels that require services blocked in mainland China (GFW)
+const CHINA_BLOCKED_CHANNELS = new Set([
+  "telegram", "whatsapp", "discord", "signal", "line", "googlechat", "slack",
+]);
+
 function StatusBadge({ status }: { status: boolean | null | undefined }) {
   const color = status === true ? "#4caf50" : status === false ? "#f44336" : "#9e9e9e";
   const text = status === true ? "Yes" : status === false ? "No" : "Unknown";
@@ -39,7 +44,7 @@ function StatusBadge({ status }: { status: boolean | null | undefined }) {
 }
 
 export function ChannelsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [snapshot, setSnapshot] = useState<ChannelsStatusSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,10 @@ export function ChannelsPage() {
 
   // Dropdown selection state for add account
   const [selectedDropdownChannel, setSelectedDropdownChannel] = useState<string>("");
+
+  const visibleChannels = i18n.language === "zh"
+    ? KNOWN_CHANNELS.filter(ch => !CHINA_BLOCKED_CHANNELS.has(ch.id) || ch.id === selectedDropdownChannel)
+    : KNOWN_CHANNELS;
 
   async function loadChannelStatus(showLoading = true) {
     if (showLoading) setLoading(true);
@@ -273,7 +282,7 @@ export function ChannelsPage() {
               }}
             >
               <option value="" disabled>{t("channels.selectChannel")}</option>
-              {KNOWN_CHANNELS.map(ch => (
+              {visibleChannels.map(ch => (
                 <option key={ch.id} value={ch.id}>
                   {t(ch.labelKey)}
                 </option>

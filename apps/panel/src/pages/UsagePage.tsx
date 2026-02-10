@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { CNY_USD } from "@easyclaw/core";
 import { fetchUsage, type UsageSummary } from "../api.js";
 
 type TimeRange = "7d" | "30d" | "all";
 
-function formatCost(usd: number): string {
+function formatCost(usd: number, isCN: boolean): string {
+  if (isCN) {
+    const cny = usd * CNY_USD;
+    return "¥" + cny.toFixed(4);
+  }
   return "$" + usd.toFixed(4);
 }
 
@@ -15,7 +20,8 @@ function formatTokens(n: number): string {
 }
 
 export function UsagePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isCN = i18n.language === "zh";
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
@@ -140,12 +146,16 @@ export function UsagePage() {
             />
             <SummaryCard
               label={t("usage.estimatedCost")}
-              value={formatCost(summary.totalEstimatedCostUsd)}
+              value={formatCost(summary.totalEstimatedCostUsd, isCN)}
             />
             <SummaryCard
               label={t("usage.apiCalls")}
               value={String(summary.recordCount)}
             />
+          </div>
+
+          <div style={{ fontSize: 12, color: "#999", marginBottom: 16 }}>
+            {t("usage.costDisclaimer")}
           </div>
 
           {/* By Model */}
@@ -173,7 +183,7 @@ export function UsagePage() {
                     <Td>{formatTokens(data.inputTokens)}</Td>
                     <Td>{formatTokens(data.outputTokens)}</Td>
                     <Td>{formatTokens(data.totalTokens)}</Td>
-                    <Td>{formatCost(data.estimatedCostUsd)}</Td>
+                    <Td>{formatCost(data.estimatedCostUsd, isCN)}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -207,7 +217,7 @@ export function UsagePage() {
                       <Td>{formatTokens(data.inputTokens)}</Td>
                       <Td>{formatTokens(data.outputTokens)}</Td>
                       <Td>{formatTokens(data.totalTokens)}</Td>
-                      <Td>{formatCost(data.estimatedCostUsd)}</Td>
+                      <Td>{formatCost(data.estimatedCostUsd, isCN)}</Td>
                     </tr>
                   ),
                 )}

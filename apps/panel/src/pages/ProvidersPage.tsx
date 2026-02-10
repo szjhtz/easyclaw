@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { PROVIDER_URLS, getDefaultModelForProvider } from "@easyclaw/core";
+import { PROVIDER_API_KEY_URLS, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import {
   fetchSettings,
@@ -274,12 +274,12 @@ export function ProvidersPage() {
           <div style={{ marginTop: 6, fontSize: 12 }}>
             {renderHint(newProvider)}
             <a
-              href={PROVIDER_URLS[newProvider as LLMProvider]}
+              href={PROVIDER_API_KEY_URLS[newProvider as LLMProvider]}
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "#1a73e8", fontSize: 12 }}
             >
-              {t("providers.viewPricing")} &rarr;
+              {t("providers.getApiKey")} &rarr;
             </a>
           </div>
         </div>

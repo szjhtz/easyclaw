@@ -3,6 +3,10 @@ import { PROVIDER_URLS, PROVIDER_LABELS } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import type { ProviderPricing } from "../api.js";
 
+function isFree(price: string): boolean {
+  return price === "0" || price === "0.00" || price === "—";
+}
+
 export function PricingTable({
   provider,
   pricingList,
@@ -17,6 +21,11 @@ export function PricingTable({
   const data = pricingList?.find((p) => p.provider === provider) ?? null;
   const currencySymbol = data?.currency === "CNY" ? "¥" : "$";
   const providerLabel = PROVIDER_LABELS[provider as LLMProvider] ?? provider;
+
+  // Find the first free model to highlight as recommended
+  const recommendedId = data?.models.find(
+    (m) => isFree(m.inputPricePerMillion) && isFree(m.outputPricePerMillion),
+  )?.modelId ?? null;
 
   return (
     <div className="section-card" style={{ padding: "16px 18px", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", overflow: "hidden", minHeight: 0 }}>
@@ -71,26 +80,55 @@ export function PricingTable({
                 </tr>
               </thead>
               <tbody>
-                {data.models.map((m) => (
-                  <tr key={m.modelId} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                    <td style={{ padding: "5px 6px" }}>
-                      <div style={{ fontWeight: 500 }}>{m.displayName}</div>
-                      {m.note && (
-                        <div style={{ fontSize: 10, color: "#999", marginTop: 1 }}>{m.note}</div>
-                      )}
-                    </td>
-                    <td style={{ textAlign: "right", padding: "5px 6px", fontFamily: "monospace", whiteSpace: "nowrap" }}>
-                      {m.inputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.inputPricePerMillion}`}
-                    </td>
-                    <td style={{ textAlign: "right", padding: "5px 6px", fontFamily: "monospace", whiteSpace: "nowrap" }}>
-                      {m.outputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.outputPricePerMillion}`}
-                    </td>
-                  </tr>
-                ))}
+                {data.models.map((m) => {
+                  const isRecommended = m.modelId === recommendedId;
+                  const modelFree = isFree(m.inputPricePerMillion) && isFree(m.outputPricePerMillion);
+                  return (
+                    <tr
+                      key={m.modelId}
+                      style={{
+                        borderBottom: "1px solid #f0f0f0",
+                        backgroundColor: undefined,
+                      }}
+                    >
+                      <td style={{ padding: "5px 6px" }}>
+                        <div style={{ fontWeight: 500 }}>
+                          {m.displayName}
+                          {isRecommended && (
+                            <span style={{
+                              marginLeft: 6,
+                              fontSize: 10,
+                              color: "#fff",
+                              backgroundColor: "#2e7d32",
+                              padding: "1px 5px",
+                              borderRadius: 3,
+                              fontWeight: 600,
+                              verticalAlign: "middle",
+                            }}>
+                              {t("providers.pricingRecommended")}
+                            </span>
+                          )}
+                        </div>
+                        {m.note && (
+                          <div style={{ fontSize: 10, color: "#999", marginTop: 1 }}>{m.note}</div>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right", padding: "5px 6px", fontFamily: "monospace", whiteSpace: "nowrap", color: modelFree ? "#2e7d32" : undefined, fontWeight: modelFree ? 600 : undefined }}>
+                        {modelFree ? t("providers.pricingFree") : m.inputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.inputPricePerMillion}`}
+                      </td>
+                      <td style={{ textAlign: "right", padding: "5px 6px", fontFamily: "monospace", whiteSpace: "nowrap", color: modelFree ? "#2e7d32" : undefined, fontWeight: modelFree ? 600 : undefined }}>
+                        {modelFree ? t("providers.pricingFree") : m.outputPricePerMillion === "—" ? "—" : `${currencySymbol}${m.outputPricePerMillion}`}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 6, flexShrink: 0 }}>
+          <div style={{ marginTop: 6, flexShrink: 0, fontSize: 10, color: "#aaa", lineHeight: 1.4 }}>
+            {t("providers.pricingDisclaimer")}
+          </div>
+          <div style={{ marginTop: 4, flexShrink: 0 }}>
             <a
               href={data.pricingUrl}
               target="_blank"

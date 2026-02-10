@@ -6,11 +6,19 @@ import { GatewayChatClient } from "../lib/gateway-client.js";
 import type { GatewayEvent, GatewayHelloOk } from "../lib/gateway-client.js";
 import "./ChatPage.css";
 
+type ChatImage = { data: string; mimeType: string };
+
 type ChatMessage = {
   role: "user" | "assistant";
   text: string;
   timestamp: number;
+  images?: ChatImage[];
 };
+
+type PendingImage = { dataUrl: string; base64: string; mimeType: string };
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 const DEFAULT_SESSION_KEY = "agent:main:main";
 const INITIAL_VISIBLE = 50;
@@ -69,6 +77,17 @@ function extractText(content: unknown): string {
     .join("");
 }
 
+function extractImages(content: unknown): ChatImage[] {
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((b: { type?: string }) => b.type === "image")
+    .map((b: { data?: string; mimeType?: string }) => ({
+      data: b.data ?? "",
+      mimeType: b.mimeType ?? "image/jpeg",
+    }))
+    .filter((img) => img.data);
+}
+
 /**
  * Parse raw gateway messages into ChatMessage[], filtering out tool-only entries.
  */
@@ -80,8 +99,9 @@ function parseRawMessages(
   for (const msg of raw) {
     if (msg.role === "user" || msg.role === "assistant") {
       const text = extractText(msg.content);
-      if (!text.trim()) continue;
-      parsed.push({ role: msg.role, text, timestamp: msg.timestamp ?? 0 });
+      const images = extractImages(msg.content);
+      if (!text.trim() && images.length === 0) continue;
+      parsed.push({ role: msg.role, text, timestamp: msg.timestamp ?? 0, images: images.length > 0 ? images : undefined });
     }
   }
   return parsed;
@@ -110,6 +130,8 @@ export function ChatPage() {
   const shouldInstantScrollRef = useRef(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Stable refs so event handler closures always see the latest state
   const runIdRef = useRef(runId);
@@ -381,7 +403,8 @@ export function ChatPage() {
 
   async function handleSend() {
     const text = draft.trim();
-    if (!text || connectionState !== "connected" || !clientRef.current) return;
+    const images = pendingImages;
+    if ((!text && images.length === 0) || connectionState !== "connected" || !clientRef.current) return;
 
     // Pre-flight: check if any provider key is configured
     try {
@@ -393,6 +416,7 @@ export function ChatPage() {
           { role: "assistant", text: `⚠ ${t("chat.noProviderError")}`, timestamp: Date.now() },
         ]);
         setDraft("");
+        setPendingImages([]);
         if (textareaRef.current) textareaRef.current.style.height = "auto";
         return;
       }
@@ -402,9 +426,13 @@ export function ChatPage() {
 
     const idempotencyKey = crypto.randomUUID();
 
-    // Optimistic: show user message immediately
-    setMessages((prev) => [...prev, { role: "user", text, timestamp: Date.now() }]);
+    // Optimistic: show user message immediately (with images if any)
+    const optimisticImages: ChatImage[] | undefined = images.length > 0
+      ? images.map((img) => ({ data: img.base64, mimeType: img.mimeType }))
+      : undefined;
+    setMessages((prev) => [...prev, { role: "user", text, timestamp: Date.now(), images: optimisticImages }]);
     setDraft("");
+    setPendingImages([]);
     setRunId(idempotencyKey);
 
     // Reset textarea height
@@ -412,11 +440,21 @@ export function ChatPage() {
       textareaRef.current.style.height = "auto";
     }
 
-    clientRef.current.request("chat.send", {
+    // Build RPC params
+    const params: Record<string, unknown> = {
       sessionKey: sessionKeyRef.current,
       message: text,
       idempotencyKey,
-    }).catch((err) => {
+    };
+    if (images.length > 0) {
+      params.attachments = images.map((img) => ({
+        type: "image",
+        mimeType: img.mimeType,
+        content: img.base64,
+      }));
+    }
+
+    clientRef.current.request("chat.send", params).catch((err) => {
       // RPC-level failure — clear runId so UI doesn't get stuck in streaming mode
       const raw = (err as Error).message || "Failed to send message.";
       const errText = NO_PROVIDER_RE.test(raw) ? t("chat.noProviderError") : raw;
@@ -481,6 +519,73 @@ export function ChatPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
+  function readFileAsBase64(file: File): Promise<PendingImage | null> {
+    return new Promise((resolve) => {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        resolve(null);
+        return;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        // Strip "data:image/png;base64," prefix to get raw base64
+        const base64 = dataUrl.split(",")[1] ?? "";
+        resolve({ dataUrl, base64, mimeType: file.type });
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFileSelect(files: FileList | File[]) {
+    const results: PendingImage[] = [];
+    for (const file of Array.from(files)) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        alert(t("chat.imageTypeError"));
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        alert(t("chat.imageTooLarge"));
+        continue;
+      }
+      const img = await readFileAsBase64(file);
+      if (img) results.push(img);
+    }
+    if (results.length > 0) {
+      setPendingImages((prev) => [...prev, ...results]);
+    }
+  }
+
+  function handleAttachClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFileSelect(e.target.files);
+      e.target.value = ""; // reset so same file can be re-selected
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.files;
+    if (items && items.length > 0) {
+      const imageFiles = Array.from(items).filter((f) => f.type.startsWith("image/"));
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        handleFileSelect(imageFiles);
+      }
+    }
+  }
+
+  function removePendingImage(index: number) {
+    setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
   const visibleMessages = messages.slice(Math.max(0, messages.length - visibleCount));
   const showHistoryEnd = allFetched && visibleCount >= messages.length && messages.length > 0;
   const isStreaming = runId !== null;
@@ -508,7 +613,19 @@ export function ChatPage() {
               key={i}
               className={`chat-bubble ${msg.role === "user" ? "chat-bubble-user" : "chat-bubble-assistant"}`}
             >
-              {formatMessage(msg.text)}
+              {msg.images && msg.images.length > 0 && (
+                <div className="chat-bubble-images">
+                  {msg.images.map((img, j) => (
+                    <img
+                      key={j}
+                      src={`data:${img.mimeType};base64,${img.data}`}
+                      alt=""
+                      className="chat-bubble-img"
+                    />
+                  ))}
+                </div>
+              )}
+              {msg.text && formatMessage(msg.text)}
             </div>
           ))}
           {((runId !== null && streaming === null) || (externalRunActive && runId === null)) && (
@@ -531,47 +648,85 @@ export function ChatPage() {
       </div>
 
       <div className="chat-input-area">
-        <textarea
-          ref={textareaRef}
-          value={draft}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder={t("chat.placeholder")}
-          rows={1}
-        />
-        <div className="chat-emoji-wrapper" ref={emojiPickerRef}>
+        {pendingImages.length > 0 && (
+          <div className="chat-image-preview-strip">
+            {pendingImages.map((img, i) => (
+              <div key={i} className="chat-image-preview">
+                <img src={img.dataUrl} alt="" />
+                <button
+                  className="chat-image-preview-remove"
+                  onClick={() => removePendingImage(i)}
+                  title={t("chat.removeImage")}
+                  type="button"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="chat-input-row">
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder={t("chat.placeholder")}
+            rows={1}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            multiple
+            onChange={handleFileInputChange}
+            style={{ display: "none" }}
+          />
           <button
-            className="chat-emoji-btn"
-            onClick={() => setShowEmojiPicker((v) => !v)}
-            title={t("chat.emoji")}
+            className="chat-attach-btn"
+            onClick={handleAttachClick}
+            title={t("chat.attach")}
             type="button"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-              <line x1="9" y1="9" x2="9.01" y2="9" />
-              <line x1="15" y1="9" x2="15.01" y2="9" />
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
             </svg>
           </button>
-          {showEmojiPicker && (
-            <div className="chat-emoji-picker">
-              <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} />
-            </div>
+          <div className="chat-emoji-wrapper" ref={emojiPickerRef}>
+            <button
+              className="chat-emoji-btn"
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              title={t("chat.emoji")}
+              type="button"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                <line x1="9" y1="9" x2="9.01" y2="9" />
+                <line x1="15" y1="9" x2="15.01" y2="9" />
+              </svg>
+            </button>
+            {showEmojiPicker && (
+              <div className="chat-emoji-picker">
+                <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} />
+              </div>
+            )}
+          </div>
+          {isStreaming ? (
+            <button className="btn btn-danger" onClick={handleStop}>
+              {t("chat.stop")}
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary"
+              onClick={handleSend}
+              disabled={(!draft.trim() && pendingImages.length === 0) || connectionState !== "connected"}
+            >
+              {t("chat.send")}
+            </button>
           )}
         </div>
-        {isStreaming ? (
-          <button className="btn btn-danger" onClick={handleStop}>
-            {t("chat.stop")}
-          </button>
-        ) : (
-          <button
-            className="btn btn-primary"
-            onClick={handleSend}
-            disabled={!draft.trim() || connectionState !== "connected"}
-          >
-            {t("chat.send")}
-          </button>
-        )}
       </div>
     </div>
   );

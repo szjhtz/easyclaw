@@ -21,11 +21,13 @@ export function Layout({
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   const isDragging = useRef(false);
 
   useEffect(() => {
     fetchUpdateInfo()
       .then((info) => {
+        if (info.currentVersion) setCurrentVersion(info.currentVersion);
         if (info.updateAvailable) setUpdateInfo(info);
       })
       .catch(() => {
@@ -81,7 +83,10 @@ export function Layout({
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <nav className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
-        <h2 className="sidebar-brand">{t("common.brandName")}</h2>
+        <h2 className="sidebar-brand" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.png" alt="" style={{ width: 28, height: 28 }} />
+          {t("common.brandName")}
+        </h2>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, flex: 1 }}>
           {NAV_ITEMS.map((item) => {
             const active = currentPath === item.path;
@@ -111,6 +116,11 @@ export function Layout({
             );
           })}
         </ul>
+        {currentVersion && (
+          <div style={{ padding: "8px 14px", fontSize: 12, color: "#999" }}>
+            v{currentVersion}
+          </div>
+        )}
         <div
           className="sidebar-resize-handle"
           onMouseDown={handleMouseDown}

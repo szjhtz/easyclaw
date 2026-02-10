@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { PROVIDER_URLS, getDefaultModelForProvider } from "@easyclaw/core";
+import { PROVIDER_API_KEY_URLS, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import { updateSettings, createProviderKey, validateApiKey, fetchPricing } from "../api.js";
 import type { ProviderPricing } from "../api.js";
@@ -249,12 +249,12 @@ export function OnboardingPage({
                   </span>
                 ) : null}
                 <a
-                  href={PROVIDER_URLS[provider as LLMProvider]}
+                  href={PROVIDER_API_KEY_URLS[provider as LLMProvider]}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: "#1a73e8" }}
                 >
-                  {t("providers.viewPricing")} &rarr;
+                  {t("providers.getApiKey")} &rarr;
                 </a>
               </div>
             </div>
