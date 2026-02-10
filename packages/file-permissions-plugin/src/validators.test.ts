@@ -54,7 +54,32 @@ describe("parseFilePermissions", () => {
       });
       const result = parseFilePermissions(json);
       expect(result.read).toHaveLength(2);
+      // write includes workspacePath + writePaths
+      expect(result.write).toHaveLength(2);
+    });
+
+    it("should include workspacePath as implicit write path", () => {
+      const json = JSON.stringify({
+        workspacePath: "/home/user/workspace",
+        readPaths: [],
+        writePaths: [],
+      });
+      const result = parseFilePermissions(json);
       expect(result.write).toHaveLength(1);
+      expect(result.write[0]).toBe("/home/user/workspace");
+      // agent can read+write its own workspace even with empty user permissions
+      expect(isPathAllowed("/home/user/workspace/memory/note.md", result, "read")).toBe(true);
+      expect(isPathAllowed("/home/user/workspace/memory/note.md", result, "write")).toBe(true);
+    });
+
+    it("should handle missing workspacePath gracefully", () => {
+      const json = JSON.stringify({
+        readPaths: ["/tmp/read"],
+        writePaths: [],
+      });
+      const result = parseFilePermissions(json);
+      expect(result.read).toHaveLength(1);
+      expect(result.write).toHaveLength(0);
     });
 
     it("should expand tilde in JSON paths", () => {

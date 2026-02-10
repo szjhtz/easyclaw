@@ -341,6 +341,7 @@ app.whenReady().then(async () => {
     enableChatCompletions: true,
     commandsRestart: true,
     enableFilePermissions: true,
+    skipBootstrap: false,
     filePermissionsPluginPath,
     defaultModel: {
       provider: startupModelConfig.provider,

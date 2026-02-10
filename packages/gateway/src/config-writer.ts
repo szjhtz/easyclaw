@@ -220,6 +220,8 @@ export interface WriteGatewayConfigOptions {
   /** Override path to the file permissions plugin .mjs entry file.
    *  Used in packaged Electron apps where the monorepo root doesn't exist. */
   filePermissionsPluginPath?: string;
+  /** Skip OpenClaw bootstrap (prevents creating template files like AGENTS.md on first startup). */
+  skipBootstrap?: boolean;
   /**
    * Extra LLM providers to register in OpenClaw's models.providers config.
    * Used for providers not natively supported by OpenClaw (e.g. zhipu, volcengine).
@@ -351,6 +353,25 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
           ...existingModel,
           primary: `${options.defaultModel.provider}/${options.defaultModel.modelId}`,
         },
+      },
+    };
+  }
+
+  // Skip bootstrap (prevents OpenClaw from creating template files on first startup)
+  if (options.skipBootstrap !== undefined) {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        skipBootstrap: options.skipBootstrap,
       },
     };
   }

@@ -32,6 +32,12 @@ export function parseFilePermissions(permissionsEnv: string): FilePermissions {
   if (trimmed.startsWith("{")) {
     try {
       const parsed = JSON.parse(trimmed);
+      // workspacePath is OpenClaw's own state directory — always grant
+      // read+write so the agent can access memory/workspace files even
+      // before the user configures additional permissions.
+      if (typeof parsed.workspacePath === "string" && parsed.workspacePath.trim()) {
+        permissions.write.push(expandPath(parsed.workspacePath));
+      }
       if (Array.isArray(parsed.readPaths)) {
         permissions.read.push(...parsed.readPaths.map(expandPath));
       }
