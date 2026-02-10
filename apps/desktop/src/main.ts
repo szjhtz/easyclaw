@@ -23,6 +23,7 @@ import type { LLMConfig } from "@easyclaw/rules";
 import { ProxyRouter } from "@easyclaw/proxy-router";
 import type { ProxyRouterConfig } from "@easyclaw/proxy-router";
 import { RemoteTelemetryClient } from "@easyclaw/telemetry";
+import { getDeviceId } from "@easyclaw/device-id";
 import { checkForUpdate } from "@easyclaw/updater";
 import type { UpdateCheckResult } from "@easyclaw/updater";
 import { resolve, dirname, join } from "node:path";
@@ -187,6 +188,16 @@ app.on("second-instance", () => {
 app.whenReady().then(async () => {
   enableFileLogging();
   log.info("EasyClaw desktop starting");
+
+  // --- Device ID ---
+  let deviceId: string;
+  try {
+    deviceId = getDeviceId();
+    log.info(`Device ID: ${deviceId.slice(0, 8)}...`);
+  } catch (err) {
+    log.error("Failed to get device ID:", err);
+    deviceId = "unknown";
+  }
 
   // Initialize storage and secrets
   const storage = createStorage();
@@ -691,6 +702,7 @@ app.whenReady().then(async () => {
     vendorDir,
     storage,
     secretStore,
+    deviceId,
     getRpcClient: () => rpcClient,
     getUpdateResult: () => latestUpdateResult,
     getGatewayInfo: () => {

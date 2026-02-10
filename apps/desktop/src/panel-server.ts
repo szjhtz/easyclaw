@@ -12,6 +12,7 @@ import { readFullModelCatalog, resolveOpenClawConfigPath, readExistingConfig, re
 import { loadCostUsageSummary, discoverAllSessions, loadSessionCostSummary } from "../../../vendor/openclaw/src/infra/session-cost-usage.js";
 import type { CostUsageSummary, SessionCostSummary } from "../../../vendor/openclaw/src/infra/session-cost-usage.js";
 import type { ChannelsStatusSnapshot } from "@easyclaw/core";
+import { removeSkillFile } from "@easyclaw/rules";
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 
@@ -594,6 +595,8 @@ export interface PanelServerOptions {
   onChannelConfigured?: (channelId: string) => void;
   /** Override path to the vendored OpenClaw directory (for packaged app). */
   vendorDir?: string;
+  /** Stable device identifier (SHA-256 hash of hardware fingerprint). */
+  deviceId?: string;
   /** Getter for the latest update check result. */
   getUpdateResult?: () => {
     updateAvailable: boolean;
@@ -782,7 +785,7 @@ async function syncActiveKey(
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? 3210;
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, vendorDir, getUpdateResult, getGatewayInfo } = options;
+  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, vendorDir, deviceId, getUpdateResult, getGatewayInfo } = options;
 
   // Ensure vendor OpenClaw functions (loadCostUsageSummary, discoverAllSessions)
   // read from EasyClaw's state dir (~/.easyclaw/openclaw/) instead of ~/.openclaw/
@@ -809,7 +812,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
     // API routes
     if (pathname.startsWith("/api/")) {
       try {
-        await handleApiRoute(req, res, url, pathname, storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, vendorDir, getUpdateResult, getGatewayInfo);
+        await handleApiRoute(req, res, url, pathname, storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, vendorDir, deviceId, getUpdateResult, getGatewayInfo);
       } catch (err) {
         log.error("API error:", err);
         sendJson(res, 500, { error: "Internal server error" });
@@ -861,6 +864,7 @@ async function handleApiRoute(
   onPermissionsChange?: () => void,
   onChannelConfigured?: (channelId: string) => void,
   vendorDir?: string,
+  deviceId?: string,
   getUpdateResult?: () => {
     updateAvailable: boolean;
     currentVersion: string;
@@ -874,7 +878,7 @@ async function handleApiRoute(
   if (pathname === "/api/status" && req.method === "GET") {
     const ruleCount = storage.rules.getAll().length;
     const artifactCount = storage.artifacts.getAll().length;
-    sendJson(res, 200, { status: "ok", ruleCount, artifactCount });
+    sendJson(res, 200, { status: "ok", ruleCount, artifactCount, deviceId: deviceId ?? null });
     return;
   }
 
@@ -942,6 +946,15 @@ async function handleApiRoute(
     }
 
     if (req.method === "DELETE") {
+      // Clean up skill files BEFORE deleting artifacts from DB,
+      // since we need the artifact's outputPath to locate the SKILL.md.
+      const artifacts = storage.artifacts.getByRuleId(ruleId);
+      for (const artifact of artifacts) {
+        if (artifact.type === "action-bundle" && artifact.outputPath) {
+          removeSkillFile(artifact.outputPath);
+        }
+      }
+
       storage.artifacts.deleteByRuleId(ruleId);
       const deleted = storage.rules.delete(ruleId);
       if (!deleted) {

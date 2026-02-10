@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@easyclaw/core": "workspace:*",
+    "@easyclaw/device-id": "workspace:*",
     "@easyclaw/gateway": "workspace:*",
     "@easyclaw/logger": "workspace:*",
     "@easyclaw/proxy-router": "workspace:*",
