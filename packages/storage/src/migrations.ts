@@ -71,4 +71,11 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN proxy_base_url TEXT DEFAULT NULL;
     `,
   },
+  {
+    id: 4,
+    name: "default_full_access_mode",
+    sql: `
+      INSERT OR IGNORE INTO settings (key, value) VALUES ('file-permissions-full-access', 'true');
+    `,
+  },
 ];

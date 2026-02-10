@@ -84,6 +84,7 @@ export async function resolveSecretEnv(
  */
 export interface FilePermissions {
   workspacePath: string;
+  fullAccess: boolean;
   readPaths: string[];
   writePaths: string[];
 }
@@ -107,8 +108,10 @@ export function buildFilePermissionsEnv(
   }
 
   const permissions = storage.permissions.get();
+  const fullAccess = storage.settings.get("file-permissions-full-access") === "true";
   const filePermissions: FilePermissions = {
     workspacePath: workspacePath ?? process.cwd(),
+    fullAccess,
     readPaths: permissions.readPaths,
     writePaths: permissions.writePaths,
   };

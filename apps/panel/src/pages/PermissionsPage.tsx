@@ -5,6 +5,8 @@ import {
   updatePermissions,
   openFileDialog,
   fetchWorkspacePath,
+  fetchSettings,
+  updateSettings,
   type Permissions,
 } from "../api.js";
 
@@ -111,11 +113,35 @@ export function PermissionsPage() {
   const [selectedPerm, setSelectedPerm] = useState<PermLevel>("read");
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [fullAccess, setFullAccess] = useState(true);
 
   useEffect(() => {
     loadPermissions();
     loadWorkspacePath();
+    loadFullAccess();
   }, []);
+
+  async function loadFullAccess() {
+    try {
+      const settings = await fetchSettings();
+      setFullAccess(settings["file-permissions-full-access"] !== "false");
+    } catch (err) {
+      console.error("Failed to load full-access setting:", err);
+    }
+  }
+
+  async function handleToggleFullAccess(enabled: boolean) {
+    setFullAccess(enabled);
+    setSaving(true);
+    try {
+      await updateSettings({ "file-permissions-full-access": enabled ? "true" : "false" });
+    } catch (err) {
+      setError({ key: "permissions.failedToSave", detail: String(err) });
+      setFullAccess(!enabled); // revert on failure
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function loadWorkspacePath() {
     try {
@@ -214,7 +240,50 @@ export function PermissionsPage() {
         </div>
       )}
 
-      <div className="section-card">
+      {/* Full Access Toggle */}
+      <div className="section-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <strong style={{ fontSize: 14 }}>{t("permissions.fullAccessLabel")}</strong>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#5f6368" }}>
+              {t("permissions.fullAccessDescription")}
+            </p>
+          </div>
+          <label style={{ position: "relative", display: "inline-block", width: 44, height: 24, flexShrink: 0, marginLeft: 16 }}>
+            <input
+              type="checkbox"
+              checked={fullAccess}
+              onChange={(e) => handleToggleFullAccess(e.target.checked)}
+              disabled={saving}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                cursor: saving ? "not-allowed" : "pointer",
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: fullAccess ? "#1a73e8" : "#ccc",
+                borderRadius: 24,
+                transition: "background-color 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  height: 18, width: 18,
+                  left: fullAccess ? 22 : 3,
+                  bottom: 3,
+                  backgroundColor: "#fff",
+                  borderRadius: "50%",
+                  transition: "left 0.2s",
+                }}
+              />
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div className="section-card" style={{ opacity: fullAccess ? 0.5 : 1, pointerEvents: fullAccess ? "none" : "auto" }}>
         {/* Add path area */}
         <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
           {selectedPath && (

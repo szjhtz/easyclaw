@@ -137,6 +137,7 @@ export function ChatPage() {
   const [agentName, setAgentName] = useState<string | null>(null);
   const [allFetched, setAllFetched] = useState(false);
   const [externalRunActive, setExternalRunActive] = useState(false);
+  const [chatExamplesExpanded, setChatExamplesExpanded] = useState(() => localStorage.getItem("chat-examples-collapsed") !== "1");
   const clientRef = useRef<GatewayChatClient | null>(null);
   const sessionKeyRef = useRef(DEFAULT_SESSION_KEY);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -670,6 +671,35 @@ export function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
       )}
+
+      <div className="chat-examples">
+        <button
+          className="chat-examples-toggle"
+          onClick={() => {
+            const next = !chatExamplesExpanded;
+            setChatExamplesExpanded(next);
+            localStorage.setItem("chat-examples-collapsed", next ? "0" : "1");
+          }}
+        >
+          <svg className={`chat-examples-chevron ${chatExamplesExpanded ? "chat-examples-chevron-down" : ""}`} width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4.5 10L8 6.5L11.5 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+        {chatExamplesExpanded && (
+          <>
+          <div className="chat-examples-title">{t("chat.examplesTitle")}</div>
+          <div className="chat-examples-grid">
+            {(["example1", "example2", "example3", "example4", "example5", "example6"] as const).map((key) => (
+              <button
+                key={key}
+                className="chat-example-card"
+                onClick={() => { const text = t(`chat.${key}`); setDraft(text); setTimeout(() => { const el = textareaRef.current; if (el) { el.focus(); el.selectionStart = el.selectionEnd = text.length; } }, 0); }}
+              >
+                {t(`chat.${key}`)}
+              </button>
+            ))}
+          </div>
+          </>
+        )}
+      </div>
 
       <div className="chat-status">
         <span className={`chat-status-dot chat-status-dot-${connectionState}`} />

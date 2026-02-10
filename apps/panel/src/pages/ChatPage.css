@@ -236,6 +236,74 @@
   color: var(--color-text);
 }
 
+.chat-examples {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border);
+  padding: 0 16px;
+}
+
+.chat-examples-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 0;
+  color: var(--color-text-muted);
+  transition: var(--transition-fast);
+}
+
+.chat-examples-toggle:hover {
+  color: var(--color-text);
+}
+
+.chat-examples-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.chat-examples-chevron {
+  transition: transform 0.2s ease;
+}
+
+.chat-examples-chevron-down {
+  transform: rotate(180deg);
+}
+
+.chat-examples-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.chat-example-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-family: var(--font-sans);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chat-example-card:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
 .chat-history-end {
   text-align: center;
   color: var(--color-text-muted);

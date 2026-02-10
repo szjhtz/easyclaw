@@ -6,6 +6,7 @@ import { join, resolve, normalize } from "node:path";
 import { homedir } from "node:os";
 
 export interface FilePermissions {
+  fullAccess: boolean;
   read: string[];
   write: string[];
 }
@@ -19,6 +20,7 @@ export interface FilePermissions {
  */
 export function parseFilePermissions(permissionsEnv: string): FilePermissions {
   const permissions: FilePermissions = {
+    fullAccess: false,
     read: [],
     write: [],
   };
@@ -32,6 +34,10 @@ export function parseFilePermissions(permissionsEnv: string): FilePermissions {
   if (trimmed.startsWith("{")) {
     try {
       const parsed = JSON.parse(trimmed);
+      // Full access mode — skip all path checks
+      if (parsed.fullAccess === true) {
+        permissions.fullAccess = true;
+      }
       // workspacePath is OpenClaw's own state directory — always grant
       // read+write so the agent can access memory/workspace files even
       // before the user configures additional permissions.
@@ -72,9 +78,11 @@ export function parseFilePermissions(permissionsEnv: string): FilePermissions {
 }
 
 /**
- * Expand ~ to home directory and resolve to absolute path
+ * Expand ~ to home directory and resolve to absolute path.
+ * The special value "*" is preserved as-is (wildcard = allow all).
  */
 function expandPath(path: string): string {
+  if (path === "*") return "*";
   let expanded = path;
   if (expanded.startsWith("~/")) {
     expanded = join(homedir(), expanded.slice(2));
@@ -92,8 +100,18 @@ export function isPathAllowed(
   permissions: FilePermissions,
   mode: "read" | "write" = "write",
 ): boolean {
+  // Full access mode — allow everything
+  if (permissions.fullAccess) {
+    return true;
+  }
+
   const absolutePath = expandPath(filePath);
   const allowedPaths = mode === "read" ? permissions.read : permissions.write;
+
+  // "*" wildcard means all paths are allowed
+  if (allowedPaths.includes("*")) {
+    return true;
+  }
 
   // Check if path is under any allowed directory
   for (const allowedPath of allowedPaths) {
@@ -105,6 +123,9 @@ export function isPathAllowed(
   // Also check write paths if we're checking read access
   // (write permissions imply read permissions)
   if (mode === "read") {
+    if (permissions.write.includes("*")) {
+      return true;
+    }
     for (const allowedPath of permissions.write) {
       if (isPathUnder(absolutePath, allowedPath)) {
         return true;

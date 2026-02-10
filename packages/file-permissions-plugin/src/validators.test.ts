@@ -72,6 +72,29 @@ describe("parseFilePermissions", () => {
       expect(isPathAllowed("/home/user/workspace/memory/note.md", result, "write")).toBe(true);
     });
 
+    it("should allow all paths when fullAccess is true", () => {
+      const json = JSON.stringify({
+        fullAccess: true,
+        readPaths: [],
+        writePaths: [],
+      });
+      const result = parseFilePermissions(json);
+      expect(result.fullAccess).toBe(true);
+      expect(isPathAllowed("/any/path/on/disk", result, "read")).toBe(true);
+      expect(isPathAllowed("/any/path/on/disk", result, "write")).toBe(true);
+      expect(isPathAllowed("C:\\Windows\\System32\\file.txt", result, "write")).toBe(true);
+    });
+
+    it("should allow all paths when wildcard '*' is used", () => {
+      const json = JSON.stringify({
+        readPaths: ["*"],
+        writePaths: ["*"],
+      });
+      const result = parseFilePermissions(json);
+      expect(isPathAllowed("/any/path/on/disk", result, "read")).toBe(true);
+      expect(isPathAllowed("/any/path/on/disk", result, "write")).toBe(true);
+    });
+
     it("should handle missing workspacePath gracefully", () => {
       const json = JSON.stringify({
         readPaths: ["/tmp/read"],
