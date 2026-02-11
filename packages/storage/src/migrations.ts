@@ -78,4 +78,13 @@ export const migrations: Migration[] = [
       INSERT OR IGNORE INTO settings (key, value) VALUES ('file-permissions-full-access', 'true');
     `,
   },
+  {
+    id: 5,
+    name: "cleanup_wildcard_permissions",
+    sql: `
+      UPDATE permissions
+        SET read_paths = '[]', write_paths = '[]'
+        WHERE read_paths LIKE '%"*"%' OR write_paths LIKE '%"*"%';
+    `,
+  },
 ];
