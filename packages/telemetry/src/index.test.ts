@@ -31,6 +31,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -46,6 +47,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -88,6 +90,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -102,6 +105,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: false,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -154,6 +158,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -172,6 +177,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -185,13 +191,13 @@ describe("RemoteTelemetryClient", () => {
       const callArgs = mockFetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1].body);
 
-      expect(requestBody).toHaveLength(2);
-      expect(requestBody[0]).toMatchObject({
+      expect(requestBody.events).toHaveLength(2);
+      expect(requestBody.events[0]).toMatchObject({
         eventType: "app.started",
         version: "0.1.0",
         platform: "darwin",
       });
-      expect(requestBody[1]).toMatchObject({
+      expect(requestBody.events[1]).toMatchObject({
         eventType: "app.stopped",
         version: "0.1.0",
         platform: "darwin",
@@ -204,6 +210,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -220,6 +227,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -242,6 +250,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -267,6 +276,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -333,6 +343,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -351,6 +362,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -368,6 +380,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -385,6 +398,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -403,6 +417,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
       };
 
       const client = new RemoteTelemetryClient(config);
@@ -424,6 +439,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         userId: "test-user",
       };
 
@@ -434,7 +450,7 @@ describe("RemoteTelemetryClient", () => {
 
       const callArgs = mockFetch.mock.calls[0];
       const requestBody = JSON.parse(callArgs[1].body);
-      const event = requestBody[0];
+      const event = requestBody.events[0];
 
       expect(event).toHaveProperty("eventType", "app.started");
       expect(event).toHaveProperty("timestamp");
@@ -442,6 +458,7 @@ describe("RemoteTelemetryClient", () => {
       expect(event).toHaveProperty("userId", "test-user");
       expect(event).toHaveProperty("version", "0.1.0");
       expect(event).toHaveProperty("platform", "darwin");
+      expect(event).toHaveProperty("locale", "en");
       expect(event).toHaveProperty("metadata", { custom: "data" });
 
       // Validate ISO 8601 timestamp

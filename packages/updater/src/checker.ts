@@ -4,8 +4,10 @@ import { isNewerVersion } from "./version.js";
 
 const log = createLogger("updater");
 
-export const DEFAULT_MANIFEST_URL =
-  "https://www.easy-claw.com/update-manifest.json";
+export const MANIFEST_URLS = {
+  default: "https://www.easy-claw.com/update-manifest.json",
+  cn: "https://cn.easy-claw.com/update-manifest-cn.json",
+} as const;
 
 /**
  * Fetch the update manifest from the given URL (or the default).
@@ -14,7 +16,7 @@ export const DEFAULT_MANIFEST_URL =
 export async function fetchManifest(
   manifestUrl?: string,
 ): Promise<UpdateManifest> {
-  const url = manifestUrl ?? DEFAULT_MANIFEST_URL;
+  const url = manifestUrl ?? MANIFEST_URLS.default;
   log.debug(`Fetching update manifest from ${url}`);
 
   const response = await fetch(url, {
@@ -51,20 +53,15 @@ export function getPlatformKey(): "mac" | "win" {
  * Check for updates against the static manifest.
  * Never throws -- errors are captured in the result.
  *
- * @param options.region - User region ("cn" | "us" etc.). Appended as ?region= query param
- *   so the server can return region-appropriate download URLs (e.g. China CDN mirror).
+ * @param options.region - User region ("cn" selects CN manifest/CDN, anything else uses default).
  */
 export async function checkForUpdate(
   currentVersion: string,
   options?: { manifestUrl?: string; region?: string },
 ): Promise<UpdateCheckResult> {
   try {
-    let manifestUrl = options?.manifestUrl;
-    if (options?.region) {
-      const base = manifestUrl ?? DEFAULT_MANIFEST_URL;
-      const sep = base.includes("?") ? "&" : "?";
-      manifestUrl = `${base}${sep}region=${options.region}`;
-    }
+    const manifestUrl = options?.manifestUrl
+      ?? (options?.region === "cn" ? MANIFEST_URLS.cn : MANIFEST_URLS.default);
     const manifest = await fetchManifest(manifestUrl);
     const updateAvailable = isNewerVersion(currentVersion, manifest.latestVersion);
 

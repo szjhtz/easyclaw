@@ -21,6 +21,9 @@ export interface TelemetryEvent {
   /** Platform identifier (e.g., "darwin", "win32") */
   platform: string;
 
+  /** System locale / language (e.g., "zh", "en") */
+  locale: string;
+
   /** Event-specific metadata (no PII allowed) */
   metadata?: Record<string, unknown>;
 }
@@ -46,6 +49,9 @@ export interface TelemetryConfig {
 
   /** Platform identifier */
   platform: string;
+
+  /** System locale / language (e.g., "zh", "en") */
+  locale: string;
 
   /** Optional anonymous user ID */
   userId?: string;

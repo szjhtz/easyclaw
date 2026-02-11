@@ -4,7 +4,7 @@ import {
   fetchManifest,
   getPlatformKey,
   checkForUpdate,
-  DEFAULT_MANIFEST_URL,
+  MANIFEST_URLS,
 } from "./checker.js";
 import type { UpdateManifest } from "./types.js";
 
@@ -138,7 +138,7 @@ describe("fetchManifest", () => {
 
   it("fetches and parses manifest from default URL", async () => {
     const manifest = await fetchManifest();
-    expect(fetch).toHaveBeenCalledWith(DEFAULT_MANIFEST_URL, {
+    expect(fetch).toHaveBeenCalledWith(MANIFEST_URLS.default, {
       signal: expect.any(AbortSignal),
     });
     expect(manifest).toEqual(mockManifest);
@@ -294,19 +294,19 @@ describe("checkForUpdate", () => {
     });
   });
 
-  it("appends region query param when provided", async () => {
+  it("uses CN manifest URL when region is cn", async () => {
     await checkForUpdate("1.0.0", { region: "cn" });
     expect(fetch).toHaveBeenCalledWith(
-      `${DEFAULT_MANIFEST_URL}?region=cn`,
+      MANIFEST_URLS.cn,
       { signal: expect.any(AbortSignal) },
     );
   });
 
-  it("appends region with & when manifestUrl already has query params", async () => {
-    const customUrl = "https://staging.easy-claw.com/manifest.json?v=2";
+  it("uses explicit manifestUrl over region", async () => {
+    const customUrl = "https://staging.easy-claw.com/manifest.json";
     await checkForUpdate("1.0.0", { manifestUrl: customUrl, region: "cn" });
     expect(fetch).toHaveBeenCalledWith(
-      `${customUrl}&region=cn`,
+      customUrl,
       { signal: expect.any(AbortSignal) },
     );
   });

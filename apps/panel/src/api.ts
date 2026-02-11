@@ -527,7 +527,11 @@ export interface ProviderPricing {
   models: ModelPricing[];
 }
 
-const PRICING_API_URL = "https://api.easy-claw.com/graphql";
+function getPricingApiUrl(language: string): string {
+  return language === "zh"
+    ? "https://api-cn.easy-claw.com/graphql"
+    : "https://api.easy-claw.com/graphql";
+}
 
 /**
  * Fetch model pricing data from the cloud backend.
@@ -541,7 +545,7 @@ export async function fetchPricing(
 ): Promise<ProviderPricing[] | null> {
   return cachedFetch("pricing", async () => {
     try {
-      const res = await fetch(PRICING_API_URL, {
+      const res = await fetch(getPricingApiUrl(language), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

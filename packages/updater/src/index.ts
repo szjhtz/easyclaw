@@ -5,7 +5,7 @@ export type {
 } from "./types.js";
 export { parseVersion, compareVersions, isNewerVersion } from "./version.js";
 export {
-  DEFAULT_MANIFEST_URL,
+  MANIFEST_URLS,
   fetchManifest,
   getPlatformKey,
   checkForUpdate,

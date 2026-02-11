@@ -56,6 +56,7 @@ export class RemoteTelemetryClient {
       userId: this.config.userId,
       version: this.config.version,
       platform: this.config.platform,
+      locale: this.config.locale,
       metadata,
     };
 

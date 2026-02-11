@@ -233,8 +233,13 @@ app.whenReady().then(async () => {
   const secretStore = createSecretStore();
 
   // Initialize telemetry client (opt-out: enabled by default, user can disable via consent dialog or Settings)
-  const telemetryEnabled = storage.settings.get("telemetry_enabled") !== "false";
-  const telemetryEndpoint = process.env.TELEMETRY_ENDPOINT || "https://t.easy-claw.com/";
+  // In dev mode, telemetry is OFF unless DEV_TELEMETRY=1 is set (avoids polluting production data)
+  const telemetryEnabled = !app.isPackaged
+    ? process.env.DEV_TELEMETRY === "1"
+    : storage.settings.get("telemetry_enabled") !== "false";
+  const locale = app.getLocale().startsWith("zh") ? "zh" : "en";
+  const telemetryEndpoint = process.env.TELEMETRY_ENDPOINT
+    || (locale === "zh" ? "https://t-cn.easy-claw.com/" : "https://t.easy-claw.com/");
   let telemetryClient: RemoteTelemetryClient | null = null;
 
   if (telemetryEnabled) {
@@ -244,6 +249,7 @@ app.whenReady().then(async () => {
         enabled: true,
         version: app.getVersion(),
         platform: process.platform,
+        locale,
       });
       log.info("Telemetry client initialized (user opted in)");
     } catch (error) {
@@ -258,7 +264,7 @@ app.whenReady().then(async () => {
   let latestUpdateResult: UpdateCheckResult | null = null;
 
   async function performUpdateCheck(): Promise<void> {
-    const region = storage.settings.get("region") ?? "us";
+    const region = locale === "zh" ? "cn" : "us";
     const result = await checkForUpdate(app.getVersion(), { region });
     latestUpdateResult = result;
     if (result.updateAvailable) {
@@ -569,7 +575,7 @@ app.whenReady().then(async () => {
 
     // Read current provider/region settings
     const provider = storage.settings.get("llm-provider") as LLMProvider | undefined;
-    const region = storage.settings.get("region") ?? "us";
+    const region = locale === "zh" ? "cn" : "us";
 
     // Get the active key's model for the active provider
     let userModelId: string | undefined;
