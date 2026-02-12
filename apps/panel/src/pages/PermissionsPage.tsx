@@ -276,6 +276,7 @@ export function PermissionsPage() {
         </div>
 
         {/* Permissions table */}
+        <div className="table-scroll-wrap">
         <table>
           <thead>
             <tr>
@@ -350,6 +351,7 @@ export function PermissionsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

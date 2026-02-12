@@ -149,6 +149,7 @@ export function UsagePage() {
           {Object.keys(summary.byModel).length === 0 ? (
             <p className="text-muted">{t("usage.noData")}</p>
           ) : (
+            <div className="table-scroll-wrap">
             <table>
               <thead>
                 <tr>
@@ -173,6 +174,7 @@ export function UsagePage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
           </div>
 
@@ -182,6 +184,7 @@ export function UsagePage() {
           {Object.keys(summary.byProvider).length === 0 ? (
             <p className="text-muted">{t("usage.noData")}</p>
           ) : (
+            <div className="table-scroll-wrap">
             <table>
               <thead>
                 <tr>
@@ -208,6 +211,7 @@ export function UsagePage() {
                 )}
               </tbody>
             </table>
+            </div>
           )}
           </div>
         </>

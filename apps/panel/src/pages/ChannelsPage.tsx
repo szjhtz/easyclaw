@@ -313,6 +313,7 @@ export function ChannelsPage() {
       {/* Accounts Table */}
       <div className="section-card">
         <h3>{t("channels.allAccounts")}</h3>
+        <div className="table-scroll-wrap">
         <table>
           <thead>
             <tr>
@@ -371,6 +372,7 @@ export function ChannelsPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Last Updated */}

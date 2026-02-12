@@ -188,6 +188,7 @@ export function RulesPage() {
 
       <div className="section-card">
         <h3>{t("rules.colRule")}</h3>
+        <div className="table-scroll-wrap">
         <table className="rules-table">
           <thead>
             <tr>
@@ -274,6 +275,7 @@ export function RulesPage() {
           )}
         </tbody>
         </table>
+        </div>
       </div>
 
       {tooltip && (

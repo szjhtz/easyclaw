@@ -56,7 +56,7 @@ export function ProviderSelect({
   }, [catalogProviders, i18n.language]);
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="provider-select-wrap">
       <button
         type="button"
         onClick={() => setOpen(!open)}

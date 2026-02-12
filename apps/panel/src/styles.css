@@ -622,7 +622,6 @@ tbody td {
   border-radius: var(--radius-lg);
   padding: 24px;
   margin-bottom: 24px;
-  overflow-x: auto;
   box-shadow:
     var(--shadow-md),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -1152,6 +1151,11 @@ tbody td {
   padding: 40px;
   text-align: center;
   color: var(--color-text-muted);
+}
+
+/* ===== 21b. Table Scroll Wrapper ===== */
+.table-scroll-wrap {
+  overflow-x: auto;
 }
 
 /* ===== 22. Table Cells ===== */
@@ -1819,6 +1823,10 @@ tbody td {
 
 /* ===== 35. Provider Select ===== */
 
+.provider-select-wrap {
+  position: relative;
+}
+
 .provider-select-trigger {
   display: flex;
   justify-content: space-between;
@@ -1864,7 +1872,7 @@ tbody td {
   border-radius: var(--radius-sm);
   background-color: var(--color-bg);
   box-shadow: var(--shadow-md);
-  z-index: 10;
+  z-index: 50;
   margin-top: 2px;
 }
 
