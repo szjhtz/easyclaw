@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.1.7",
+    "date": "2026-02-11",
+    "en": [
+      "Dark/light theme system with premium UI polish",
+      "UI improvements: channels table, sidebar overflow, onboarding flow",
+      "Rules page: better textarea height, text truncation tooltip, edit alignment",
+      "Windows: remove default menu bar, hide agent name on empty chat"
+    ],
+    "zh": [
+      "深色/浅色主题系统，高级 UI 打磨",
+      "UI 改进：频道列表、侧边栏滚动、引导流程优化",
+      "规则页面：文本框高度、截断提示、编辑对齐修复",
+      "Windows：移除默认菜单栏，空聊天隐藏代理名称"
+    ]
+  },
+  {
     "version": "1.1.6",
     "date": "2026-02-11",
     "en": [
