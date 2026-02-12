@@ -248,9 +248,17 @@ export async function installGeminiCliLocal(
 
   onProgress?.("Installing Gemini CLI...");
 
+  // Resolve npm's absolute path — execFile resolves the binary in the parent
+  // process's PATH, not the child env's PATH, so we must find it ourselves.
+  const npmBin = findInPath("npm");
+  if (!npmBin) {
+    onProgress?.("Gemini CLI install failed: npm not found in PATH");
+    return false;
+  }
+
   return new Promise<boolean>((resolve) => {
     const child = execFile(
-      "npm",
+      npmBin,
       ["install", "--prefix", LOCAL_GEMINI_DIR, "@google/gemini-cli"],
       { timeout: 120_000, env: { ...process.env, NODE_ENV: "", PATH: enrichedPath() } },
       (err) => {
