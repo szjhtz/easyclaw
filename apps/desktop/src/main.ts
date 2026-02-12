@@ -173,16 +173,32 @@ async function writeProxyRouterConfig(
  * Build proxy environment variables pointing to local proxy router.
  * Returns fixed proxy URL (127.0.0.1:9999) regardless of configuration.
  * The router handles dynamic routing based on its config file.
+ *
+ * Channel messaging domains (Feishu, Telegram, Discord, Slack, WeCom) are
+ * excluded via NO_PROXY so their SDKs connect directly instead of tunneling
+ * through the proxy router (which only handles LLM provider routing).
  */
 function buildProxyEnv(): Record<string, string> {
   const localProxyUrl = `http://127.0.0.1:${PROXY_ROUTER_PORT}`;
+  const noProxy = [
+    "localhost",
+    "127.0.0.1",
+    // Channel messaging API domains — bypass proxy router
+    "open.feishu.cn",
+    "open.larksuite.com",
+    "api.telegram.org",
+    "discord.com",
+    "gateway.discord.gg",
+    "slack.com",
+    "qyapi.weixin.qq.com",
+  ].join(",");
   return {
     HTTP_PROXY: localProxyUrl,
     HTTPS_PROXY: localProxyUrl,
     http_proxy: localProxyUrl,
     https_proxy: localProxyUrl,
-    NO_PROXY: "localhost,127.0.0.1",
-    no_proxy: "localhost,127.0.0.1",
+    NO_PROXY: noProxy,
+    no_proxy: noProxy,
   };
 }
 
@@ -423,12 +439,12 @@ app.whenReady().then(async () => {
     agentWorkspace: join(stateDir, "workspace"),
   });
 
-  // Clean up any existing gateway processes before starting
+  // Clean up any existing openclaw processes before starting (both openclaw and openclaw-gateway)
   try {
-    execSync("pkill -f 'openclaw.*gateway' || true", { stdio: "ignore" });
-    log.info("Cleaned up existing gateway processes");
+    execSync("pkill -x 'openclaw-gateway' || true; pkill -x 'openclaw' || true", { stdio: "ignore" });
+    log.info("Cleaned up existing openclaw processes");
   } catch (err) {
-    log.warn("Failed to cleanup gateway processes:", err);
+    log.warn("Failed to cleanup openclaw processes:", err);
   }
 
   // In packaged app, vendor lives in Resources/vendor/openclaw (extraResources).

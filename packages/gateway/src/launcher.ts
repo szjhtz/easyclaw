@@ -109,7 +109,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
     this.process.kill("SIGUSR1");
   }
 
-  /** Gracefully stop the gateway process. */
+  /** Gracefully stop the gateway process and its entire process tree. */
   async stop(): Promise<void> {
     this.stopRequested = true;
 
@@ -125,11 +125,16 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
 
     this.setState("stopping");
     const proc = this.process;
+    const pid = proc.pid;
 
     return new Promise<void>((resolve) => {
       const killTimeout = setTimeout(() => {
-        log.warn("Gateway did not exit gracefully, sending SIGKILL");
-        proc.kill("SIGKILL");
+        log.warn("Gateway did not exit gracefully, sending SIGKILL to process group");
+        if (pid) {
+          try { process.kill(-pid, "SIGKILL"); } catch {}
+        } else {
+          proc.kill("SIGKILL");
+        }
       }, 5000);
 
       proc.once("exit", () => {
@@ -139,7 +144,13 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
         resolve();
       });
 
-      proc.kill("SIGTERM");
+      // Kill the entire process group (openclaw + openclaw-gateway)
+      // so child processes don't become orphans
+      if (pid) {
+        try { process.kill(-pid, "SIGTERM"); } catch { proc.kill("SIGTERM"); }
+      } else {
+        proc.kill("SIGTERM");
+      }
     });
   }
 
@@ -162,6 +173,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       env,
       cwd: this.options.stateDir || undefined,
       stdio: ["ignore", "pipe", "pipe"],
+      detached: true, // New process group so we can kill the entire tree on stop
     });
 
     this.process = child;
