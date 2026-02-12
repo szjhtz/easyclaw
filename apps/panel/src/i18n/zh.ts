@@ -94,6 +94,7 @@ export default {
     updateKeyPlaceholder: "输入新的 API 密钥",
     apiKeyHelp: "安全存储在系统钥匙串中，不会写入配置文件。",
     getApiKey: "获取 API 密钥",
+    subscribeForValue: "或者订阅以达到极致性价比",
     addKey: "添加密钥",
     updateKey: "更新",
     setDefault: "设为默认",

@@ -94,6 +94,7 @@ export default {
     updateKeyPlaceholder: "Enter new API key",
     apiKeyHelp: "Stored securely in your OS keychain. Never written to config files.",
     getApiKey: "Get API key",
+    subscribeForValue: "or subscribe for best value",
     addKey: "Add Key",
     updateKey: "Update",
     setDefault: "Set Default",

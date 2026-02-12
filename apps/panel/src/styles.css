@@ -1050,6 +1050,12 @@ tbody td {
   gap: 8px;
 }
 
+.provider-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -1341,7 +1347,7 @@ tbody td {
 .key-info {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .key-meta {

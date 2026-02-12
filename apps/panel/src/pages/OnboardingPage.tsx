@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { PROVIDER_API_KEY_URLS, getDefaultModelForProvider } from "@easyclaw/core";
+import { PROVIDER_API_KEY_URLS, PROVIDER_SUBSCRIPTION_URLS, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import { updateSettings, createProviderKey, validateApiKey, fetchPricing, trackEvent } from "../api.js";
 import type { ProviderPricing } from "../api.js";
@@ -184,21 +184,7 @@ export function OnboardingPage({
             <div className="form-group">
               <div className="form-label">{t("onboarding.providerLabel")}</div>
               <ProviderSelect value={provider} onChange={handleProviderChange} />
-              <div className="form-help-sm" style={{ marginTop: 6 }}>
-                {t(`providers.hint_${provider}`, { cmd: "", defaultValue: "" }) ? (
-                  <span className="text-secondary">
-                    {(() => {
-                      const cmd = provider === "anthropic" ? "claude setup-token" : provider === "amazon-bedrock" ? "aws configure" : "";
-                      const hint = t(`providers.hint_${provider}`, { cmd });
-                      if (!cmd) return hint;
-                      const parts = hint.split(cmd);
-                      return parts.length === 2 ? (
-                        <>{parts[0]}<code>{cmd}</code>{parts[1]}</>
-                      ) : hint;
-                    })()}
-                    {" "}
-                  </span>
-                ) : null}
+              <div className="form-help-sm provider-links">
                 <a
                   href={PROVIDER_API_KEY_URLS[provider as LLMProvider]}
                   target="_blank"
@@ -206,6 +192,15 @@ export function OnboardingPage({
                 >
                   {t("providers.getApiKey")} &rarr;
                 </a>
+                {PROVIDER_SUBSCRIPTION_URLS[provider as LLMProvider] && (
+                  <a
+                    href={PROVIDER_SUBSCRIPTION_URLS[provider as LLMProvider]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("providers.subscribeForValue")} &rarr;
+                  </a>
+                )}
               </div>
             </div>
 

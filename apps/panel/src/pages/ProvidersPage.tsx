@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { PROVIDER_API_KEY_URLS, getDefaultModelForProvider } from "@easyclaw/core";
+import { PROVIDER_API_KEY_URLS, PROVIDER_SUBSCRIPTION_URLS, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import {
   fetchSettings,
@@ -281,24 +281,6 @@ export function ProvidersPage() {
     }
   }
 
-  function renderHint(provider: string) {
-    const cmd = provider === "anthropic" ? "claude setup-token" : provider === "amazon-bedrock" ? "aws configure" : "";
-    const hint = t(`providers.hint_${provider}`, { cmd, defaultValue: "" });
-    if (!hint) return null;
-    if (!cmd) return <span className="text-secondary">{hint} </span>;
-    const parts = hint.split(cmd);
-    if (parts.length === 2) {
-      return (
-        <span className="text-secondary">
-          {parts[0]}
-          <code>{cmd}</code>
-          {parts[1]}{" "}
-        </span>
-      );
-    }
-    return <span className="text-secondary">{hint} </span>;
-  }
-
   function handleNewProviderChange(p: string) {
     setNewProvider(p);
     setNewModel(getDefaultModelForProvider(p as LLMProvider)?.modelId ?? "");
@@ -326,16 +308,23 @@ export function ProvidersPage() {
           <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
           <ProviderSelect value={newProvider} onChange={handleNewProviderChange} />
           {newProvider !== "google-gemini-cli" && (
-          <div className="text-sm" style={{ marginTop: 6 }}>
-            {renderHint(newProvider)}
+          <div className="form-help-sm provider-links">
             <a
               href={PROVIDER_API_KEY_URLS[newProvider as LLMProvider]}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm"
             >
               {t("providers.getApiKey")} &rarr;
             </a>
+            {PROVIDER_SUBSCRIPTION_URLS[newProvider as LLMProvider] && (
+              <a
+                href={PROVIDER_SUBSCRIPTION_URLS[newProvider as LLMProvider]}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("providers.subscribeForValue")} &rarr;
+              </a>
+            )}
           </div>
           )}
         </div>

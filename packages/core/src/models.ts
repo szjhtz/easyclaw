@@ -113,6 +113,15 @@ export const PROVIDER_API_KEY_URLS: Record<LLMProvider, string> = {
 };
 
 /**
+ * Optional subscription / pricing-plan URLs per provider.
+ * Only providers with an affiliate or subscription link are populated.
+ */
+export const PROVIDER_SUBSCRIPTION_URLS: Partial<Record<LLMProvider, string>> = {
+  zhipu: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
+  zai: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
+};
+
+/**
  * Maps each provider to its well-known environment variable name.
  * Used by the secret injector to pass API keys to the gateway process.
  */
