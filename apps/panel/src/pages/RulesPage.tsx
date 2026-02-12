@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchRules, createRule, updateRule, deleteRule, trackEvent, type Rule } from "../api.js";
 
@@ -38,6 +38,18 @@ export function RulesPage() {
   const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const showTooltip = useCallback((e: React.MouseEvent, text: string) => {
+    clearTimeout(tooltipTimer.current);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltip({ text, x: rect.left, y: rect.bottom + 4 });
+  }, []);
+
+  const hideTooltip = useCallback(() => {
+    tooltipTimer.current = setTimeout(() => setTooltip(null), 100);
+  }, []);
 
   useEffect(() => {
     loadRules();
@@ -176,14 +188,14 @@ export function RulesPage() {
 
       <div className="section-card">
         <h3>{t("rules.colRule")}</h3>
-        <table>
+        <table className="rules-table">
           <thead>
             <tr>
               <th>{t("rules.colRule")}</th>
-              <th>{t("rules.colStatus")}</th>
-              <th>{t("rules.colType")}</th>
-              <th>{t("rules.colCreated")}</th>
-              <th>{t("rules.colActions")}</th>
+              <th className="rules-col-status">{t("rules.colStatus")}</th>
+              <th className="rules-col-type">{t("rules.colType")}</th>
+              <th className="rules-col-date">{t("rules.colCreated")}</th>
+              <th className="rules-col-actions">{t("rules.colActions")}</th>
             </tr>
           </thead>
         <tbody>
@@ -215,9 +227,12 @@ export function RulesPage() {
                       </div>
                     </div>
                   ) : (
-                    <span className="td-rule-wrap">
-                      <span className="td-rule-text">{rule.text}</span>
-                      <span className="td-rule-tooltip">{rule.text}</span>
+                    <span
+                      className="td-rule-text"
+                      onMouseEnter={(e) => showTooltip(e, rule.text)}
+                      onMouseLeave={hideTooltip}
+                    >
+                      {rule.text}
                     </span>
                   )}
                 </td>
@@ -260,6 +275,17 @@ export function RulesPage() {
         </tbody>
         </table>
       </div>
+
+      {tooltip && (
+        <div
+          className="td-rule-tooltip-fixed"
+          onMouseEnter={() => clearTimeout(tooltipTimer.current)}
+          onMouseLeave={hideTooltip}
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
+          {tooltip.text}
+        </div>
+      )}
     </div>
   );
 }
