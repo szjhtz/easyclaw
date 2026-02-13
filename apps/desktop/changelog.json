@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.2.0",
+    "date": "2026-02-13",
+    "en": [
+      "WeCom Customer Service integration with scene-based auto-binding",
+      "Voice message transcription via speech-to-text",
+      "ARM64 signing and system proxy support for proxy router",
+      "Declare image input support for vision-capable extra models",
+      "Mask API key inputs with password fields for security",
+      "UI polish for WeCom binding flow and channel registration"
+    ],
+    "zh": [
+      "企业微信客服集成，支持场景式自动绑定",
+      "语音消息自动转文字",
+      "ARM64 签名和代理路由器系统代理支持",
+      "为支持视觉的扩展模型声明图片输入能力",
+      "API Key 输入框改为密码字段，提升安全性",
+      "企业微信绑定流程和频道注册 UI 优化"
+    ]
+  },
+  {
     "version": "1.1.10",
     "date": "2026-02-12",
     "en": [
