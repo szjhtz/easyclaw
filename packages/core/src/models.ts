@@ -168,6 +168,8 @@ export interface ModelConfig {
   displayName: string;
   /** Cost in USD per million tokens. Converted from CNY at ~7.3 CNY/USD where applicable. */
   cost?: ModelCost;
+  /** Whether this model supports image/vision input. Defaults to false for extra models. */
+  supportsVision?: boolean;
 }
 
 /** Known regions. */
@@ -200,12 +202,14 @@ export const EXTRA_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> = {
       modelId: "doubao-seed-1-8-251228",
       displayName: "Doubao Seed 1.8",
       cost: { input: cny(4), output: cny(16), cacheRead: 0, cacheWrite: 0 }, // ¥4/¥16
+      supportsVision: true,
     },
     {
       provider: "volcengine",
       modelId: "doubao-seed-1-6-251015",
       displayName: "Doubao Seed 1.6",
       cost: { input: cny(0.8), output: cny(8), cacheRead: 0, cacheWrite: 0 }, // ¥0.8/¥8
+      supportsVision: true,
     },
     {
       provider: "volcengine",
@@ -218,6 +222,7 @@ export const EXTRA_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> = {
       modelId: "doubao-seed-1-6-flash-250828",
       displayName: "Doubao Seed 1.6 Flash",
       cost: { input: cny(0.2), output: cny(2), cacheRead: 0, cacheWrite: 0 }, // ¥0.2/¥2
+      supportsVision: true,
     },
   ],
   zhipu: [
@@ -256,6 +261,7 @@ export const EXTRA_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> = {
       modelId: "glm-4.6v",
       displayName: "GLM-4.6V",
       cost: { input: cny(2), output: cny(6), cacheRead: 0, cacheWrite: 0 }, // ¥2/¥6
+      supportsVision: true,
     },
     {
       provider: "zhipu",
@@ -280,6 +286,7 @@ export const EXTRA_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> = {
       modelId: "glm-4.5v",
       displayName: "GLM-4.5V",
       cost: { input: cny(4), output: cny(12), cacheRead: 0, cacheWrite: 0 }, // ¥4/¥12
+      supportsVision: true,
     },
     {
       provider: "zhipu",

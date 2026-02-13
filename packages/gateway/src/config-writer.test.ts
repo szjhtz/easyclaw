@@ -647,5 +647,29 @@ describe("config-writer", () => {
       expect(configs.zhipu.models.some((m) => m.id === "glm-4.7")).toBe(true);
       expect(configs.volcengine.models.some((m) => m.id === "doubao-seed-1-8-251228")).toBe(true);
     });
+
+    it("sets input to include image for vision-capable models", () => {
+      const configs = buildExtraProviderConfigs();
+      // Vision models should have ["text", "image"]
+      const glm46v = configs.zhipu.models.find((m) => m.id === "glm-4.6v");
+      expect(glm46v?.input).toEqual(["text", "image"]);
+      const glm45v = configs.zhipu.models.find((m) => m.id === "glm-4.5v");
+      expect(glm45v?.input).toEqual(["text", "image"]);
+      const doubao18 = configs.volcengine.models.find((m) => m.id === "doubao-seed-1-8-251228");
+      expect(doubao18?.input).toEqual(["text", "image"]);
+    });
+
+    it("sets input to text-only for non-vision models", () => {
+      const configs = buildExtraProviderConfigs();
+      const glm5code = configs.zhipu.models.find((m) => m.id === "glm-5-code");
+      expect(glm5code?.input).toEqual(["text"]);
+      // GLM text models without V suffix should be text-only
+      const glm5 = configs.zhipu.models.find((m) => m.id === "glm-5");
+      expect(glm5?.input).toEqual(["text"]);
+      const glm47 = configs.zhipu.models.find((m) => m.id === "glm-4.7");
+      expect(glm47?.input).toEqual(["text"]);
+      const glm45 = configs.zhipu.models.find((m) => m.id === "glm-4.5");
+      expect(glm45?.input).toEqual(["text"]);
+    });
   });
 });
