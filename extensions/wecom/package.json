@@ -22,7 +22,7 @@
   },
   "openclaw": {
     "extensions": [
-      "./openclaw-plugin.ts"
+      "./openclaw-plugin.mjs"
     ],
     "channel": {
       "id": "wechat",

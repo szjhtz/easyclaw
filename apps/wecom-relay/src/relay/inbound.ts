@@ -33,7 +33,7 @@ export async function handleInboundMessages(
   for (const msg of messages) {
     // Handle event messages for scene-based auto-binding
     if (msg.msgtype === "event") {
-      log.debug(`Event: type=${msg.event_type}, scene_param=${msg.scene_param ?? "NONE"}, user=${msg.external_userid}`);
+      log.info(`Event: type=${msg.event_type}, user=${msg.external_userid}`);
       if (msg.event_type === "enter_session" && msg.scene_param) {
         const sceneGatewayId = store.resolvePendingBinding(msg.scene_param);
         if (sceneGatewayId) {

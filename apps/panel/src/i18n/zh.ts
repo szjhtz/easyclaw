@@ -463,7 +463,7 @@ export default {
     wecomBindingSuccess: "绑定成功！",
     wecomBindingSuccessIcon: "\u2714",
     wecomAdvancedSettings: "高级设置",
-    wecomApplyCustomRelay: "应用",
+    wecomApplyCustomRelay: "重新生成二维码",
     wecomFailedToBind: "连接失败：",
     wecomUnknownError: "未知错误",
     wecomRelayUnavailable: "中继服务器不可用，请检查地址后重试。",

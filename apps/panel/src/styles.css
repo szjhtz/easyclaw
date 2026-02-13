@@ -2508,11 +2508,15 @@ tbody td {
   color: var(--color-text);
 }
 
-.wecom-advanced-form {
-  display: flex;
-  flex-direction: column;
+.wecom-advanced-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 12px;
+}
+
+.wecom-advanced-field input {
+  width: 100%;
 }
 
 /* ==========================================================================

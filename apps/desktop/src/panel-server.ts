@@ -103,7 +103,8 @@ interface UsageFilter {
 let wecomRelayState: {
   relayUrl: string;
   authToken: string;
-  status: "pending" | "bound" | "active" | "error";
+  connected: boolean;
+  externalUserId?: string;
   bindingToken?: string;
   customerServiceUrl?: string;
 } | null = null;
@@ -211,13 +212,16 @@ function doConnectWeComRelay(): void {
 
       if (frame.type === "ack" && frame.id === "hello") {
         log.info("WeCom relay: authenticated — persistent connection active");
-        if (wecomRelayState) wecomRelayState.status = "active";
+        if (wecomRelayState) wecomRelayState.connected = true;
         return;
       }
 
       if (frame.type === "binding_resolved") {
         log.info(`WeCom relay: binding resolved for ${frame.external_user_id}`);
-        if (wecomRelayState) wecomRelayState.status = "bound";
+        if (wecomRelayState) {
+          wecomRelayState.externalUserId = frame.external_user_id;
+        }
+        storage.settings.set("wecom-external-user-id", frame.external_user_id);
         return;
       }
 
@@ -239,7 +243,7 @@ function doConnectWeComRelay(): void {
     log.info("WeCom relay: disconnected");
     wecomRelayWs = null;
     if (wecomRelayState && !wecomIntentionalClose) {
-      wecomRelayState.status = "error";
+      wecomRelayState.connected = false;
     }
     if (!wecomIntentionalClose) {
       scheduleWeComReconnect();
@@ -1181,10 +1185,12 @@ export function startPanelServer(options: PanelServerOptions): Server {
     secretStore.get("wecom-auth-token").then((savedAuthToken) => {
       if (!savedAuthToken) return;
       const gwId = deviceId ?? randomUUID();
+      const savedExternalUserId = storage.settings.get("wecom-external-user-id") as string | undefined;
       wecomRelayState = {
         relayUrl: savedRelayUrl,
         authToken: savedAuthToken,
-        status: "pending",
+        connected: false,
+        externalUserId: savedExternalUserId,
       };
       const gwInfo = getGatewayInfo?.();
       startWeComRelay({
@@ -2271,6 +2277,7 @@ async function handleApiRoute(
 
     // Clear persisted credentials
     storage.settings.delete("wecom-relay-url");
+    storage.settings.delete("wecom-external-user-id");
     await secretStore.delete("wecom-auth-token");
 
     sendJson(res, 200, { ok: true });
@@ -2464,12 +2471,27 @@ async function handleApiRoute(
       sendJson(res, 200, { status: null });
       return;
     }
-    // Reflect actual relay connection state
+    // Compute status from clean state: connected (bool) + externalUserId (binding)
     const relayConnected = wecomRelayWs?.readyState === WebSocket.OPEN;
     const gatewayConnected = wecomGatewayRpc?.isConnected() ?? false;
+    const { externalUserId, connected } = wecomRelayState;
+    // status derivation:
+    //   "bound"   = user has been bound (binding persists across reconnects)
+    //   "active"  = relay connected, no user bound yet
+    //   "error"   = relay was connected but dropped
+    //   "pending" = relay connecting (initial state)
+    const status = externalUserId
+      ? "bound"
+      : connected
+        ? "active"
+        : relayConnected
+          ? "active"
+          : "pending";
     sendJson(res, 200, {
-      status: wecomRelayState.status,
+      status,
       relayUrl: wecomRelayState.relayUrl,
+      externalUserId: externalUserId ?? null,
+      connected: connected || relayConnected,
       bindingToken: wecomRelayState.bindingToken ?? null,
       customerServiceUrl: wecomRelayState.customerServiceUrl ?? null,
       relayConnected,
@@ -2537,7 +2559,7 @@ async function handleApiRoute(
       wecomRelayState = {
         relayUrl,
         authToken,
-        status: "pending",
+        connected: false,
         bindingToken: result.token,
         customerServiceUrl: result.customerServiceUrl,
       };

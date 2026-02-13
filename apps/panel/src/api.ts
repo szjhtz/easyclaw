@@ -601,6 +601,7 @@ export interface WeComBindingStatusResponse {
   status: WeComBindingStatus | null;
   relayUrl?: string;
   externalUserId?: string;
+  connected?: boolean;
   bindingToken?: string;
   customerServiceUrl?: string;
 }

@@ -101,7 +101,7 @@ export function WeComBindingModal({
     async function poll() {
       try {
         const status = await fetchWeComBindingStatus();
-        if (status.status === "bound") {
+        if (status.externalUserId) {
           setBindingSuccess(true);
           stopPolling();
           onBindingSuccess();
@@ -121,7 +121,7 @@ export function WeComBindingModal({
       setCheckingStatus(true);
       fetchWeComBindingStatus()
         .then((status) => {
-          if (status.status != null) {
+          if (status.externalUserId) {
             setAlreadyBound(true);
           } else {
             fetchBindingLink(DEFAULT_RELAY_URL, DEFAULT_AUTH_TOKEN);
@@ -261,8 +261,8 @@ export function WeComBindingModal({
             </button>
 
             {showAdvanced && (
-              <div className="wecom-advanced-form">
-                <div>
+              <div className="wecom-advanced-row">
+                <div className="wecom-advanced-field">
                   <label className="form-label-block">
                     {t("channels.wecomRelayUrl")}
                   </label>
@@ -274,7 +274,7 @@ export function WeComBindingModal({
                     disabled={customSubmitting}
                   />
                 </div>
-                <div>
+                <div className="wecom-advanced-field">
                   <label className="form-label-block">
                     {t("channels.wecomAuthToken")}
                   </label>
@@ -286,22 +286,24 @@ export function WeComBindingModal({
                     disabled={customSubmitting}
                   />
                 </div>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleCustomSubmit}
-                  disabled={customSubmitting || !customRelayUrl.trim() || !customAuthToken.trim()}
-                >
-                  {customSubmitting
-                    ? t("channels.wecomConnecting")
-                    : t("channels.wecomApplyCustomRelay")}
-                </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Close button */}
+        {/* Action buttons */}
         <div className="modal-actions">
+          {showAdvanced && !bindingSuccess && !alreadyBound && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleCustomSubmit}
+              disabled={customSubmitting || !customRelayUrl.trim() || !customAuthToken.trim()}
+            >
+              {customSubmitting
+                ? t("channels.wecomConnecting")
+                : t("channels.wecomApplyCustomRelay")}
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={handleClose}>
             {(bindingSuccess || alreadyBound) ? t("common.done") : t("common.close")}
           </button>

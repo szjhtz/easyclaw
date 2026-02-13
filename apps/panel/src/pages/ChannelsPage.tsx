@@ -324,7 +324,7 @@ export function ChannelsPage() {
   const allAccounts: Array<{ channelId: string; channelLabel: string; account: ChannelAccountSnapshot; isWecom?: boolean }> = [];
 
   // Add WeCom virtual account if binding is active
-  if (wecomStatus && wecomStatus.status != null) {
+  if (wecomStatus && wecomStatus.externalUserId) {
     allAccounts.push({
       channelId: "wecom",
       channelLabel: t("channels.channelWecom"),
@@ -333,7 +333,7 @@ export function ChannelsPage() {
         accountId: "default",
         name: t("channels.channelWecom"),
         configured: true,
-        running: wecomStatus.status === "active" || wecomStatus.status === "bound",
+        running: wecomStatus.connected === true,
         enabled: true,
       } as ChannelAccountSnapshot,
     });

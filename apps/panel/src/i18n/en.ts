@@ -463,7 +463,7 @@ export default {
     wecomBindingSuccess: "Binding successful!",
     wecomBindingSuccessIcon: "\u2714",
     wecomAdvancedSettings: "Advanced Settings",
-    wecomApplyCustomRelay: "Apply",
+    wecomApplyCustomRelay: "Regenerate QR Code",
     wecomFailedToBind: "Failed to connect:",
     wecomUnknownError: "Unknown error",
     wecomRelayUnavailable: "Relay server unavailable. Please check the address and try again.",
