@@ -18,3 +18,8 @@ export type {
 } from "./channels.js";
 export type { SttProvider, SttSettings } from "./stt.js";
 export { DEFAULT_STT_SETTINGS, STT_SETTINGS_KEYS, STT_SECRET_KEYS } from "./stt.js";
+export type {
+  WeComBindingStatus,
+  WeComAccountConfig,
+  WeComRelayMessage,
+} from "./wecom.js";

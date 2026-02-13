@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchChannelStatus, deleteChannelAccount, type ChannelsStatusSnapshot, type ChannelAccountSnapshot } from "../api.js";
+import { fetchChannelStatus, deleteChannelAccount, fetchWeComBindingStatus, type ChannelsStatusSnapshot, type ChannelAccountSnapshot, type WeComBindingStatus, type WeComBindingStatusResponse } from "../api.js";
 import { AddChannelAccountModal } from "../components/AddChannelAccountModal.js";
 import { ManageAllowlistModal } from "../components/ManageAllowlistModal.js";
+import { WeComBindingModal, WeComStatusBadge } from "../components/WeComBindingModal.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { Select } from "../components/Select.js";
 
@@ -62,8 +63,22 @@ export function ChannelsPage() {
   // Track which account is being deleted (for spinner)
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
+  // WeCom binding state
+  const [wecomModalOpen, setWecomModalOpen] = useState(false);
+  const [wecomStatus, setWecomStatus] = useState<WeComBindingStatusResponse | null>(null);
+
   // Dropdown selection state for add account
   const [selectedDropdownChannel, setSelectedDropdownChannel] = useState<string>("");
+
+  const loadWeComStatus = useCallback(async () => {
+    try {
+      const data = await fetchWeComBindingStatus();
+      setWecomStatus(data);
+    } catch {
+      // API not implemented (501) or gateway not ready — show "not connected" state
+      setWecomStatus(null);
+    }
+  }, []);
 
   const visibleChannels = i18n.language === "zh"
     ? KNOWN_CHANNELS.filter(ch => !CHINA_BLOCKED_CHANNELS.has(ch.id) || ch.id === selectedDropdownChannel)
@@ -118,6 +133,8 @@ export function ChannelsPage() {
         setSnapshot(data);
         setLoading(false);
         setRefreshing(false);
+        // Also fetch WeCom status
+        loadWeComStatus();
         // Healthy — next poll in 30s
         timer = setTimeout(poll, 30000);
       } catch (err) {
@@ -132,7 +149,7 @@ export function ChannelsPage() {
     poll();
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, []);
+  }, [loadWeComStatus]);
 
   function handleRefresh() {
     setRefreshing(true);
@@ -340,6 +357,67 @@ export function ChannelsPage() {
         </p>
       </div>
 
+      {/* WeCom Section — hidden until W15-A-INT E2E verification is complete */}
+      {false && <div className="section-card">
+        <div className="wecom-section-header">
+          <div className="wecom-section-info">
+            <div className="wecom-section-title">
+              <h3>{t("channels.wecomTitle")}</h3>
+              {wecomStatus ? (
+                <WeComStatusBadge status={wecomStatus.status} t={t} />
+              ) : (
+                <span className="badge badge-warning">
+                  {t("channels.wecomStatusNotConnected")}
+                </span>
+              )}
+            </div>
+            <span className="wecom-section-desc">
+              {t("channels.wecomDescription")}
+            </span>
+          </div>
+          <div className="td-actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => setWecomModalOpen(true)}
+            >
+              {t("channels.wecomConfigure")}
+            </button>
+            {wecomStatus && wecomStatus.status !== "pending" && (
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  // Reset local WeCom state — actual disconnect would call an API
+                  setWecomStatus(null);
+                }}
+              >
+                {t("channels.wecomDisconnect")}
+              </button>
+            )}
+          </div>
+        </div>
+        {/* Show relay URL and external user ID when bound/active */}
+        {wecomStatus && wecomStatus.relayUrl && (
+          <div className="wecom-detail-row">
+            <span className="wecom-detail-label">
+              {t("channels.wecomRelayUrl")}:
+            </span>
+            <span className="wecom-detail-value">
+              {wecomStatus.relayUrl}
+            </span>
+          </div>
+        )}
+        {wecomStatus && wecomStatus.externalUserId && (
+          <div className="wecom-detail-row">
+            <span className="wecom-detail-label">
+              {t("channels.wecomExternalUserId")}:
+            </span>
+            <span className="wecom-detail-value">
+              {wecomStatus.externalUserId}
+            </span>
+          </div>
+        )}
+      </div>}
+
       {/* Add Account Section */}
       <div className="section-card channel-add-section">
         <h3>{t("channels.addAccount")}</h3>
@@ -482,6 +560,16 @@ export function ChannelsPage() {
         onClose={() => setAllowlistModalOpen(false)}
         channelId={allowlistChannelId}
         channelLabel={allowlistChannelLabel}
+      />
+
+      {/* WeCom Binding Modal */}
+      <WeComBindingModal
+        isOpen={wecomModalOpen}
+        onClose={() => setWecomModalOpen(false)}
+        currentStatus={wecomStatus?.status ?? null}
+        onBindingSuccess={() => {
+          loadWeComStatus();
+        }}
       />
 
       {/* Delete Confirm Dialog */}

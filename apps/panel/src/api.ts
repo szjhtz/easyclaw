@@ -592,3 +592,24 @@ export async function fetchPricing(
     }
   }, 14_400_000); // 4h — pricing rarely changes
 }
+
+// --- WeCom Channel ---
+
+export type WeComBindingStatus = "pending" | "bound" | "active" | "error";
+
+export interface WeComBindingStatusResponse {
+  status: WeComBindingStatus;
+  relayUrl?: string;
+  externalUserId?: string;
+}
+
+export async function fetchWeComBindingStatus(): Promise<WeComBindingStatusResponse> {
+  return fetchJson<WeComBindingStatusResponse>("/channels/wecom/binding-status");
+}
+
+export async function bindWeComAccount(relayUrl: string): Promise<{ ok: boolean; bindingToken?: string }> {
+  return fetchJson("/channels/wecom/bind", {
+    method: "POST",
+    body: JSON.stringify({ relayUrl }),
+  });
+}

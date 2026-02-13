@@ -2086,6 +2086,17 @@ async function handleApiRoute(
     return;
   }
 
+  // --- WeCom Channel (stubs — W15-A0) ---
+  if (pathname === "/api/channels/wecom/binding-status" && req.method === "GET") {
+    sendJson(res, 501, { error: "WeCom binding not implemented yet" });
+    return;
+  }
+
+  if (pathname === "/api/channels/wecom/bind" && req.method === "POST") {
+    sendJson(res, 501, { error: "WeCom binding not implemented yet" });
+    return;
+  }
+
   // --- File Dialog ---
   if (pathname === "/api/file-dialog" && req.method === "POST") {
     if (!onOpenFileDialog) {
