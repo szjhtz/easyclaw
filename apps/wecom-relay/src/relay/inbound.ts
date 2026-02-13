@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@easyclaw/logger";
 import type { Config } from "../config.js";
-import type { WeComMessage, InboundFrame } from "../types.js";
+import type { WeComMessage, InboundFrame, BindingResolvedFrame } from "../types.js";
 import { registry } from "../ws/server.js";
 import { encodeFrame } from "../ws/protocol.js";
 import { getBindingStore } from "../index.js";
@@ -9,6 +9,11 @@ import { getAccessToken } from "../wecom/access-token.js";
 import { sendTextMessage } from "../wecom/send-message.js";
 
 const log = createLogger("relay:inbound");
+
+const BINDING_SUCCESS_MSG: Record<string, string> = {
+  zh: "绑定成功！以后你就可以直接在微信里联系我啦！你负责诗和远方，我负责给你打理好电脑！",
+  en: "You're all set! From now on, just message me here on WeChat — you focus on the big picture, and I'll keep your computer in tip-top shape!",
+};
 
 /**
  * Handle inbound messages from WeCom sync_msg.
@@ -25,8 +30,41 @@ export async function handleInboundMessages(
   const store = getBindingStore();
 
   for (const msg of messages) {
-    // Skip event messages and internal (origin=5 = system) messages
-    if (msg.msgtype === "event") continue;
+    // Handle event messages for scene-based auto-binding
+    if (msg.msgtype === "event") {
+      log.debug(`Event: type=${msg.event_type}, scene_param=${msg.scene_param ?? "NONE"}, user=${msg.external_userid}`);
+      if (msg.event_type === "enter_session" && msg.scene_param) {
+        const sceneGatewayId = store.resolvePendingBinding(msg.scene_param);
+        if (sceneGatewayId) {
+          store.bind(msg.external_userid, sceneGatewayId);
+          try {
+            const accessToken = await getAccessToken(config.WECOM_CORPID, config.WECOM_APP_SECRET);
+            await sendTextMessage(
+              accessToken,
+              msg.external_userid,
+              config.WECOM_OPEN_KFID,
+              BINDING_SUCCESS_MSG[config.LOCALE] ?? BINDING_SUCCESS_MSG.zh,
+            );
+          } catch (err) {
+            log.error(`Failed to send binding confirmation: ${err}`);
+          }
+          log.info(`Scene binding: ${msg.external_userid} → ${sceneGatewayId} (scene_param=${msg.scene_param})`);
+
+          // Notify the gateway that binding was resolved
+          const gwWs = registry.get(sceneGatewayId);
+          if (gwWs) {
+            gwWs.send(encodeFrame({
+              type: "binding_resolved",
+              external_user_id: msg.external_userid,
+              gateway_id: sceneGatewayId,
+            }));
+          }
+        } else {
+          log.info(`enter_session with unknown/expired scene_param: ${msg.scene_param} from ${msg.external_userid}`);
+        }
+      }
+      continue;
+    }
 
     // Only process customer messages (origin 3 = customer)
     if ("origin" in msg && msg.origin !== 3) continue;
@@ -47,10 +85,20 @@ export async function handleInboundMessages(
           accessToken,
           externalUserId,
           config.WECOM_OPEN_KFID,
-          "Binding successful! Your messages will now be forwarded to your assistant.",
+          BINDING_SUCCESS_MSG[config.LOCALE] ?? BINDING_SUCCESS_MSG.zh,
         );
 
         log.info(`Binding completed: ${externalUserId} → ${gatewayId}`);
+
+        // Notify the gateway that binding was resolved
+        const gwWs = registry.get(gatewayId);
+        if (gwWs) {
+          gwWs.send(encodeFrame({
+            type: "binding_resolved",
+            external_user_id: externalUserId,
+            gateway_id: gatewayId,
+          }));
+        }
         continue;
       }
     }

@@ -7,8 +7,12 @@ export interface BindingStore {
   bind(externalUserId: string, gatewayId: string): void;
   lookup(externalUserId: string): string | undefined;
   unbind(externalUserId: string): void;
+  listByGateway(gatewayId: string): string[];
+  unbindByGateway(gatewayId: string): number;
   createPendingBinding(token: string, gatewayId: string): void;
   resolvePendingBinding(token: string): string | undefined;
+  getSyncCursor(): string;
+  setSyncCursor(cursor: string): void;
   close(): void;
 }
 
@@ -38,6 +42,11 @@ export function createBindingStore(dbPath: string): BindingStore {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS kv (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   log.info(`Binding store initialized at ${dbPath}`);
@@ -48,6 +57,8 @@ export function createBindingStore(dbPath: string): BindingStore {
     ),
     lookup: db.prepare("SELECT gateway_id FROM bindings WHERE external_userid = ?"),
     unbind: db.prepare("DELETE FROM bindings WHERE external_userid = ?"),
+    unbindByGateway: db.prepare("DELETE FROM bindings WHERE gateway_id = ?"),
+    listByGateway: db.prepare("SELECT external_userid FROM bindings WHERE gateway_id = ?"),
     createPending: db.prepare(
       "INSERT OR REPLACE INTO pending_bindings (token, gateway_id, created_at, expires_at) VALUES (?, ?, datetime('now'), datetime('now', '+10 minutes'))",
     ),
@@ -55,6 +66,8 @@ export function createBindingStore(dbPath: string): BindingStore {
       "SELECT gateway_id FROM pending_bindings WHERE token = ? AND expires_at > datetime('now')",
     ),
     deletePending: db.prepare("DELETE FROM pending_bindings WHERE token = ?"),
+    getKv: db.prepare("SELECT value FROM kv WHERE key = ?"),
+    setKv: db.prepare("INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)"),
   };
 
   return {
@@ -73,6 +86,17 @@ export function createBindingStore(dbPath: string): BindingStore {
       log.info(`Unbound ${externalUserId}`);
     },
 
+    listByGateway(gatewayId: string): string[] {
+      const rows = stmts.listByGateway.all(gatewayId) as { external_userid: string }[];
+      return rows.map(r => r.external_userid);
+    },
+
+    unbindByGateway(gatewayId: string): number {
+      const result = stmts.unbindByGateway.run(gatewayId);
+      log.info(`Unbound ${result.changes} user(s) from gateway ${gatewayId}`);
+      return result.changes;
+    },
+
     createPendingBinding(token: string, gatewayId: string): void {
       stmts.createPending.run(token, gatewayId);
       log.info(`Created pending binding: token=${token} → ${gatewayId}`);
@@ -86,6 +110,15 @@ export function createBindingStore(dbPath: string): BindingStore {
         return row.gateway_id;
       }
       return undefined;
+    },
+
+    getSyncCursor(): string {
+      const row = stmts.getKv.get("sync_cursor") as { value: string } | undefined;
+      return row?.value ?? "";
+    },
+
+    setSyncCursor(cursor: string): void {
+      stmts.setKv.run("sync_cursor", cursor);
     },
 
     close(): void {

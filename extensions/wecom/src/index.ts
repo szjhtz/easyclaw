@@ -12,6 +12,8 @@ export type {
   ReplyFrame,
   AckFrame,
   ErrorFrame,
+  CreateBindingFrame,
+  CreateBindingAckFrame,
 } from "./types.js";
 export { splitMessage } from "./reply-handler.js";
 

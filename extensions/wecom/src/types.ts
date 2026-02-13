@@ -32,12 +32,25 @@ export interface ErrorFrame {
   message: string;
 }
 
+export interface CreateBindingFrame {
+  type: "create_binding";
+  gateway_id: string;
+}
+
+export interface CreateBindingAckFrame {
+  type: "create_binding_ack";
+  token: string;
+  customer_service_url: string;
+}
+
 export type WsFrame =
   | HelloFrame
   | InboundFrame
   | ReplyFrame
   | AckFrame
-  | ErrorFrame;
+  | ErrorFrame
+  | CreateBindingFrame
+  | CreateBindingAckFrame;
 
 /* ── Type guards ─────────────────────────────────────────────────── */
 
@@ -61,6 +74,10 @@ export function isErrorFrame(f: WsFrame): f is ErrorFrame {
   return f.type === "error";
 }
 
+export function isCreateBindingAckFrame(f: WsFrame): f is CreateBindingAckFrame {
+  return f.type === "create_binding_ack";
+}
+
 /**
  * Parse a raw JSON string into a WsFrame.
  * Returns `null` if the string is not valid JSON or lacks a known `type`.
@@ -69,7 +86,7 @@ export function parseFrame(raw: string): WsFrame | null {
   try {
     const obj = JSON.parse(raw) as Record<string, unknown>;
     if (typeof obj !== "object" || obj === null) return null;
-    const validTypes = ["hello", "inbound", "reply", "ack", "error"];
+    const validTypes = ["hello", "inbound", "reply", "ack", "error", "create_binding", "create_binding_ack"];
     if (!validTypes.includes(obj.type as string)) return null;
     return obj as unknown as WsFrame;
   } catch {

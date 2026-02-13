@@ -2448,115 +2448,71 @@ tbody td {
 
 /* ===== 46. WeCom Channel Section ===== */
 
-.wecom-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.wecom-section-info {
+.wecom-qr-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.wecom-section-title {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  padding: 24px 16px;
+  gap: 12px;
 }
 
-.wecom-section-title h3 {
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.wecom-section-desc {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  margin: 0;
-}
-
-.wecom-detail-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border-light);
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.wecom-detail-label {
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.wecom-detail-value {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-text);
-  background-color: var(--color-bg-alt);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.wecom-token-box {
-  margin-top: 16px;
-  padding: 16px;
-  background-color: var(--color-bg-alt);
-  border: 1px solid var(--color-border-light);
+.wecom-qr-image {
   border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
 }
 
-.wecom-token-label {
-  font-size: 12px;
+.wecom-qr-hint {
+  font-size: 14px;
   font-weight: 500;
+  color: var(--color-text);
+}
+
+.wecom-qr-waiting {
+  font-size: 13px;
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
 }
 
-.wecom-token-value {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.wecom-qr-loading {
+  padding: 48px 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
 }
 
-.wecom-token-code {
-  font-family: var(--font-mono);
+.wecom-binding-success {
+  font-size: 48px;
+  color: var(--color-success);
+  line-height: 1;
+}
+
+.wecom-binding-success-text {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-primary);
-  letter-spacing: 0.05em;
-  user-select: all;
+  color: var(--color-success);
 }
 
-.wecom-token-instructions {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background-color: rgba(37, 99, 235, 0.06);
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  border-radius: var(--radius-sm);
+.wecom-advanced-section {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 12px;
+}
+
+.wecom-advanced-toggle {
   font-size: 13px;
-  color: var(--color-info);
-  line-height: 1.5;
-}
-
-.wecom-status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.wecom-status-label {
-  font-size: 13px;
-  font-weight: 500;
   color: var(--color-text-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 0;
+}
+
+.wecom-advanced-toggle:hover {
+  color: var(--color-text);
+}
+
+.wecom-advanced-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 /* ==========================================================================
@@ -3188,18 +3144,10 @@ tbody td {
 }
 
 /* ===== D31. WeCom ===== */
-[data-theme="dark"] .wecom-token-box {
-  background-color: rgba(255, 255, 255, 0.04);
+[data-theme="dark"] .wecom-qr-image {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .wecom-advanced-section {
   border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .wecom-token-instructions {
-  background-color: rgba(37, 99, 235, 0.1);
-  border-color: rgba(37, 99, 235, 0.18);
-  color: #7ba4f7;
-}
-
-[data-theme="dark"] .wecom-detail-value {
-  background-color: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
 }

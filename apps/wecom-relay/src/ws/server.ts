@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { WebSocketServer, type WebSocket } from "ws";
 import { createLogger } from "@easyclaw/logger";
 import type { Config } from "../config.js";
@@ -5,7 +6,10 @@ import { ConnectionRegistry } from "./registry.js";
 import { decodeFrame, encodeFrame } from "./protocol.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { handleOutboundReply } from "../relay/outbound.js";
-import type { HelloFrame, ReplyFrame } from "../types.js";
+import { getBindingStore } from "../index.js";
+import { getAccessToken } from "../wecom/access-token.js";
+import { getContactWayUrl, endCustomerSession } from "../wecom/send-message.js";
+import type { HelloFrame, ReplyFrame, CreateBindingFrame, UnbindAllFrame } from "../types.js";
 
 const log = createLogger("ws:server");
 
@@ -60,6 +64,18 @@ export function createWSServer(config: Config): WebSocketServer {
 
           ws.send(encodeFrame({ type: "ack", id: "hello" }));
           log.info(`Gateway authenticated: ${gatewayId}`);
+
+          // Notify about existing bindings (handles reconnect / app restart)
+          const store = getBindingStore();
+          const boundUsers = store.listByGateway(gatewayId);
+          if (boundUsers.length > 0) {
+            ws.send(encodeFrame({
+              type: "binding_resolved",
+              external_user_id: boundUsers[0],
+              gateway_id: gatewayId,
+            }));
+            log.info(`Existing binding(s) for gateway ${gatewayId}: ${boundUsers.length} user(s)`);
+          }
           return;
         }
 
@@ -70,6 +86,67 @@ export function createWSServer(config: Config): WebSocketServer {
             log.error(`Error handling reply from ${gatewayId}:`, err);
             ws.send(encodeFrame({ type: "error", message: "Failed to send reply" }));
           });
+          return;
+        }
+
+        if (frame.type === "create_binding") {
+          const cbFrame = frame as CreateBindingFrame;
+          if (cbFrame.gateway_id !== gatewayId) {
+            ws.send(encodeFrame({ type: "error", message: "gateway_id mismatch" }));
+            return;
+          }
+          const store = getBindingStore();
+          const token = randomBytes(4).toString("hex");
+          store.createPendingBinding(token, gatewayId!);
+
+          // Call WeCom API to get contact way URL (async)
+          (async () => {
+            try {
+              const accessToken = await getAccessToken(config.WECOM_CORPID, config.WECOM_APP_SECRET);
+              const baseUrl = await getContactWayUrl(accessToken, config.WECOM_OPEN_KFID);
+              const sep = baseUrl.includes("?") ? "&" : "?";
+              const customerServiceUrl = `${baseUrl}${sep}scene_param=${encodeURIComponent(token)}`;
+              ws.send(encodeFrame({
+                type: "create_binding_ack",
+                token,
+                customer_service_url: customerServiceUrl,
+              }));
+              log.info(`Created pending binding for gateway ${gatewayId}, token: ${token}, url: ${customerServiceUrl}`);
+            } catch (err) {
+              log.error(`Failed to create contact way: ${err}`);
+              ws.send(encodeFrame({ type: "error", message: "Failed to create customer service link" }));
+            }
+          })();
+          return;
+        }
+
+        if (frame.type === "unbind_all") {
+          const ubFrame = frame as UnbindAllFrame;
+          if (ubFrame.gateway_id !== gatewayId) {
+            ws.send(encodeFrame({ type: "error", message: "gateway_id mismatch" }));
+            return;
+          }
+          const store = getBindingStore();
+
+          // End WeCom sessions before unbinding so scene_param works on rebind
+          (async () => {
+            try {
+              const users = store.listByGateway(gatewayId!);
+              if (users.length > 0) {
+                const accessToken = await getAccessToken(config.WECOM_CORPID, config.WECOM_APP_SECRET);
+                await Promise.allSettled(
+                  users.map(uid => endCustomerSession(accessToken, config.WECOM_OPEN_KFID, uid)),
+                );
+                log.info(`Ended ${users.length} session(s) for gateway ${gatewayId}`);
+              }
+            } catch (err) {
+              log.warn(`Failed to end sessions for gateway ${gatewayId}:`, err);
+            }
+
+            const count = store.unbindByGateway(gatewayId!);
+            ws.send(encodeFrame({ type: "ack", id: "unbind_all" }));
+            log.info(`Unbound all (${count}) users for gateway ${gatewayId}`);
+          })();
           return;
         }
 

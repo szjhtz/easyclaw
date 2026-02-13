@@ -1,5 +1,6 @@
 import { createLogger } from "@easyclaw/logger";
 import type { WeComMessage } from "../types.js";
+import { getBindingStore } from "../index.js";
 
 const log = createLogger("wecom:sync-messages");
 
@@ -23,22 +24,23 @@ interface WeComSyncMessage {
   text?: { content: string };
   image?: { media_id: string };
   voice?: { media_id: string };
-  event?: { event_type: string };
+  event?: { event_type: string; scene?: string; scene_param?: string; external_userid?: string; open_kfid?: string; welcome_code?: string };
 }
-
-/** In-memory cursor for sync_msg pagination */
-let syncCursor = "";
 
 /**
  * Fetch new messages from WeCom Customer Service API.
  *
  * POST /cgi-bin/kf/sync_msg?access_token=TOKEN
  * Body: { cursor, token, limit, voice_format }
+ *
+ * Cursor is persisted in the binding store DB so it survives restarts.
  */
 export async function syncMessages(
   accessToken: string,
   token?: string,
 ): Promise<WeComMessage[]> {
+  const store = getBindingStore();
+  const syncCursor = store.getSyncCursor();
   const url = `${WECOM_API_BASE}/cgi-bin/kf/sync_msg?access_token=${encodeURIComponent(accessToken)}`;
 
   const body: Record<string, unknown> = {
@@ -70,7 +72,7 @@ export async function syncMessages(
   }
 
   if (data.next_cursor) {
-    syncCursor = data.next_cursor;
+    store.setSyncCursor(data.next_cursor);
   }
 
   const messages: WeComMessage[] = (data.msg_list ?? []).map((m) => {
@@ -109,9 +111,11 @@ export async function syncMessages(
         return {
           msgtype: "event" as const,
           event_type: m.event?.event_type ?? "",
-          external_userid: m.external_userid,
-          open_kfid: m.open_kfid,
+          external_userid: m.event?.external_userid ?? m.external_userid,
+          open_kfid: m.event?.open_kfid ?? m.open_kfid,
           send_time: m.send_time,
+          scene: m.event?.scene,
+          scene_param: m.event?.scene_param,
         };
       default:
         return {
@@ -135,5 +139,6 @@ export async function syncMessages(
  * @internal
  */
 export function _resetSyncCursor(): void {
-  syncCursor = "";
+  const store = getBindingStore();
+  store.setSyncCursor("");
 }

@@ -20,6 +20,18 @@
     "@easyclaw/logger": "workspace:*",
     "ws": "^8.18.0"
   },
+  "openclaw": {
+    "extensions": [
+      "./openclaw-plugin.ts"
+    ],
+    "channel": {
+      "id": "wechat",
+      "label": "WeChat",
+      "selectionLabel": "WeChat (微信)",
+      "blurb": "WeChat messaging via WeCom Customer Service relay.",
+      "aliases": ["wecom"]
+    }
+  },
   "devDependencies": {
     "@types/ws": "^8.18.1",
     "oxlint": "^1.43.0",

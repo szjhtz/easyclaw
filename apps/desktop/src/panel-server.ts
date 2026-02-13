@@ -80,6 +80,11 @@ let wecomRelayState: {
   customerServiceUrl?: string;
 } | null = null;
 
+// Map lowercased external_user_id → original case.
+// OpenClaw lowercases session keys internally, so we need to recover
+// the original WeCom external_userid (which is case-sensitive) for replies.
+const wecomUserIdCaseMap = new Map<string, string>();
+
 // === WeCom Relay Persistent Connection ===
 // Maintains a long-lived WS to the relay server so that messages from
 // WeCom users are forwarded to the local AI agent and replies flow back.
@@ -242,17 +247,19 @@ async function handleWeComInbound(frame: {
     return;
   }
 
-  const sessionKey = `agent:default:wecom:${frame.external_user_id}`;
+  const sessionKey = `agent:main:wecom:${frame.external_user_id}`;
+  wecomUserIdCaseMap.set(frame.external_user_id.toLowerCase(), frame.external_user_id);
   log.info(`WeCom: forwarding ${frame.msg_type} from ${frame.external_user_id} to agent`);
 
   try {
-    await wecomGatewayRpc.request("chat.send", {
+    await wecomGatewayRpc.request("agent", {
       sessionKey,
+      channel: "wechat",
       message: frame.content,
       idempotencyKey: frame.id,
     });
   } catch (err) {
-    log.error("WeCom: chat.send failed:", err);
+    log.error("WeCom: agent request failed:", err);
   }
 }
 
@@ -262,9 +269,10 @@ function handleWeComChatEvent(payload: unknown): void {
   if (!p || p.state !== "final") return;
 
   const sessionKey = p.sessionKey as string | undefined;
-  if (!sessionKey?.startsWith("agent:default:wecom:")) return;
+  if (!sessionKey?.startsWith("agent:main:wecom:")) return;
 
-  const externalUserId = sessionKey.slice("agent:default:wecom:".length);
+  const rawUserId = sessionKey.slice("agent:main:wecom:".length);
+  const externalUserId = wecomUserIdCaseMap.get(rawUserId.toLowerCase()) ?? rawUserId;
   const message = p.message as Record<string, unknown> | undefined;
   const content = message?.content;
 

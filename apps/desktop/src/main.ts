@@ -255,6 +255,31 @@ function buildProxyEnv(): Record<string, string> {
   };
 }
 
+/**
+ * Write a CJS module that injects undici's EnvHttpProxyAgent as the global fetch dispatcher.
+ * Node.js native fetch() does NOT respect HTTP_PROXY env vars by default, so this is needed
+ * to make ALL fetch() calls (Telegram/Discord/Slack SDKs, etc.) go through the proxy router.
+ *
+ * The module is loaded via NODE_OPTIONS=--require before the gateway entry point.
+ * It uses createRequire to resolve undici from the vendor's node_modules.
+ */
+function writeProxySetupModule(stateDir: string, vendorDir: string): string {
+  const setupPath = join(stateDir, "proxy-setup.cjs");
+  const code = `\
+"use strict";
+const { createRequire } = require("node:module");
+const path = require("node:path");
+try {
+  const vendorDir = ${JSON.stringify(vendorDir)};
+  const vendorRequire = createRequire(path.join(vendorDir, "package.json"));
+  const { setGlobalDispatcher, EnvHttpProxyAgent } = vendorRequire("undici");
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+} catch (_) {}
+`;
+  writeFileSync(setupPath, code, "utf-8");
+  return setupPath;
+}
+
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let lastSystemProxy: string | null = null;
@@ -403,7 +428,18 @@ app.whenReady().then(async () => {
     });
   }, 4 * 60 * 60 * 1000);
 
-  // Start proxy router first (before gateway)
+  // Detect system proxy and write proxy router config BEFORE starting the router.
+  // This ensures the router has a valid config (with systemProxy) from the very first request,
+  // preventing "No config loaded, using direct connection" race during startup.
+  lastSystemProxy = await detectSystemProxy();
+  if (lastSystemProxy) {
+    log.info(`System proxy detected: ${lastSystemProxy}`);
+  } else {
+    log.info("No system proxy detected (DIRECT)");
+  }
+  await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
+
+  // Start proxy router (config is already on disk)
   const proxyRouter = new ProxyRouter({
     port: PROXY_ROUTER_PORT,
     configPath: resolveProxyRouterConfigPath(),
@@ -1057,23 +1093,14 @@ app.whenReady().then(async () => {
     },
   });
 
-  // Detect system proxy, sync auth profiles + proxy router config + build env, then start gateway.
+  // Sync auth profiles + build env, then start gateway.
+  // System proxy and proxy router config were already written before proxyRouter.start().
   const workspacePath = stateDir;
-  detectSystemProxy()
-    .then((proxy) => {
-      lastSystemProxy = proxy;
-      if (proxy) {
-        log.info(`System proxy detected: ${proxy}`);
-      } else {
-        log.info("No system proxy detected (DIRECT)");
-      }
-      return Promise.all([
-        syncAllAuthProfiles(stateDir, storage, secretStore),
-        writeProxyRouterConfig(storage, secretStore, lastSystemProxy),
-        buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath),
-      ]);
-    })
-    .then(([, , secretEnv]) => {
+  Promise.all([
+    syncAllAuthProfiles(stateDir, storage, secretStore),
+    buildGatewayEnv(secretStore, { ELECTRON_RUN_AS_NODE: "1" }, storage, workspacePath),
+  ])
+    .then(([, secretEnv]) => {
       // Debug: Log which API keys are configured (without showing values)
       const configuredKeys = Object.keys(secretEnv).filter(k => k.endsWith('_API_KEY') || k.endsWith('_OAUTH_TOKEN'));
       log.info(`Initial API keys: ${configuredKeys.join(', ') || '(none)'}`);
@@ -1085,8 +1112,11 @@ app.whenReady().then(async () => {
         log.info(`File permissions: workspace=${perms.workspacePath}, read=${perms.readPaths.length}, write=${perms.writePaths.length}`);
       }
 
-      // Set env vars: API keys + fixed proxy URL + file permissions
+      // Write proxy setup module and set env vars: API keys + proxy + file permissions
       const proxyEnv = buildProxyEnv();
+      const resolvedVendorDir = vendorDir ?? join(import.meta.dirname, "..", "..", "..", "vendor", "openclaw");
+      const proxySetupPath = writeProxySetupModule(stateDir, resolvedVendorDir);
+      proxyEnv.NODE_OPTIONS = `--require ${proxySetupPath}`;
       launcher.setEnv({ ...secretEnv, ...proxyEnv });
       return launcher.start();
     })

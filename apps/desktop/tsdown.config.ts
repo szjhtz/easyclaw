@@ -14,4 +14,7 @@ export default defineConfig({
   ],
   treeshake: true,
   inlineOnly: false,
+  define: {
+    __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+  },
 });

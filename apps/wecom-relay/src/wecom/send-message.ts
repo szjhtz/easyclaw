@@ -73,3 +73,86 @@ export async function sendTextMessage(
   log.info(`Message sent to ${toUser}, msgid: ${data.msgid}`);
   return data.msgid;
 }
+
+/**
+ * End a customer service session by transitioning to state 4 (ended).
+ *
+ * POST /cgi-bin/kf/service_state/trans?access_token=TOKEN
+ *
+ * This resets the session so the user can re-enter and trigger
+ * a new enter_session event with scene_param on their next visit.
+ */
+export async function endCustomerSession(
+  accessToken: string,
+  openKfId: string,
+  externalUserId: string,
+): Promise<void> {
+  const url = `${WECOM_API_BASE}/cgi-bin/kf/service_state/trans?access_token=${encodeURIComponent(accessToken)}`;
+
+  const body = {
+    open_kfid: openKfId,
+    external_userid: externalUserId,
+    service_state: 4,
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    log.warn(`service_state/trans request failed for ${externalUserId}: HTTP ${response.status}`);
+    return;
+  }
+
+  const data = (await response.json()) as { errcode: number; errmsg: string };
+
+  if (data.errcode !== 0) {
+    log.warn(`service_state/trans API error for ${externalUserId}: ${data.errcode} ${data.errmsg}`);
+    return;
+  }
+
+  log.info(`Session ended for ${externalUserId}`);
+}
+
+/**
+ * Get a customer service contact way URL with scene support.
+ *
+ * POST /cgi-bin/kf/add_contact_way
+ *
+ * Caches the result so the API is only called once per relay lifetime.
+ * The scene is fixed to "bind"; per-request tokens are appended as scene_param.
+ */
+let cachedContactWayUrl: string | null = null;
+
+export async function getContactWayUrl(
+  accessToken: string,
+  openKfId: string,
+): Promise<string> {
+  if (cachedContactWayUrl) return cachedContactWayUrl;
+
+  const url = `${WECOM_API_BASE}/cgi-bin/kf/add_contact_way?access_token=${encodeURIComponent(accessToken)}`;
+
+  const body = { open_kfid: openKfId, scene: "bind" };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`add_contact_way request failed: HTTP ${response.status}`);
+  }
+
+  const data = (await response.json()) as { errcode: number; errmsg: string; url?: string };
+
+  if (data.errcode !== 0 || !data.url) {
+    throw new Error(`add_contact_way API error: ${data.errcode} ${data.errmsg}`);
+  }
+
+  cachedContactWayUrl = data.url;
+  log.info(`Contact way URL created: ${cachedContactWayUrl}`);
+  return cachedContactWayUrl;
+}

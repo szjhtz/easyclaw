@@ -32,7 +32,38 @@ export interface ErrorFrame {
   message: string;
 }
 
-export type WSFrame = HelloFrame | InboundFrame | ReplyFrame | AckFrame | ErrorFrame;
+export interface CreateBindingFrame {
+  type: "create_binding";
+  gateway_id: string;
+}
+
+export interface CreateBindingAckFrame {
+  type: "create_binding_ack";
+  token: string;
+  customer_service_url: string;
+}
+
+export interface UnbindAllFrame {
+  type: "unbind_all";
+  gateway_id: string;
+}
+
+export interface BindingResolvedFrame {
+  type: "binding_resolved";
+  external_user_id: string;
+  gateway_id: string;
+}
+
+export type WSFrame =
+  | HelloFrame
+  | InboundFrame
+  | ReplyFrame
+  | AckFrame
+  | ErrorFrame
+  | CreateBindingFrame
+  | CreateBindingAckFrame
+  | UnbindAllFrame
+  | BindingResolvedFrame;
 
 /** Parsed WeCom message types */
 
@@ -72,6 +103,8 @@ export interface WeComEventMessage {
   external_userid: string;
   open_kfid: string;
   send_time: number;
+  scene?: string;
+  scene_param?: string;
 }
 
 export type WeComMessage =

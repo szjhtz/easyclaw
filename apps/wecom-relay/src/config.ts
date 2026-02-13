@@ -6,10 +6,12 @@ const configSchema = z.object({
   WECOM_TOKEN: z.string().min(1),
   WECOM_ENCODING_AES_KEY: z.string().length(43),
   WECOM_OPEN_KFID: z.string().min(1),
+  WECOM_KF_LINK_ID: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3000),
   WS_PORT: z.coerce.number().int().positive().default(3001),
   RELAY_AUTH_SECRET: z.string().min(1),
   DATABASE_PATH: z.string().default("./data/relay.db"),
+  LOCALE: z.enum(["zh", "en"]).default("zh"),
 });
 
 export type Config = z.infer<typeof configSchema>;

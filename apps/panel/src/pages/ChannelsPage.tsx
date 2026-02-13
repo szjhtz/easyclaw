@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchChannelStatus, deleteChannelAccount, fetchWeComBindingStatus, type ChannelsStatusSnapshot, type ChannelAccountSnapshot, type WeComBindingStatus, type WeComBindingStatusResponse } from "../api.js";
+import { fetchChannelStatus, deleteChannelAccount, unbindWeComAccount, fetchWeComBindingStatus, type ChannelsStatusSnapshot, type ChannelAccountSnapshot, type WeComBindingStatusResponse } from "../api.js";
 import { AddChannelAccountModal } from "../components/AddChannelAccountModal.js";
 import { ManageAllowlistModal } from "../components/ManageAllowlistModal.js";
-import { WeComBindingModal, WeComStatusBadge } from "../components/WeComBindingModal.js";
+import { WeComBindingModal } from "../components/WeComBindingModal.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { Select } from "../components/Select.js";
 
@@ -159,6 +159,13 @@ export function ChannelsPage() {
   function handleAddAccountFromDropdown() {
     if (!selectedDropdownChannel) return;
 
+    // WeCom uses its own binding modal (QR code flow)
+    if (selectedDropdownChannel === "wecom") {
+      setWecomModalOpen(true);
+      setSelectedDropdownChannel("");
+      return;
+    }
+
     const knownChannel = KNOWN_CHANNELS.find(c => c.id === selectedDropdownChannel);
     const label = knownChannel ? t(knownChannel.labelKey) : selectedDropdownChannel;
 
@@ -199,8 +206,9 @@ export function ChannelsPage() {
   }
 
   function handleDeleteAccount(channelId: string, accountId: string) {
-    const knownChannel = KNOWN_CHANNELS.find(c => c.id === channelId);
-    const label = knownChannel ? t(knownChannel.labelKey) : channelId;
+    const label = channelId === "wecom"
+      ? t("channels.channelWecom")
+      : (KNOWN_CHANNELS.find(c => c.id === channelId) ? t(KNOWN_CHANNELS.find(c => c.id === channelId)!.labelKey) : channelId);
     setDeleteConfirm({ channelId, accountId, label });
   }
 
@@ -213,20 +221,27 @@ export function ChannelsPage() {
 
     try {
       setDeleteError(null);
-      await deleteChannelAccount(channelId, accountId);
 
-      // Initial delay — give gateway time to receive SIGUSR1 and start reloading
-      await new Promise(r => setTimeout(r, 800));
+      if (channelId === "wecom") {
+        // WeCom uses its own unbind flow
+        await unbindWeComAccount();
+        setWecomStatus(null);
+      } else {
+        await deleteChannelAccount(channelId, accountId);
 
-      // Poll until gateway responds with fresh data
-      for (let i = 0; i < 15; i++) {
-        try {
-          const data = await fetchChannelStatus(true);
-          setError(null);
-          setSnapshot(data);
-          break;
-        } catch {
-          await new Promise(r => setTimeout(r, 400));
+        // Initial delay — give gateway time to receive SIGUSR1 and start reloading
+        await new Promise(r => setTimeout(r, 800));
+
+        // Poll until gateway responds with fresh data
+        for (let i = 0; i < 15; i++) {
+          try {
+            const data = await fetchChannelStatus(true);
+            setError(null);
+            setSnapshot(data);
+            break;
+          } catch {
+            await new Promise(r => setTimeout(r, 400));
+          }
         }
       }
     } catch (err) {
@@ -306,7 +321,23 @@ export function ChannelsPage() {
   }
 
   // Collect all accounts from all channels, filtering out synthetic "default" placeholders
-  const allAccounts: Array<{ channelId: string; channelLabel: string; account: ChannelAccountSnapshot }> = [];
+  const allAccounts: Array<{ channelId: string; channelLabel: string; account: ChannelAccountSnapshot; isWecom?: boolean }> = [];
+
+  // Add WeCom virtual account if binding is active
+  if (wecomStatus && wecomStatus.status != null) {
+    allAccounts.push({
+      channelId: "wecom",
+      channelLabel: t("channels.channelWecom"),
+      isWecom: true,
+      account: {
+        accountId: "default",
+        name: t("channels.channelWecom"),
+        configured: true,
+        running: wecomStatus.status === "active" || wecomStatus.status === "bound",
+        enabled: true,
+      } as ChannelAccountSnapshot,
+    });
+  }
 
   for (const [channelId, accounts] of Object.entries(snapshot.channelAccounts)) {
     const knownChannel = KNOWN_CHANNELS.find(c => c.id === channelId);
@@ -357,67 +388,6 @@ export function ChannelsPage() {
         </p>
       </div>
 
-      {/* WeCom Section — hidden until W15-A-INT E2E verification is complete */}
-      {false && <div className="section-card">
-        <div className="wecom-section-header">
-          <div className="wecom-section-info">
-            <div className="wecom-section-title">
-              <h3>{t("channels.wecomTitle")}</h3>
-              {wecomStatus ? (
-                <WeComStatusBadge status={wecomStatus.status} t={t} />
-              ) : (
-                <span className="badge badge-warning">
-                  {t("channels.wecomStatusNotConnected")}
-                </span>
-              )}
-            </div>
-            <span className="wecom-section-desc">
-              {t("channels.wecomDescription")}
-            </span>
-          </div>
-          <div className="td-actions">
-            <button
-              className="btn btn-primary"
-              onClick={() => setWecomModalOpen(true)}
-            >
-              {t("channels.wecomConfigure")}
-            </button>
-            {wecomStatus && wecomStatus.status !== "pending" && (
-              <button
-                className="btn btn-danger"
-                onClick={() => {
-                  // Reset local WeCom state — actual disconnect would call an API
-                  setWecomStatus(null);
-                }}
-              >
-                {t("channels.wecomDisconnect")}
-              </button>
-            )}
-          </div>
-        </div>
-        {/* Show relay URL and external user ID when bound/active */}
-        {wecomStatus && wecomStatus.relayUrl && (
-          <div className="wecom-detail-row">
-            <span className="wecom-detail-label">
-              {t("channels.wecomRelayUrl")}:
-            </span>
-            <span className="wecom-detail-value">
-              {wecomStatus.relayUrl}
-            </span>
-          </div>
-        )}
-        {wecomStatus && wecomStatus.externalUserId && (
-          <div className="wecom-detail-row">
-            <span className="wecom-detail-label">
-              {t("channels.wecomExternalUserId")}:
-            </span>
-            <span className="wecom-detail-value">
-              {wecomStatus.externalUserId}
-            </span>
-          </div>
-        )}
-      </div>}
-
       {/* Add Account Section */}
       <div className="section-card channel-add-section">
         <h3>{t("channels.addAccount")}</h3>
@@ -430,10 +400,16 @@ export function ChannelsPage() {
               value={selectedDropdownChannel}
               onChange={setSelectedDropdownChannel}
               placeholder={t("channels.selectChannel")}
-              options={visibleChannels.map(ch => ({
-                value: ch.id,
-                label: t(ch.labelKey),
-              }))}
+              options={(() => {
+                const wecomOption = { value: "wecom", label: t("channels.channelWecom") };
+                const channelOptions = visibleChannels.map(ch => ({
+                  value: ch.id,
+                  label: t(ch.labelKey),
+                }));
+                return i18n.language === "zh"
+                  ? [wecomOption, ...channelOptions]
+                  : [...channelOptions, wecomOption];
+              })()}
               className="select-min-w-200"
             />
             <button
@@ -447,13 +423,23 @@ export function ChannelsPage() {
 
           {/* Tooltip and tutorial link for selected channel */}
           {selectedDropdownChannel && (() => {
+            if (selectedDropdownChannel === "wecom") {
+              return (
+                <div className="channel-info-box">
+                  <div className="channel-info-title">
+                    {t("channels.wecomDropdownHint")}
+                  </div>
+                </div>
+              );
+            }
+
             const selected = KNOWN_CHANNELS.find(ch => ch.id === selectedDropdownChannel);
             if (!selected) return null;
 
             return (
               <div className="channel-info-box">
                 <div className="channel-info-title">
-                  ℹ️ {t(selected.tooltip)}
+                  {t(selected.tooltip)}
                 </div>
                 <div>
                   <a
@@ -462,7 +448,7 @@ export function ChannelsPage() {
                     rel="noopener noreferrer"
                     className="font-medium"
                   >
-                    📖 {t("channels.viewTutorial")} →
+                    {t("channels.viewTutorial")} →
                   </a>
                 </div>
               </div>
@@ -494,7 +480,7 @@ export function ChannelsPage() {
                 </td>
               </tr>
             ) : (
-              allAccounts.map(({ channelId, channelLabel, account }) => {
+              allAccounts.map(({ channelId, channelLabel, account, isWecom }) => {
                 const rowKey = `${channelId}-${account.accountId}`;
                 const isDeleting = deletingKey === rowKey;
                 return (
@@ -506,21 +492,25 @@ export function ChannelsPage() {
                     <td>{account.dmPolicy ? t(`channels.dmPolicyLabel_${account.dmPolicy}`, { defaultValue: account.dmPolicy }) : "—"}</td>
                     <td>
                       <div className="td-actions">
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleEditAccount(channelId, account)}
-                          disabled={isDeleting}
-                        >
-                          {t("common.edit")}
-                        </button>
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleManageAllowlist(channelId)}
-                          title={t("pairing.manageAllowlist")}
-                          disabled={isDeleting}
-                        >
-                          {t("pairing.allowlist")}
-                        </button>
+                        {!isWecom && (
+                          <>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleEditAccount(channelId, account)}
+                              disabled={isDeleting}
+                            >
+                              {t("common.edit")}
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={() => handleManageAllowlist(channelId)}
+                              title={t("pairing.manageAllowlist")}
+                              disabled={isDeleting}
+                            >
+                              {t("pairing.allowlist")}
+                            </button>
+                          </>
+                        )}
                         <button
                           className="btn btn-danger"
                           onClick={() => handleDeleteAccount(channelId, account.accountId)}
@@ -566,7 +556,6 @@ export function ChannelsPage() {
       <WeComBindingModal
         isOpen={wecomModalOpen}
         onClose={() => setWecomModalOpen(false)}
-        currentStatus={wecomStatus?.status ?? null}
         onBindingSuccess={() => {
           loadWeComStatus();
         }}
