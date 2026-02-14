@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.2.4",
+    "date": "2026-02-14",
+    "en": [
+      "WeCom: image message support (send and receive)",
+      "Refactored provider setup with unified configuration form",
+      "Added subscription pricing table for providers",
+      "Security: disabled open DM policy option"
+    ],
+    "zh": [
+      "企业微信：支持图片消息收发",
+      "重构服务商设置，统一配置表单",
+      "新增服务商订阅定价表",
+      "安全：禁用开放 DM 策略选项"
+    ]
+  },
+  {
     "version": "1.2.3",
     "date": "2026-02-14",
     "en": [
