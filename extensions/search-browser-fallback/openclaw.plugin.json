@@ -1,5 +1,10 @@
 {
   "id": "search-browser-fallback",
   "name": "Search Browser Fallback",
-  "description": "Falls back to browser-based Google search when no search API key is configured"
+  "description": "Falls back to browser-based search when no search API key is configured",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
 }
