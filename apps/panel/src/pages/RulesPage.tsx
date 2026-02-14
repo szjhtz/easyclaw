@@ -39,7 +39,7 @@ export function RulesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
-  const tooltipTimer = useRef<ReturnType<typeof setTimeout>>();
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const showTooltip = useCallback((e: React.MouseEvent, text: string) => {
     clearTimeout(tooltipTimer.current);

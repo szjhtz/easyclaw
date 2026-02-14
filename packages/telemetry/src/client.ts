@@ -13,7 +13,7 @@ import type { TelemetryConfig, TelemetryEvent } from "./types.js";
  * - Privacy-first: no PII, user opt-in required
  */
 export class RemoteTelemetryClient {
-  private readonly config: Required<TelemetryConfig>;
+  private readonly config: TelemetryConfig & { batchSize: number; flushInterval: number };
   private readonly sessionId: string;
   private readonly startTime: number;
   private readonly queue: TelemetryEvent[] = [];

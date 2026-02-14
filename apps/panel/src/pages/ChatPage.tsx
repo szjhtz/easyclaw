@@ -870,6 +870,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             </button>
             {showEmojiPicker && (
               <div className="chat-emoji-picker">
+                {/* @ts-expect-error emoji-picker-react types not fully compatible with React 19 */}
                 <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={400} />
               </div>
             )}

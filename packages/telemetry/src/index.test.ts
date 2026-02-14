@@ -3,7 +3,7 @@ import { RemoteTelemetryClient } from "./client.js";
 import type { TelemetryConfig } from "./types.js";
 
 // Mock fetch globally
-global.fetch = vi.fn();
+global.fetch = vi.fn() as typeof fetch;
 
 describe("RemoteTelemetryClient", () => {
   let mockFetch: ReturnType<typeof vi.fn>;
@@ -14,7 +14,7 @@ describe("RemoteTelemetryClient", () => {
       status: 200,
       statusText: "OK",
     });
-    global.fetch = mockFetch;
+    global.fetch = mockFetch as typeof fetch;
     vi.useFakeTimers();
   });
 
@@ -61,6 +61,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         batchSize: 5,
         flushInterval: 10000,
       };
@@ -75,6 +76,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         deviceId: "abc123def456",
         userId: "test-user-123",
       };
@@ -124,6 +126,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         batchSize: 3,
       };
 
@@ -307,6 +310,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         flushInterval: 10000, // 10s
       };
 
@@ -326,6 +330,7 @@ describe("RemoteTelemetryClient", () => {
         enabled: false,
         version: "0.1.0",
         platform: "darwin",
+        locale: "en",
         flushInterval: 10000,
       };
 

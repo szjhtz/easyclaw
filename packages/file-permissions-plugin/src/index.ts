@@ -6,13 +6,31 @@
  * and blocks unauthorized file operations.
  */
 
-import type {
-  OpenClawPluginDefinition,
-  OpenClawPluginApi,
-  PluginHookBeforeToolCallEvent,
-  PluginHookToolContext,
-  PluginHookBeforeToolCallResult,
-} from "@mariozechner/openclaw/plugin-sdk";
+// Types from openclaw plugin-sdk, defined locally because the vendor .d.ts
+// re-export chain doesn't resolve under NodeNext moduleResolution.
+type OpenClawPluginApi = {
+  id: string;
+  logger: { info: (msg: string) => void; debug?: (msg: string) => void };
+  on(event: string, handler: (...args: any[]) => any, opts?: { priority?: number }): void;
+};
+
+type OpenClawPluginDefinition = {
+  activate(api: OpenClawPluginApi): void;
+};
+
+type PluginHookBeforeToolCallEvent = {
+  toolName: string;
+  params: Record<string, unknown>;
+};
+
+type PluginHookToolContext = {
+  sessionId?: string;
+};
+
+type PluginHookBeforeToolCallResult = {
+  block?: boolean;
+  blockReason?: string;
+};
 import {
   parseFilePermissions,
   isPathAllowed,

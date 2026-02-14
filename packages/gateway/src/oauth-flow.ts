@@ -100,7 +100,7 @@ export async function validateGeminiAccessToken(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
-  let dispatcher: import("undici").Dispatcher | undefined;
+  let dispatcher: any;
   if (proxyUrl) {
     const { ProxyAgent } = await import("undici");
     dispatcher = new ProxyAgent(proxyUrl);

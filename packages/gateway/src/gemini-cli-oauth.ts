@@ -63,7 +63,7 @@ async function proxiedFetch(
 ): Promise<Response> {
   if (!proxyUrl) return fetch(url, init);
   const { ProxyAgent } = await import("undici");
-  return fetch(url, { ...init, dispatcher: new ProxyAgent(proxyUrl) } as RequestInit);
+  return fetch(url, { ...init, dispatcher: new ProxyAgent(proxyUrl) as any });
 }
 
 function resolveEnv(keys: string[]): string | undefined {
