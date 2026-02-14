@@ -43,6 +43,18 @@ function resolveFilePermissionsPluginPath(): string {
   return resolve(monorepoRoot, "packages", "file-permissions-plugin", "dist", "easyclaw-file-permissions.mjs");
 }
 
+/**
+ * Resolve the absolute path to the search-browser-fallback plugin directory.
+ * OpenClaw discovers it via index.ts (loaded by jiti, no build step needed).
+ */
+function resolveSearchBrowserFallbackPath(): string {
+  const monorepoRoot = findMonorepoRoot();
+  if (!monorepoRoot) {
+    return resolve(process.cwd(), "extensions", "search-browser-fallback");
+  }
+  return resolve(monorepoRoot, "extensions", "search-browser-fallback");
+}
+
 /** Generate a random hex token for gateway auth. */
 export function generateGatewayToken(): string {
   return randomBytes(32).toString("hex");
@@ -224,6 +236,11 @@ export interface WriteGatewayConfigOptions {
   /** Override path to the file permissions plugin .mjs entry file.
    *  Used in packaged Electron apps where the monorepo root doesn't exist. */
   filePermissionsPluginPath?: string;
+  /** Enable the search-browser-fallback plugin (falls back to browser when no search API key). */
+  enableSearchBrowserFallback?: boolean;
+  /** Override path to the search-browser-fallback plugin directory.
+   *  Used in packaged Electron apps where the monorepo root doesn't exist. */
+  searchBrowserFallbackPath?: string;
   /** Enable the google-gemini-cli-auth plugin (bundled in OpenClaw extensions). */
   enableGeminiCliAuth?: boolean;
   /** Skip OpenClaw bootstrap (prevents creating template files like AGENTS.md on first startup). */
@@ -451,6 +468,35 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       merged.entries = {
         ...existingEntries,
         "easyclaw-file-permissions": { enabled: options.enableFilePermissions },
+      };
+    }
+
+    // Add search-browser-fallback plugin if enabled
+    if (options.enableSearchBrowserFallback !== undefined) {
+      const pluginPath = options.searchBrowserFallbackPath ?? resolveSearchBrowserFallbackPath();
+      const existingLoad =
+        typeof merged.load === "object" && merged.load !== null
+          ? (merged.load as Record<string, unknown>)
+          : {};
+      const existingPaths = Array.isArray(existingLoad.paths) ? existingLoad.paths : [];
+
+      // Replace any stale search-browser-fallback paths with the current resolved one
+      const filteredPaths = existingPaths.filter(
+        (p: unknown) => typeof p !== "string" || !p.includes("search-browser-fallback"),
+      );
+      merged.load = {
+        ...existingLoad,
+        paths: [...filteredPaths, pluginPath],
+      };
+
+      // Enable the plugin in entries
+      const existingEntries =
+        typeof merged.entries === "object" && merged.entries !== null
+          ? (merged.entries as Record<string, unknown>)
+          : {};
+      merged.entries = {
+        ...existingEntries,
+        "search-browser-fallback": { enabled: options.enableSearchBrowserFallback },
       };
     }
 

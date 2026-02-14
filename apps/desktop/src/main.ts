@@ -608,6 +608,7 @@ app.whenReady().then(async () => {
     enableChatCompletions: true,
     commandsRestart: true,
     enableFilePermissions: true,
+    enableSearchBrowserFallback: true,
     enableGeminiCliAuth: hasGeminiOAuth,
     skipBootstrap: false,
     filePermissionsPluginPath,
