@@ -2463,6 +2463,11 @@ tbody td {
   color: var(--color-text-secondary);
 }
 
+.pricing-footer-link {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
 /* ===== 39. Form Elements (in modals) ===== */
 
 .form-label-block {

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { ALL_PROVIDERS, PROVIDERS, getDefaultModelForProvider } from "@easyclaw/core";
+import { getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import {
   fetchSettings,
@@ -10,56 +10,27 @@ import {
   updateProviderKey,
   activateProviderKey,
   deleteProviderKey,
-  validateApiKey,
-  fetchPricing,
   startOAuthFlow,
-  saveOAuthFlow,
 } from "../api.js";
-import type { ProviderKeyEntry, ProviderPricing } from "../api.js";
+import type { ProviderKeyEntry } from "../api.js";
 import { ModelSelect } from "../components/ModelSelect.js";
-import { ProviderSelect } from "../components/ProviderSelect.js";
-import { PricingTable, SubscriptionPricingTable } from "../components/PricingTable.js";
-
-
-/** Providers that support subscription mode (derived from PROVIDERS.subscription). */
-const SUBSCRIPTION_PROVIDERS = ALL_PROVIDERS.filter((p) => PROVIDERS[p].subscription);
+import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
 
 export function ProvidersPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [keys, setKeys] = useState<ProviderKeyEntry[]>([]);
   const [defaultProvider, setDefaultProvider] = useState<string>("");
-  const [tab, setTab] = useState<"subscription" | "api">("subscription");
-  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "google-gemini-cli";
-  const [newProvider, setNewProvider] = useState(defaultProv);
   const [expandedKeyId, setExpandedKeyId] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState("");
-  const [newLabel, setNewLabel] = useState("");
-  const [newModel, setNewModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
-  const [newProxyUrl, setNewProxyUrl] = useState("");
+  const [updateApiKey, setUpdateApiKey] = useState("");
   const [editProxyUrl, setEditProxyUrl] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [oauthTokenPreview, setOauthTokenPreview] = useState("");
-  const [pricingList, setPricingList] = useState<ProviderPricing[] | null>(null);
-  const [pricingLoading, setPricingLoading] = useState(true);
-  const leftCardRef = useRef<HTMLDivElement>(null);
-  const [leftHeight, setLeftHeight] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const el = leftCardRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setLeftHeight(el.offsetHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     loadData();
-    loadPricing();
   }, []);
 
   async function loadData() {
@@ -75,140 +46,25 @@ export function ProvidersPage() {
     }
   }
 
-  async function loadPricing() {
-    setPricingLoading(true);
-    try {
-      // Get deviceId from local panel server status
-      const statusRes = await fetch("http://127.0.0.1:3210/api/status");
-      const status = await statusRes.json();
-      const deviceId = status.deviceId || "unknown";
-      const lang = navigator.language?.slice(0, 2) || "en";
-      // Platform detection: panel runs in Electron webview
-      const platform = navigator.userAgent.includes("Mac") ? "darwin"
-        : navigator.userAgent.includes("Win") ? "win32" : "linux";
-      const data = await fetchPricing(deviceId, platform, "0.8.0", lang);
-      setPricingList(data);
-    } catch {
-      setPricingList(null);
-    } finally {
-      setPricingLoading(false);
-    }
-  }
-
-  async function handleAddKey(provider: string) {
-    if (!apiKey.trim()) return;
-    setValidating(true);
-    setError(null);
-    try {
-      // Validate API key (with proxy if configured) to prevent IP pollution/bans
-      const proxyUrl = newProxyUrl.trim() || undefined;
-      const validation = await validateApiKey(provider, apiKey.trim(), proxyUrl);
-      if (!validation.valid) {
-        setError({ key: "providers.invalidKey", detail: validation.error });
-        setValidating(false);
-        return;
-      }
-
-      const entry = await createProviderKey({
-        provider,
-        label: newLabel.trim() || t("providers.labelDefault"),
-        model: newModel || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
-        apiKey: apiKey.trim(),
-        proxyUrl,
-      });
-
-      // If first key overall, set as active provider
-      if (keys.length === 0 || !defaultProvider) {
-        await updateSettings({ "llm-provider": provider });
-        setDefaultProvider(provider);
-      }
-
-      setApiKey("");
-      setNewLabel("");
-      setNewModel("");
-      setNewProxyUrl("");
-      setShowAdvanced(false);
-      setSavedId(entry.id);
-      setTimeout(() => setSavedId(null), 2000);
-      await loadData();
-    } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
-    } finally {
-      setSaving(false);
-      setValidating(false);
-    }
-  }
-
-  async function handleGeminiOAuth() {
-    setOauthLoading(true);
-    setError(null);
-    try {
-      const result = await startOAuthFlow("google-gemini-cli");
-      // Phase 1 complete: show token preview + form for proxy/save
-      setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
-      setNewLabel(result.email || "Gemini OAuth");
-      setNewModel(getDefaultModelForProvider("google-gemini-cli" as LLMProvider)?.modelId ?? "");
-    } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
-    } finally {
-      setOauthLoading(false);
-    }
-  }
-
-  async function handleOAuthSave() {
-    setValidating(true);
-    setError(null);
-    try {
-      const proxyUrl = newProxyUrl.trim() || undefined;
-      const result = await saveOAuthFlow("google-gemini-cli", {
-        proxyUrl,
-        label: newLabel.trim() || t("providers.labelDefault"),
-        model: newModel || (getDefaultModelForProvider("google-gemini-cli" as LLMProvider)?.modelId ?? ""),
-      });
-
-      // If first key overall, set as active provider
-      if (keys.length === 0 || !defaultProvider) {
-        await updateSettings({ "llm-provider": "google-gemini-cli" });
-        setDefaultProvider("google-gemini-cli");
-      }
-
-      setOauthTokenPreview("");
-      setNewLabel("");
-      setNewModel("");
-      setNewProxyUrl("");
-      setShowAdvanced(false);
-      setSavedId(result.providerKeyId);
-      setTimeout(() => setSavedId(null), 2000);
-      await loadData();
-    } catch (err) {
-      setError({ key: "providers.invalidKey", detail: String(err) });
-    } finally {
-      setSaving(false);
-      setValidating(false);
-    }
-  }
-
   async function handleUpdateKey(keyId: string, provider: string) {
-    if (!apiKey.trim()) return;
+    if (!updateApiKey.trim()) return;
     setValidating(true);
     setError(null);
     try {
-      // Delete old and create new (update key = re-add with same metadata)
       const existing = keys.find((k) => k.id === keyId);
       await deleteProviderKey(keyId);
       const entry = await createProviderKey({
         provider,
         label: existing?.label || t("providers.labelDefault"),
         model: existing?.model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
-        apiKey: apiKey.trim(),
+        apiKey: updateApiKey.trim(),
       });
 
-      // If the deleted key was default, activate the new one
       if (existing?.isDefault) {
         await activateProviderKey(entry.id);
       }
 
-      setApiKey("");
+      setUpdateApiKey("");
       setExpandedKeyId(null);
       setSavedId(entry.id);
       setTimeout(() => setSavedId(null), 2000);
@@ -285,27 +141,18 @@ export function ProvidersPage() {
     }
   }
 
-  function handleNewProviderChange(p: string) {
-    setNewProvider(p);
-    setNewModel(getDefaultModelForProvider(p as LLMProvider)?.modelId ?? "");
-    setApiKey("");
-    setNewLabel("");
-    setNewProxyUrl("");
-    setShowAdvanced(false);
-    setOauthTokenPreview("");
+  async function handleOAuthReauth(provider: string) {
+    setOauthLoading(true);
+    setError(null);
+    try {
+      await startOAuthFlow(provider);
+      await loadData();
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    } finally {
+      setOauthLoading(false);
+    }
   }
-
-  function handleTabChange(newTab: "subscription" | "api") {
-    setTab(newTab);
-    const prov = newTab === "subscription"
-      ? (i18n.language === "zh" ? "zhipu-coding" : "google-gemini-cli")
-      : (i18n.language === "zh" ? "zhipu" : "openai");
-    handleNewProviderChange(prov);
-  }
-
-  const providerFilter = tab === "subscription"
-    ? SUBSCRIPTION_PROVIDERS
-    : ALL_PROVIDERS.filter((p) => !PROVIDERS[p].subscription);
 
   return (
     <div>
@@ -316,247 +163,11 @@ export function ProvidersPage() {
         <div className="error-alert">{t(error.key)}{error.detail ?? ""}</div>
       )}
 
-      {/* Section A: Add Key — left form + right pricing table */}
-      <div className="page-two-col">
-      <div ref={leftCardRef} className="section-card page-col-main">
-        <h3>{t("providers.addTitle")}</h3>
-        <div className="tab-bar">
-          <button
-            className={`tab-btn${tab === "subscription" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("subscription")}
-          >
-            {t("providers.tabSubscription")}
-          </button>
-          <button
-            className={`tab-btn${tab === "api" ? " tab-btn-active" : ""}`}
-            onClick={() => handleTabChange("api")}
-          >
-            {t("providers.tabApi")}
-          </button>
-        </div>
-        <div className="mb-sm">
-          <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
-          <ProviderSelect value={newProvider} onChange={handleNewProviderChange} providers={providerFilter} />
-          {tab === "subscription" ? (
-            PROVIDERS[newProvider as LLMProvider]?.subscriptionUrl && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={PROVIDERS[newProvider as LLMProvider]?.subscriptionUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getSubscription")} &rarr;
-              </a>
-            </div>
-            )
-          ) : (
-            newProvider !== "google-gemini-cli" && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={PROVIDERS[newProvider as LLMProvider]?.apiKeyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getApiKey")} &rarr;
-              </a>
-              {PROVIDERS[newProvider as LLMProvider]?.subscriptionUrl && (
-                <a
-                  href={PROVIDERS[newProvider as LLMProvider]?.subscriptionUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("providers.subscribeForValue")} &rarr;
-                </a>
-              )}
-            </div>
-            )
-          )}
-        </div>
-
-        {newProvider === "google-gemini-cli" ? (
-          <>
-            {/* OAuth form — label, model, token (or info), proxy, sign-in/save */}
-            <div className="form-row mb-sm">
-              <div style={{ flex: 4 }}>
-                <div className="form-label text-secondary">{t("providers.keyLabel")}</div>
-                <input
-                  type="text"
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder={t("providers.labelPlaceholder")}
-                  className="input-full"
-                />
-              </div>
-              <div style={{ flex: 6 }}>
-                <div className="form-label text-secondary">{t("providers.modelLabel")}</div>
-                <ModelSelect
-                  provider={newProvider}
-                  value={newModel || (getDefaultModelForProvider(newProvider as LLMProvider)?.modelId ?? "")}
-                  onChange={setNewModel}
-                />
-              </div>
-            </div>
-
-            {oauthTokenPreview ? (
-              <div className="mb-sm">
-                <div className="form-label text-secondary">
-                  {t("providers.oauthTokenLabel")}
-                </div>
-                <input
-                  type="text"
-                  readOnly
-                  value={oauthTokenPreview}
-                  className="input-full input-mono input-readonly"
-                />
-                <small className="form-help-sm">
-                  {t("providers.oauthTokenHelp")}
-                </small>
-              </div>
-            ) : (
-              <div className="info-box info-box-green">
-                {t("providers.oauthGeminiInfo")}
-              </div>
-            )}
-
-            <div className="mb-sm">
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="advanced-toggle"
-              >
-                <span style={{ transform: showAdvanced ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>▶</span>
-                {t("providers.advancedSettings")}
-              </button>
-              {showAdvanced && (
-                <div className="advanced-content">
-                  <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
-                  <input
-                    type="text"
-                    value={newProxyUrl}
-                    onChange={(e) => setNewProxyUrl(e.target.value)}
-                    placeholder={t("providers.proxyPlaceholder")}
-                    className="input-full input-mono"
-                  />
-                  <small className="form-help-sm">
-                    {t("providers.proxyHelp")}
-                  </small>
-                </div>
-              )}
-            </div>
-
-            <div className="form-actions">
-              {oauthTokenPreview ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={handleOAuthSave}
-                  disabled={saving || validating}
-                >
-                  {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
-                </button>
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  onClick={handleGeminiOAuth}
-                  disabled={oauthLoading}
-                >
-                  {oauthLoading ? t("providers.oauthLoading") : t("providers.oauthSignIn")}
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-        <>
-        {newProvider === "anthropic" && tab === "subscription" && (
-          <div className="info-box info-box-yellow">
-            {t("providers.anthropicTokenWarning")}
-          </div>
-        )}
-
-        <div className="form-row mb-sm">
-          <div style={{ flex: 4 }}>
-            <div className="form-label text-secondary">{t("providers.keyLabel")}</div>
-            <input
-              type="text"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              placeholder={t("providers.labelPlaceholder")}
-              className="input-full"
-            />
-          </div>
-          <div style={{ flex: 6 }}>
-            <div className="form-label text-secondary">{t("providers.modelLabel")}</div>
-            <ModelSelect
-              provider={newProvider}
-              value={newModel || (getDefaultModelForProvider(newProvider as LLMProvider)?.modelId ?? "")}
-              onChange={setNewModel}
-            />
-          </div>
-        </div>
-
-        <div className="mb-sm">
-          <div className="form-label text-secondary">
-            {newProvider === "anthropic" && tab === "subscription" ? t("providers.anthropicTokenLabel") : t("providers.apiKeyLabel")} <span className="required">*</span>
-          </div>
-          <input
-            type="password"
-            autoComplete="off"
-            data-1p-ignore
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder={newProvider === "anthropic" && tab === "subscription" ? t("providers.anthropicTokenPlaceholder") : t("providers.apiKeyPlaceholder")}
-            className="input-full input-mono"
-          />
-          <small className="form-help-sm">
-            {t("providers.apiKeyHelp")}
-          </small>
-        </div>
-
-        <div className="mb-sm">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="advanced-toggle"
-          >
-            <span style={{ transform: showAdvanced ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>▶</span>
-            {t("providers.advancedSettings")}
-          </button>
-          {showAdvanced && (
-            <div className="advanced-content">
-              <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
-              <input
-                type="text"
-                value={newProxyUrl}
-                onChange={(e) => setNewProxyUrl(e.target.value)}
-                placeholder={t("providers.proxyPlaceholder")}
-                className="input-full input-mono"
-              />
-              <small className="form-help-sm">
-                {t("providers.proxyHelp")}
-              </small>
-            </div>
-          )}
-        </div>
-
-        <div className="form-actions">
-          <button
-            className="btn btn-primary"
-            onClick={() => handleAddKey(newProvider)}
-            disabled={saving || validating || !apiKey.trim()}
-          >
-            {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
-          </button>
-        </div>
-        </>
-        )}
-      </div>
-
-      {/* Right: Pricing table */}
-      <div className="page-col-side" style={{ height: leftHeight }}>
-        {tab === "subscription" ? (
-          <SubscriptionPricingTable provider={newProvider} pricingList={pricingList} loading={pricingLoading} />
-        ) : (
-          <PricingTable provider={newProvider} pricingList={pricingList} loading={pricingLoading} />
-        )}
-      </div>
-      </div>
+      {/* Section A: Add Key */}
+      <ProviderSetupForm
+        onSave={async () => { await loadData(); }}
+        title={t("providers.addTitle")}
+      />
 
       {/* Section B: Configured Keys */}
       <div className="section-card">
@@ -618,7 +229,7 @@ export function ProvidersPage() {
                         </button>
                       )}
                       {k.authType === "oauth" ? (
-                        <button className="btn btn-secondary btn-sm" onClick={handleGeminiOAuth} disabled={oauthLoading}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleOAuthReauth(k.provider)} disabled={oauthLoading}>
                           {oauthLoading ? t("providers.oauthLoading") : t("providers.oauthReauthenticate")}
                         </button>
                       ) : (
@@ -626,7 +237,7 @@ export function ProvidersPage() {
                           className="btn btn-secondary btn-sm"
                           onClick={() => {
                             setExpandedKeyId(isExp ? null : k.id);
-                            setApiKey("");
+                            setUpdateApiKey("");
                             setEditProxyUrl(k.proxyUrl || "");
                           }}
                         >
@@ -647,15 +258,15 @@ export function ProvidersPage() {
                           type="password"
                           autoComplete="off"
                           data-1p-ignore
-                          value={apiKey}
-                          onChange={(e) => setApiKey(e.target.value)}
+                          value={updateApiKey}
+                          onChange={(e) => setUpdateApiKey(e.target.value)}
                           placeholder={k.provider === "anthropic" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
                           className="flex-1 input-mono"
                         />
                         <button
                           className="btn btn-primary"
                           onClick={() => handleUpdateKey(k.id, k.provider)}
-                          disabled={saving || validating || !apiKey.trim()}
+                          disabled={saving || validating || !updateApiKey.trim()}
                         >
                           {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
                         </button>

@@ -9,10 +9,7 @@ const EXTRA_MODEL_PROVIDERS = new Set(
   ALL_PROVIDERS.filter((p) => PROVIDERS[p].extraModels),
 );
 
-/**
- * Priority-ordered providers by language.
- * Subscription / OAuth providers come first, then API providers.
- */
+/** Priority-ordered providers by language. */
 const ZH_PRIORITY_PROVIDERS: LLMProvider[] = [
   "zhipu-coding",
   "google-gemini-cli",
@@ -61,11 +58,10 @@ export function ProviderSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sort: subscription/OAuth providers first, then API providers.
-  // Chinese users see zhipu-coding first; English users see gemini-cli + anthropic first.
+  // Sort providers by locale-specific priority, then alphabetically.
   const sortedProviders = useMemo(() => {
     const all = ALL_PROVIDERS.filter((p) =>
-      EXTRA_MODEL_PROVIDERS.has(p) || PROVIDERS[p].subscription || !catalogProviders || catalogProviders.has(p),
+      EXTRA_MODEL_PROVIDERS.has(p) || !catalogProviders || catalogProviders.has(p),
     );
     const available = filterProviders
       ? all.filter((p) => filterProviders.includes(p))

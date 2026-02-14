@@ -141,8 +141,6 @@ export default {
     pricingCurrency: "货币",
     pricingDisclaimer: "以上为厂商公示的标准价格，实际费用可能因账户类型、优惠活动等因素而不同。",
     pricingPlansTitle: "订阅方案",
-    pricingPlanModel: "模型",
-    pricingPlanVolume: "额度",
     pricingPlansUnavailable: "暂无方案数据。",
     configuredKeysTitle: "已配置的密钥",
     addTitle: "添加密钥",

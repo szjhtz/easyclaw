@@ -114,7 +114,7 @@ export function PricingTable({
           <div className="pricing-disclaimer">
             {t("providers.pricingDisclaimer")}
           </div>
-          <div style={{ marginTop: 4, flexShrink: 0 }}>
+          <div className="pricing-footer-link">
             <a
               href={data.pricingUrl}
               target="_blank"
@@ -177,42 +177,38 @@ export function SubscriptionPricingTable({
 
       {!loading && plans.length > 0 && (
         <>
-          {plans.map((plan) => {
-            const symbol = plan.currency === "CNY" ? "¥" : "$";
-            return (
-              <div key={plan.planName} className="pricing-plan-block">
-                <div className="pricing-plan-header">
-                  <span className="pricing-plan-name">{plan.planName}</span>
-                  <span className="pricing-plan-price">{symbol}{plan.price}</span>
+          <div className="pricing-scroll">
+            {plans.map((plan) => {
+              const symbol = plan.currency === "CNY" ? "¥" : "$";
+              return (
+                <div key={plan.planName} className="pricing-plan-block">
+                  <div className="pricing-plan-header">
+                    <span className="pricing-plan-name">{plan.planName}</span>
+                    <span className="pricing-plan-price">{symbol}{plan.price}</span>
+                  </div>
+                  {plan.planDetail.length > 0 && (
+                    <table className="pricing-inner-table">
+                      <tbody>
+                        {plan.planDetail.map((d) => (
+                          <tr key={d.modelName}>
+                            <td>{d.modelName}</td>
+                            <td className="pricing-plan-volume">{d.volume}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
-                {plan.planDetail.length > 0 && (
-                  <table className="pricing-inner-table">
-                    <thead>
-                      <tr>
-                        <th>{t("providers.pricingPlanModel")}</th>
-                        <th>{t("providers.pricingPlanVolume")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plan.planDetail.map((d) => (
-                        <tr key={d.modelName}>
-                          <td>{d.modelName}</td>
-                          <td className="pricing-plan-volume">{d.volume}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
           <div className="pricing-disclaimer">
             {t("providers.pricingDisclaimer")}
           </div>
-          {data?.pricingUrl && (
-            <div style={{ marginTop: 4, flexShrink: 0 }}>
+          {(PROVIDERS[provider as LLMProvider]?.subscriptionUrl || data?.pricingUrl) && (
+            <div className="pricing-footer-link">
               <a
-                href={data.pricingUrl}
+                href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl || data?.pricingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="pricing-link"

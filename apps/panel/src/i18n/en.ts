@@ -141,8 +141,6 @@ export default {
     pricingCurrency: "Currency",
     pricingDisclaimer: "Prices shown are official list prices. Actual costs may vary by account tier, promotions, or billing agreements.",
     pricingPlansTitle: "Subscription Plans",
-    pricingPlanModel: "Model",
-    pricingPlanVolume: "Included",
     pricingPlansUnavailable: "Plan details unavailable.",
     configuredKeysTitle: "Configured Keys",
     addTitle: "Add Key",

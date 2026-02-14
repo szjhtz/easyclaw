@@ -1,12 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PROVIDERS, getDefaultModelForProvider } from "@easyclaw/core";
-import type { LLMProvider } from "@easyclaw/core";
-import { updateSettings, createProviderKey, validateApiKey, fetchPricing, trackEvent, startOAuthFlow, saveOAuthFlow } from "../api.js";
-import type { ProviderPricing } from "../api.js";
-import { ProviderSelect } from "../components/ProviderSelect.js";
-import { ModelSelect } from "../components/ModelSelect.js";
-import { PricingTable } from "../components/PricingTable.js";
+import { trackEvent } from "../api.js";
+import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
 import { ThemeToggle } from "../components/ThemeToggle.js";
 import { LangToggle } from "../components/LangToggle.js";
 
@@ -35,53 +30,8 @@ export function OnboardingPage({
   const { t, i18n } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Step 0 state
-  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "google-gemini-cli";
-  const [provider, setProvider] = useState(defaultProv);
-  const [model, setModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
-  const [apiKey, setApiKey] = useState("");
-  const [proxyUrl, setProxyUrl] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [providerError, setProviderError] = useState<{ key: string; detail?: string } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
-  const [oauthTokenPreview, setOauthTokenPreview] = useState("");
-  const [label, setLabel] = useState("");
-  const [pricingList, setPricingList] = useState<ProviderPricing[] | null>(null);
-  const [pricingLoading, setPricingLoading] = useState(true);
-  const formRef = useRef<HTMLDivElement>(null);
-  const [formHeight, setFormHeight] = useState<number | undefined>(undefined);
-
   useEffect(() => {
     trackEvent("onboarding.started", { language: i18n.language });
-  }, []);
-
-  useEffect(() => {
-    const el = formRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setFormHeight(el.offsetHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [currentStep]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const statusRes = await fetch("http://127.0.0.1:3210/api/status");
-        const status = await statusRes.json();
-        const deviceId = status.deviceId || "unknown";
-        const lang = navigator.language?.slice(0, 2) || "en";
-        const platform = navigator.userAgent.includes("Mac") ? "darwin"
-          : navigator.userAgent.includes("Win") ? "win32" : "linux";
-        const data = await fetchPricing(deviceId, platform, "0.8.0", lang);
-        setPricingList(data);
-      } catch {
-        setPricingList(null);
-      } finally {
-        setPricingLoading(false);
-      }
-    })();
   }, []);
 
   const panelSections = [
@@ -91,91 +41,6 @@ export function OnboardingPage({
     { name: t("onboarding.sectionPermissions"), desc: t("onboarding.sectionPermissionsDesc") },
     { name: t("onboarding.sectionUsage"), desc: t("onboarding.sectionUsageDesc") },
   ];
-
-  const isOAuthProvider = provider === "google-gemini-cli";
-
-  function handleProviderChange(newProvider: string) {
-    setProvider(newProvider);
-    setModel(getDefaultModelForProvider(newProvider as LLMProvider)?.modelId ?? "");
-    setOauthTokenPreview("");
-    setLabel("");
-  }
-
-  async function handleGeminiOAuth() {
-    setOauthLoading(true);
-    setProviderError(null);
-    try {
-      const result = await startOAuthFlow("google-gemini-cli");
-      setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
-      setLabel(result.email || "Gemini OAuth");
-      setModel(getDefaultModelForProvider("google-gemini-cli" as LLMProvider)?.modelId ?? "");
-    } catch (err) {
-      setProviderError({ key: "onboarding.failedToSave", detail: String(err) });
-    } finally {
-      setOauthLoading(false);
-    }
-  }
-
-  async function handleOAuthSave() {
-    setValidating(true);
-    setProviderError(null);
-    try {
-      const proxy = proxyUrl.trim() || undefined;
-      await saveOAuthFlow("google-gemini-cli", {
-        proxyUrl: proxy,
-        label: label.trim() || "Gemini OAuth",
-        model: model || (getDefaultModelForProvider("google-gemini-cli" as LLMProvider)?.modelId ?? ""),
-      });
-      await updateSettings({ "llm-provider": "google-gemini-cli" });
-      trackEvent("onboarding.provider_saved", { provider: "google-gemini-cli" });
-      setCurrentStep(1);
-    } catch (err) {
-      setProviderError({ key: "providers.invalidKey", detail: String(err) });
-    } finally {
-      setSaving(false);
-      setValidating(false);
-    }
-  }
-
-  async function handleSaveProvider() {
-    if (!apiKey.trim()) {
-      setProviderError({ key: "onboarding.apiKeyRequired" });
-      return;
-    }
-    setValidating(true);
-    setProviderError(null);
-    try {
-      // Validate API key (with proxy if configured) to prevent IP pollution/bans
-      const proxy = proxyUrl.trim() || undefined;
-      const validation = await validateApiKey(provider, apiKey.trim(), proxy);
-      if (!validation.valid) {
-        setProviderError({ key: "providers.invalidKey", detail: validation.error });
-        setValidating(false);
-        return;
-      }
-
-      setValidating(false);
-      setSaving(true);
-
-      // Create provider key entry
-      await createProviderKey({
-        provider,
-        label: "Default",
-        model,
-        apiKey: apiKey.trim(),
-        proxyUrl: proxy,
-      });
-      // Set as active provider
-      await updateSettings({ "llm-provider": provider });
-      trackEvent("onboarding.provider_saved", { provider });
-      setCurrentStep(1);
-    } catch (err) {
-      setProviderError({ key: "onboarding.failedToSave", detail: String(err) });
-    } finally {
-      setSaving(false);
-      setValidating(false);
-    }
-  }
 
   return (
     <div className="onboarding-page">
@@ -208,186 +73,18 @@ export function OnboardingPage({
 
         {/* Step 0: Welcome + Provider */}
         {currentStep === 0 && (
-          <div className="page-two-col">
-            {/* Left: form */}
-            <div ref={formRef} className="flex-1">
-            <h1>
-              {t("onboarding.welcomeTitle")}
-            </h1>
-            <p>
-              {t("onboarding.welcomeDesc")}
-            </p>
-
-            {providerError && (
-              <div className="text-danger mb-sm">
-                {t(providerError.key)}{providerError.detail ? ` (${providerError.detail})` : ""}
-              </div>
-            )}
-
-            <div className="form-group">
-              <div className="form-label">{t("onboarding.providerLabel")}</div>
-              <ProviderSelect value={provider} onChange={handleProviderChange} />
-              {!isOAuthProvider && (
-              <div className="form-help-sm provider-links">
-                <a
-                  href={PROVIDERS[provider as LLMProvider]?.apiKeyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("providers.getApiKey")} &rarr;
-                </a>
-                {PROVIDERS[provider as LLMProvider]?.subscriptionUrl && (
-                  <a
-                    href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t("providers.subscribeForValue")} &rarr;
-                  </a>
-                )}
-              </div>
-              )}
-            </div>
-
-            {isOAuthProvider ? (
-              <>
-                <div className="form-group">
-                  <div className="form-label">{t("onboarding.modelLabel")}</div>
-                  <ModelSelect provider={provider} value={model} onChange={setModel} />
-                </div>
-
-                {oauthTokenPreview ? (
-                  <div className="form-group">
-                    <div className="form-label">{t("providers.oauthTokenLabel")}</div>
-                    <input
-                      type="text"
-                      readOnly
-                      value={oauthTokenPreview}
-                      className="input-full input-mono input-readonly"
-                    />
-                    <small className="form-help-sm">
-                      {t("providers.oauthTokenHelp")}
-                    </small>
-                  </div>
-                ) : (
-                  <div className="info-box info-box-green">
-                    {t("providers.oauthGeminiInfo")}
-                  </div>
-                )}
-
-                <div className="mb-md">
-                  <button
-                    className="advanced-toggle"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                  >
-                    <span style={{ transform: showAdvanced ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>&#9654;</span>
-                    {t("providers.advancedSettings")}
-                  </button>
-                  {showAdvanced && (
-                    <div className="advanced-content">
-                      <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
-                      <input
-                        className="input-full input-mono"
-                        type="text"
-                        value={proxyUrl}
-                        onChange={(e) => setProxyUrl(e.target.value)}
-                        placeholder={t("providers.proxyPlaceholder")}
-                      />
-                      <small className="form-help-sm">
-                        {t("providers.proxyHelp")}
-                      </small>
-                    </div>
-                  )}
-                </div>
-
-                {oauthTokenPreview ? (
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleOAuthSave}
-                    disabled={saving || validating}
-                  >
-                    {validating ? t("onboarding.validating") : saving ? t("onboarding.saving") : t("onboarding.saveAndContinue")}
-                  </button>
-                ) : (
-                  <button
-                    className="btn btn-primary"
-                    onClick={handleGeminiOAuth}
-                    disabled={oauthLoading}
-                  >
-                    {oauthLoading ? t("providers.oauthLoading") : t("providers.oauthSignIn")}
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <div className="form-group">
-                  <div className="form-label">{t("onboarding.modelLabel")}</div>
-                  <ModelSelect provider={provider} value={model} onChange={setModel} />
-                </div>
-
-                <label className="form-group" style={{ display: "block" }}>
-                  {provider === "anthropic" ? t("onboarding.anthropicTokenLabel") : t("onboarding.apiKeyLabel")}
-                  <input
-                    className="input-full input-mono"
-                    type="password"
-                    autoComplete="off"
-                    data-1p-ignore
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={provider === "anthropic" ? t("onboarding.anthropicTokenPlaceholder") : t("onboarding.apiKeyPlaceholder")}
-                    style={{ display: "block", marginTop: 4 }}
-                  />
-                  <small className="form-help-sm">
-                    {t("onboarding.apiKeyHelp")}
-                  </small>
-                  {provider === "anthropic" && (
-                    <div className="info-box info-box-yellow" style={{ marginTop: 8 }}>
-                      {t("providers.anthropicTokenWarning")}
-                    </div>
-                  )}
-                </label>
-
-                <div className="mb-md">
-                  <button
-                    className="advanced-toggle"
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                  >
-                    <span style={{ transform: showAdvanced ? "rotate(90deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>&#9654;</span>
-                    {t("providers.advancedSettings")}
-                  </button>
-                  {showAdvanced && (
-                    <div className="advanced-content">
-                      <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
-                      <input
-                        className="input-full input-mono"
-                        type="text"
-                        value={proxyUrl}
-                        onChange={(e) => setProxyUrl(e.target.value)}
-                        placeholder={t("providers.proxyPlaceholder")}
-                      />
-                      <small className="form-help-sm">
-                        {t("providers.proxyHelp")}
-                      </small>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSaveProvider}
-                  disabled={saving || validating}
-                >
-                  {validating ? t("onboarding.validating") : saving ? t("onboarding.saving") : t("onboarding.saveAndContinue")}
-                </button>
-              </>
-            )}
-            </div>
-
-            {/* Right: pricing table */}
-            <div className="page-col-side" style={{ height: formHeight }}>
-              <PricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
-            </div>
-          </div>
+          <ProviderSetupForm
+            onSave={(provider) => {
+              trackEvent("onboarding.provider_saved", { provider });
+              setCurrentStep(1);
+            }}
+            title={t("onboarding.welcomeTitle")}
+            description={t("onboarding.welcomeDesc")}
+            saveButtonLabel={t("onboarding.saveAndContinue")}
+            validatingLabel={t("onboarding.validating")}
+            savingLabel={t("onboarding.saving")}
+            variant="page"
+          />
         )}
 
         {/* Step 1: All set */}

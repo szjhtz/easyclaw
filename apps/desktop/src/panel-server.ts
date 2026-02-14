@@ -1138,6 +1138,11 @@ async function validateProviderApiKey(
   }
   const baseUrl = meta.baseUrl;
 
+  // OAuth-only providers (e.g. google-gemini-cli) don't support API key validation
+  if (meta.oauth) {
+    return { valid: false, error: "This provider uses OAuth authentication and cannot be validated with an API key." };
+  }
+
   // Amazon Bedrock uses AWS Sig v4 — skip validation
   if (provider === "amazon-bedrock") {
     return { valid: true };
@@ -1165,7 +1170,6 @@ async function validateProviderApiKey(
       };
 
       if (isOAuthToken) {
-        // OAuth/setup tokens require Claude Code identity headers to authenticate.
         headers["Authorization"] = `Bearer ${apiKey}`;
         headers["anthropic-beta"] = "claude-code-20250219,oauth-2025-04-20";
         headers["user-agent"] = "claude-cli/2.1.2 (external, cli)";

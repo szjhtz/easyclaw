@@ -616,6 +616,7 @@ export async function fetchPricing(
             pricing(deviceId: $deviceId, platform: $platform, appVersion: $appVersion, language: $language) {
               provider currency pricingUrl
               models { modelId displayName inputPricePerMillion outputPricePerMillion note }
+              plans { planName price currency planDetail { modelName volume } }
             }
           }`,
           variables: { deviceId, platform, appVersion, language },
