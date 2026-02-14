@@ -1,4 +1,4 @@
-import { Menu, shell } from "electron";
+import { Menu } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import type { GatewayState } from "@easyclaw/gateway";
 
@@ -49,7 +49,7 @@ export interface TrayMenuCallbacks {
   onCheckForUpdates: () => void;
   onQuit: () => void;
   /** If set, shows "Update Available" instead of "Check for Updates". */
-  updateInfo?: { latestVersion: string; downloadUrl: string };
+  updateInfo?: { latestVersion: string; onDownload: () => void };
 }
 
 /**
@@ -71,7 +71,7 @@ export function buildTrayMenu(
   const updateItem: MenuItemConstructorOptions = callbacks.updateInfo
     ? {
         label: labels.updateAvailable.replace("{{version}}", callbacks.updateInfo.latestVersion),
-        click: () => shell.openExternal(callbacks.updateInfo!.downloadUrl),
+        click: () => callbacks.updateInfo!.onDownload(),
       }
     : {
         label: labels.checkForUpdates,

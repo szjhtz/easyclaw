@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { fetchUpdateInfo } from "../api.js";
-import type { UpdateInfo } from "../api.js";
+import { fetchUpdateInfo, startUpdateDownload, cancelUpdateDownload, fetchUpdateDownloadStatus, triggerUpdateInstall } from "../api.js";
+import type { UpdateInfo, UpdateDownloadStatus } from "../api.js";
 import { ThemeToggle } from "../components/ThemeToggle.js";
 import { LangToggle } from "../components/LangToggle.js";
 
@@ -74,6 +74,7 @@ export function Layout({
   const { t } = useTranslation();
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<UpdateDownloadStatus>({ status: "idle" });
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
@@ -85,10 +86,37 @@ export function Layout({
         if (info.currentVersion) setCurrentVersion(info.currentVersion);
         if (info.updateAvailable) setUpdateInfo(info);
       })
-      .catch(() => {
-        // Silently ignore — update check is best-effort
-      });
+      .catch(() => {});
   }, []);
+
+  // Poll download status while active
+  useEffect(() => {
+    const active = downloadStatus.status === "downloading" || downloadStatus.status === "verifying" || downloadStatus.status === "installing";
+    if (!active) return;
+    const id = setInterval(() => {
+      fetchUpdateDownloadStatus().then(setDownloadStatus).catch(() => {});
+    }, 500);
+    return () => clearInterval(id);
+  }, [downloadStatus.status]);
+
+  function handleDownload() {
+    setDownloadStatus({ status: "downloading", percent: 0 });
+    startUpdateDownload().catch((err) => {
+      setDownloadStatus({ status: "error", message: err instanceof Error ? err.message : String(err) });
+    });
+  }
+
+  function handleCancel() {
+    cancelUpdateDownload().catch(() => {});
+    setDownloadStatus({ status: "idle" });
+  }
+
+  function handleInstall() {
+    setDownloadStatus({ status: "installing" });
+    triggerUpdateInstall().catch((err) => {
+      setDownloadStatus({ status: "error", message: err instanceof Error ? err.message : String(err) });
+    });
+  }
 
   function handleToggleCollapse() {
     const next = !collapsed;
@@ -136,32 +164,62 @@ export function Layout({
   ];
 
   const showBanner = updateInfo && !dismissed;
+  const ds = downloadStatus;
 
   return (
     <div className="layout-root">
       {showBanner && (
         <div className="update-banner">
-          <span className="flex-1">
-            {t("update.bannerText", { version: updateInfo.latestVersion })}
-            {updateInfo.downloadUrl && (
+          <span className="update-banner-content">
+            {ds.status === "idle" && (
               <>
+                {t("update.bannerText", { version: updateInfo.latestVersion })}
                 {" "}
-                <a
-                  href={updateInfo.downloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <button className="update-banner-action" onClick={handleDownload}>
                   {t("update.download")}
-                </a>
+                </button>
+              </>
+            )}
+            {ds.status === "downloading" && (
+              <>
+                {t("update.downloading", { percent: ds.percent ?? 0 })}
+                <span className="update-progress-bar">
+                  <span className="update-progress-fill" style={{ width: `${ds.percent ?? 0}%` }} />
+                </span>
+                <button className="update-banner-action" onClick={handleCancel}>
+                  {t("update.cancel")}
+                </button>
+              </>
+            )}
+            {ds.status === "verifying" && t("update.verifying")}
+            {ds.status === "ready" && (
+              <>
+                {t("update.ready")}
+                {" "}
+                <button className="update-banner-action update-banner-action-primary" onClick={handleInstall}>
+                  {t("update.installRestart")}
+                </button>
+              </>
+            )}
+            {ds.status === "installing" && t("update.installing")}
+            {ds.status === "error" && (
+              <>
+                {t("update.error", { message: ds.message ?? "" })}
+                {" "}
+                <button className="update-banner-action" onClick={handleDownload}>
+                  {t("update.retry")}
+                </button>
               </>
             )}
           </span>
-          <button
-            className="update-banner-dismiss"
-            onClick={() => setDismissed(true)}
-          >
-            {t("update.dismiss")}
-          </button>
+          {ds.status === "idle" && (
+            <button
+              className="update-banner-dismiss"
+              onClick={() => setDismissed(true)}
+            >
+              {t("update.dismiss")}
+            </button>
+          )}
         </div>
       )}
       <div className="layout-body">

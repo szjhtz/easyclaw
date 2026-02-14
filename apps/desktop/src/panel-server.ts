@@ -935,6 +935,14 @@ export interface PanelServerOptions {
   getGatewayInfo?: () => { wsUrl: string; token?: string };
   /** Path to changelog.json file. */
   changelogPath?: string;
+  /** Callback to start downloading an available update. */
+  onUpdateDownload?: () => Promise<void>;
+  /** Callback to cancel an in-progress update download. */
+  onUpdateCancel?: () => void;
+  /** Callback to install a downloaded update and restart the app. */
+  onUpdateInstall?: () => Promise<void>;
+  /** Getter for the current update download state (idle/downloading/ready/etc.). */
+  getUpdateDownloadState?: () => { status: string; [key: string]: unknown };
 }
 
 /**
@@ -1110,7 +1118,7 @@ async function syncActiveKey(
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? 3210;
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onTelemetryTrack, vendorDir, deviceId, getUpdateResult, getGatewayInfo, changelogPath } = options;
+  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onTelemetryTrack, vendorDir, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState } = options;
 
   // Store references so module-level WeCom handlers can access them
   wecomStorageRef = storage;
@@ -1159,6 +1167,48 @@ export function startPanelServer(options: PanelServerOptions): Server {
           currentVersion: result?.currentVersion ?? null,
           entries: changelogEntries,
         });
+        return;
+      }
+
+      // --- In-app update download/install endpoints ---
+
+      if (pathname === "/api/app/update/download" && req.method === "POST") {
+        if (!onUpdateDownload) {
+          sendJson(res, 501, { error: "Not supported" });
+          return;
+        }
+        onUpdateDownload()
+          .then(() => sendJson(res, 200, { ok: true }))
+          .catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            sendJson(res, 500, { error: msg });
+          });
+        return;
+      }
+
+      if (pathname === "/api/app/update/cancel" && req.method === "POST") {
+        onUpdateCancel?.();
+        sendJson(res, 200, { ok: true });
+        return;
+      }
+
+      if (pathname === "/api/app/update/download-status" && req.method === "GET") {
+        const state = getUpdateDownloadState?.() ?? { status: "idle" };
+        sendJson(res, 200, state);
+        return;
+      }
+
+      if (pathname === "/api/app/update/install" && req.method === "POST") {
+        if (!onUpdateInstall) {
+          sendJson(res, 501, { error: "Not supported" });
+          return;
+        }
+        onUpdateInstall()
+          .then(() => sendJson(res, 200, { ok: true }))
+          .catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            sendJson(res, 500, { error: msg });
+          });
         return;
       }
 

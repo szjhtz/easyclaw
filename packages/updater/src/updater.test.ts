@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { createHash } from "node:crypto";
+import { readFile, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { parseVersion, compareVersions, isNewerVersion } from "./version.js";
 import {
   fetchManifest,
@@ -6,7 +10,8 @@ import {
   checkForUpdate,
   MANIFEST_URLS,
 } from "./checker.js";
-import type { UpdateManifest } from "./types.js";
+import { downloadAndVerify } from "./downloader.js";
+import type { UpdateManifest, DownloadProgress } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // parseVersion
@@ -326,5 +331,112 @@ describe("checkForUpdate", () => {
     const result = await checkForUpdate("1.0.0");
     expect(result.updateAvailable).toBe(true);
     expect(result.download).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// downloadAndVerify
+// ---------------------------------------------------------------------------
+describe("downloadAndVerify", () => {
+  const testContent = "Hello, EasyClaw update!";
+  const testSha256 = createHash("sha256").update(testContent).digest("hex");
+  const testSize = Buffer.byteLength(testContent);
+
+  function createMockResponse(body: string, ok = true, status = 200) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(body));
+        controller.close();
+      },
+    });
+    return {
+      ok,
+      status,
+      statusText: ok ? "OK" : "Not Found",
+      body: stream,
+    };
+  }
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+  });
+
+  it("downloads file and verifies checksum", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(testContent)));
+    const destPath = join(tmpdir(), `easyclaw-test-${Date.now()}.bin`);
+
+    try {
+      const result = await downloadAndVerify(
+        "https://example.com/update.zip",
+        destPath,
+        testSha256,
+        testSize,
+      );
+      expect(result.verified).toBe(true);
+      expect(result.filePath).toBe(destPath);
+
+      const content = await readFile(destPath, "utf-8");
+      expect(content).toBe(testContent);
+    } finally {
+      await unlink(destPath).catch(() => {});
+    }
+  });
+
+  it("reports progress during download", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(testContent)));
+    const destPath = join(tmpdir(), `easyclaw-test-${Date.now()}.bin`);
+    const progressEvents: DownloadProgress[] = [];
+
+    try {
+      await downloadAndVerify(
+        "https://example.com/update.zip",
+        destPath,
+        testSha256,
+        testSize,
+        (p) => progressEvents.push(p),
+      );
+      expect(progressEvents.length).toBeGreaterThan(0);
+      const last = progressEvents[progressEvents.length - 1];
+      expect(last.downloaded).toBe(testSize);
+      expect(last.percent).toBe(100);
+    } finally {
+      await unlink(destPath).catch(() => {});
+    }
+  });
+
+  it("throws and cleans up on checksum mismatch", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse(testContent)));
+    const destPath = join(tmpdir(), `easyclaw-test-${Date.now()}.bin`);
+
+    await expect(
+      downloadAndVerify(
+        "https://example.com/update.zip",
+        destPath,
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        testSize,
+      ),
+    ).rejects.toThrow("Checksum verification failed");
+
+    // File should be cleaned up
+    await expect(readFile(destPath)).rejects.toThrow();
+  });
+
+  it("throws on HTTP error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(createMockResponse("", false, 404)));
+
+    const destPath = join(tmpdir(), `easyclaw-test-${Date.now()}.bin`);
+    await expect(
+      downloadAndVerify("https://example.com/update.zip", destPath, testSha256, testSize),
+    ).rejects.toThrow("Download failed: HTTP 404");
+  });
+
+  it("throws on network error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network error")));
+
+    const destPath = join(tmpdir(), `easyclaw-test-${Date.now()}.bin`);
+    await expect(
+      downloadAndVerify("https://example.com/update.zip", destPath, testSha256, testSize),
+    ).rejects.toThrow("Network error");
   });
 });

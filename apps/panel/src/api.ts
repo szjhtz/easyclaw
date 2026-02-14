@@ -472,6 +472,31 @@ export async function fetchUpdateInfo(): Promise<UpdateInfo> {
   return fetchJson<UpdateInfo>("/app/update");
 }
 
+export interface UpdateDownloadStatus {
+  status: "idle" | "downloading" | "verifying" | "ready" | "installing" | "error";
+  percent?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  filePath?: string;
+  message?: string;
+}
+
+export async function startUpdateDownload(): Promise<void> {
+  await fetchJson("/app/update/download", { method: "POST" });
+}
+
+export async function cancelUpdateDownload(): Promise<void> {
+  await fetchJson("/app/update/cancel", { method: "POST" });
+}
+
+export async function fetchUpdateDownloadStatus(): Promise<UpdateDownloadStatus> {
+  return fetchJson<UpdateDownloadStatus>("/app/update/download-status");
+}
+
+export async function triggerUpdateInstall(): Promise<void> {
+  await fetchJson("/app/update/install", { method: "POST" });
+}
+
 // --- Changelog ---
 
 export interface ChangelogEntry {

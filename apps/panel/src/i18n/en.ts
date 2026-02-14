@@ -623,8 +623,16 @@ export default {
   },
   update: {
     bannerText: "New version {{version}} is available.",
-    download: "Download",
+    download: "Download Update",
     dismiss: "Dismiss",
+    downloading: "Downloading update... {{percent}}%",
+    verifying: "Verifying download...",
+    ready: "Update ready!",
+    installing: "Installing update...",
+    error: "Update failed: {{message}}",
+    installRestart: "Install & Restart",
+    cancel: "Cancel",
+    retry: "Retry",
   },
   onboarding: {
     skipSetup: "Skip setup",

@@ -30,8 +30,8 @@ import { ProxyRouter } from "@easyclaw/proxy-router";
 import type { ProxyRouterConfig } from "@easyclaw/proxy-router";
 import { RemoteTelemetryClient } from "@easyclaw/telemetry";
 import { getDeviceId } from "@easyclaw/device-id";
-import { checkForUpdate } from "@easyclaw/updater";
-import type { UpdateCheckResult } from "@easyclaw/updater";
+import { checkForUpdate, downloadAndVerify, getPlatformKey, installWindows, installMacOS, resolveAppBundlePath } from "@easyclaw/updater";
+import type { UpdateCheckResult, UpdateDownloadState, DownloadProgress } from "@easyclaw/updater";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -406,11 +406,9 @@ app.whenReady().then(async () => {
           ? `新版本 v${result.latestVersion} 已发布，点击查看详情。`
           : `A new version v${result.latestVersion} is available. Click to download.`,
       });
-      if (result.download) {
-        notification.on("click", () => {
-          shell.openExternal(result.download!.url);
-        });
-      }
+      notification.on("click", () => {
+        showMainWindow();
+      });
       notification.show();
     }
     // Refresh tray to show/hide update item
@@ -428,6 +426,105 @@ app.whenReady().then(async () => {
       log.warn("Periodic update check failed:", err);
     });
   }, 4 * 60 * 60 * 1000);
+
+  // --- In-app update download/install ---
+  let updateDownloadState: UpdateDownloadState = { status: "idle" };
+  let downloadAbortController: AbortController | null = null;
+
+  async function performUpdateDownload(): Promise<void> {
+    if (!latestUpdateResult?.updateAvailable || !latestUpdateResult.download) {
+      throw new Error("No update available");
+    }
+    if (updateDownloadState.status === "downloading") {
+      throw new Error("Download already in progress");
+    }
+
+    const platform = getPlatformKey();
+    const download = latestUpdateResult.download;
+
+    let downloadUrl: string;
+    let expectedSha256: string;
+    let expectedSize: number;
+    let fileName: string;
+
+    if (platform === "mac") {
+      // Use zip for in-app update on macOS
+      if (!download.zipUrl || !download.zipSha256) {
+        // Fallback: open browser for DMG
+        shell.openExternal(download.url);
+        return;
+      }
+      downloadUrl = download.zipUrl;
+      expectedSha256 = download.zipSha256;
+      expectedSize = download.zipSize ?? download.size;
+      fileName = "easyclaw-update.zip";
+    } else {
+      downloadUrl = download.url;
+      expectedSha256 = download.sha256;
+      expectedSize = download.size;
+      fileName = "easyclaw-update.exe";
+    }
+
+    const destPath = join(app.getPath("temp"), fileName);
+    downloadAbortController = new AbortController();
+    updateDownloadState = { status: "downloading", percent: 0, downloadedBytes: 0, totalBytes: expectedSize };
+    mainWindow?.setProgressBar(0);
+
+    try {
+      const result = await downloadAndVerify(
+        downloadUrl,
+        destPath,
+        expectedSha256,
+        expectedSize,
+        (progress: DownloadProgress) => {
+          updateDownloadState = {
+            status: "downloading",
+            percent: progress.percent,
+            downloadedBytes: progress.downloaded,
+            totalBytes: progress.total,
+          };
+          mainWindow?.setProgressBar(progress.percent / 100);
+        },
+        downloadAbortController.signal,
+      );
+
+      updateDownloadState = { status: "ready", filePath: result.filePath };
+      mainWindow?.setProgressBar(-1);
+      log.info(`Update downloaded and verified: ${result.filePath}`);
+      telemetryClient?.track("app.update_downloaded", {
+        version: latestUpdateResult.latestVersion,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      updateDownloadState = { status: "error", message };
+      mainWindow?.setProgressBar(-1);
+      log.error(`Update download failed: ${message}`);
+    } finally {
+      downloadAbortController = null;
+    }
+  }
+
+  async function performUpdateInstall(): Promise<void> {
+    if (updateDownloadState.status !== "ready") {
+      throw new Error("No downloaded update ready to install");
+    }
+
+    const filePath = updateDownloadState.filePath;
+    const platform = getPlatformKey();
+    updateDownloadState = { status: "installing" };
+
+    telemetryClient?.track("app.update_installing", {
+      version: latestUpdateResult?.latestVersion,
+    });
+
+    isQuitting = true; // prevent close-to-tray
+    if (platform === "win") {
+      installWindows(filePath, () => app.quit());
+    } else {
+      const appBundlePath = resolveAppBundlePath();
+      await installMacOS(filePath, appBundlePath, () => app.quit());
+    }
+  }
 
   // Detect system proxy and write proxy router config BEFORE starting the router.
   // This ensures the router has a valid config (with systemProxy) from the very first request,
@@ -805,7 +902,8 @@ app.whenReady().then(async () => {
                 buttons: isZh ? ["下载", "稍后"] : ["Download", "Later"],
               });
               if (response === 0) {
-                shell.openExternal(latestUpdateResult.download.url);
+                showMainWindow();
+                performUpdateDownload().catch((e) => log.error("Update download failed:", e));
               }
             } else {
               dialog.showMessageBox({
@@ -832,7 +930,13 @@ app.whenReady().then(async () => {
           app.quit();
         },
         updateInfo: latestUpdateResult?.updateAvailable && latestUpdateResult.download
-          ? { latestVersion: latestUpdateResult.latestVersion!, downloadUrl: latestUpdateResult.download.url }
+          ? {
+              latestVersion: latestUpdateResult.latestVersion!,
+              onDownload: () => {
+                showMainWindow();
+                performUpdateDownload().catch((e) => log.error("Update download failed:", e));
+              },
+            }
           : undefined,
       }, systemLocale),
     );
@@ -971,6 +1075,14 @@ app.whenReady().then(async () => {
     deviceId,
     getRpcClient: () => rpcClient,
     getUpdateResult: () => latestUpdateResult,
+    onUpdateDownload: () => performUpdateDownload(),
+    onUpdateCancel: () => {
+      downloadAbortController?.abort();
+      updateDownloadState = { status: "idle" };
+      mainWindow?.setProgressBar(-1);
+    },
+    onUpdateInstall: () => performUpdateInstall(),
+    getUpdateDownloadState: () => updateDownloadState,
     getGatewayInfo: () => {
       const config = readExistingConfig(configPath);
       const gw = config.gateway as Record<string, unknown> | undefined;

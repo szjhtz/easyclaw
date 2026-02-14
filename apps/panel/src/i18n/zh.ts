@@ -623,8 +623,16 @@ export default {
   },
   update: {
     bannerText: "新版本 {{version}} 已发布。",
-    download: "下载",
+    download: "下载更新",
     dismiss: "忽略",
+    downloading: "正在下载更新... {{percent}}%",
+    verifying: "正在校验...",
+    ready: "更新已就绪！",
+    installing: "正在安装更新...",
+    error: "更新失败：{{message}}",
+    installRestart: "安装并重启",
+    cancel: "取消",
+    retry: "重试",
   },
   onboarding: {
     skipSetup: "跳过设置",
