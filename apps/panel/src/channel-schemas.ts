@@ -47,7 +47,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
@@ -242,7 +242,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
@@ -291,7 +291,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
@@ -326,7 +326,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
@@ -345,7 +345,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
         ],
         hint: "channels.whatsappSetupHint",
       },
@@ -380,7 +380,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
@@ -412,7 +412,7 @@ export const CHANNEL_SCHEMAS: Record<string, ChannelSchema> = {
         options: [
           { value: "pairing", label: "channels.dmPolicyPairing" },
           { value: "allowlist", label: "channels.dmPolicyAllowlist" },
-          { value: "open", label: "channels.dmPolicyOpen" },
+          // { value: "open", label: "channels.dmPolicyOpen" }, // Disabled — security risk: allows any stranger to chat without approval
           { value: "disabled", label: "channels.dmPolicyDisabled" },
         ],
       },
