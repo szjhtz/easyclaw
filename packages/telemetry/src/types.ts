@@ -12,7 +12,10 @@ export interface TelemetryEvent {
   /** Unique session identifier for this app run (UUID) */
   sessionId: string;
 
-  /** Optional anonymous user identifier (e.g., SHA256 hash of MAC address) */
+  /** Anonymous device identifier (SHA-256 of hardware ID, survives reinstalls) */
+  deviceId?: string;
+
+  /** Optional user account ID (reserved for future login feature) */
   userId?: string;
 
   /** Application version (e.g., "0.1.0") */
@@ -53,6 +56,9 @@ export interface TelemetryConfig {
   /** System locale / language (e.g., "zh", "en") */
   locale: string;
 
-  /** Optional anonymous user ID */
+  /** Anonymous device identifier (SHA-256 of hardware ID) */
+  deviceId?: string;
+
+  /** Optional user account ID (reserved for future login feature) */
   userId?: string;
 }

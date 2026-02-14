@@ -375,6 +375,7 @@ app.whenReady().then(async () => {
         version: app.getVersion(),
         platform: process.platform,
         locale,
+        deviceId,
       });
       log.info("Telemetry client initialized (user opted in)");
     } catch (error) {

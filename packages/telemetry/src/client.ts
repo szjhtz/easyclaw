@@ -53,6 +53,7 @@ export class RemoteTelemetryClient {
       eventType,
       timestamp: new Date().toISOString(),
       sessionId: this.sessionId,
+      deviceId: this.config.deviceId,
       userId: this.config.userId,
       version: this.config.version,
       platform: this.config.platform,

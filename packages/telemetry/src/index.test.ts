@@ -69,12 +69,13 @@ describe("RemoteTelemetryClient", () => {
       expect(client).toBeDefined();
     });
 
-    it("should accept optional userId", () => {
+    it("should accept optional deviceId and userId", () => {
       const config: TelemetryConfig = {
         endpoint: "https://example.com/api/telemetry",
         enabled: true,
         version: "0.1.0",
         platform: "darwin",
+        deviceId: "abc123def456",
         userId: "test-user-123",
       };
 
@@ -440,6 +441,7 @@ describe("RemoteTelemetryClient", () => {
         version: "0.1.0",
         platform: "darwin",
         locale: "en",
+        deviceId: "test-device",
         userId: "test-user",
       };
 
@@ -455,6 +457,7 @@ describe("RemoteTelemetryClient", () => {
       expect(event).toHaveProperty("eventType", "app.started");
       expect(event).toHaveProperty("timestamp");
       expect(event).toHaveProperty("sessionId");
+      expect(event).toHaveProperty("deviceId", "test-device");
       expect(event).toHaveProperty("userId", "test-user");
       expect(event).toHaveProperty("version", "0.1.0");
       expect(event).toHaveProperty("platform", "darwin");
