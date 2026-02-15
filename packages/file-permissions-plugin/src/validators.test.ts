@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { parseFilePermissions, isPathAllowed, extractFilePaths, extractExecFilePaths } from "./validators.js";
-import { join } from "node:path";
+import path, { join } from "node:path";
 import { homedir } from "node:os";
 
 describe("parseFilePermissions", () => {
@@ -59,17 +59,18 @@ describe("parseFilePermissions", () => {
     });
 
     it("should include workspacePath as implicit write path", () => {
+      const wsPath = "/home/user/workspace";
       const json = JSON.stringify({
-        workspacePath: "/home/user/workspace",
+        workspacePath: wsPath,
         readPaths: [],
         writePaths: [],
       });
       const result = parseFilePermissions(json);
       expect(result.write).toHaveLength(1);
-      expect(result.write[0]).toBe("/home/user/workspace");
+      expect(result.write[0]).toBe(path.resolve(wsPath));
       // agent can read+write its own workspace even with empty user permissions
-      expect(isPathAllowed("/home/user/workspace/memory/note.md", result, "read")).toBe(true);
-      expect(isPathAllowed("/home/user/workspace/memory/note.md", result, "write")).toBe(true);
+      expect(isPathAllowed(path.resolve(wsPath, "memory/note.md"), result, "read")).toBe(true);
+      expect(isPathAllowed(path.resolve(wsPath, "memory/note.md"), result, "write")).toBe(true);
     });
 
     it("should allow all paths when fullAccess is true", () => {

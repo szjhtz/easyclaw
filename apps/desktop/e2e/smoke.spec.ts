@@ -35,9 +35,10 @@ test.describe("EasyClaw Smoke Tests", () => {
   test("LLM Providers page: dropdowns and pricing", async ({ window }) => {
     // Dismiss any modal blocking the UI
     const backdrop = window.locator(".modal-backdrop");
-    if (await backdrop.isVisible({ timeout: 1_000 }).catch(() => false)) {
-      await backdrop.click({ position: { x: 5, y: 5 } });
-      await backdrop.waitFor({ state: "hidden", timeout: 3_000 });
+    if (await backdrop.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // Press Escape as a more reliable way to dismiss modals
+      await window.keyboard.press("Escape");
+      await backdrop.waitFor({ state: "hidden", timeout: 5_000 });
     }
 
     // Navigate to LLM Providers page
