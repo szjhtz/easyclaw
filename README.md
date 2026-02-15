@@ -45,7 +45,7 @@ EasyClaw enforces file access permissions through an OpenClaw plugin that interc
 
 | Tool    | Version    |
 | ------- | ---------- |
-| Node.js | >= 25      |
+| Node.js | >= 24      |
 | pnpm    | 10.6.2     |
 
 ## Quick Start

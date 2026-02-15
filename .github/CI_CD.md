@@ -61,5 +61,5 @@ cd vendor/openclaw && CI=true pnpm install --no-frozen-lockfile && cd ../..
 ## Troubleshooting
 
 - **Native module errors**: Run `./scripts/rebuild-native.sh --force`
-- **Build failures on CI**: Verify Node.js version matches (currently 25)
+- **Build failures on CI**: Verify Node.js version matches (currently 24)
 - **E2E test timeouts**: Ensure no stale EasyClaw processes are running
