@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.3.0",
+    "date": "2026-02-15",
+    "en": [
+      "Upgraded Electron 35 → 40 and better-sqlite3 11 → 12",
+      "Added E2E testing for both dev and packaged builds (Playwright)",
+      "New local CI/CD pipeline: build + test + release from local machines",
+      "Improved native module handling for dual Node.js/Electron environments"
+    ],
+    "zh": [
+      "Electron 35 → 40、better-sqlite3 11 → 12 升级",
+      "新增端到端测试：覆盖开发版和打包后的应用（Playwright）",
+      "全新本地 CI/CD 流程：本地构建 + 测试 + 发布",
+      "改进原生模块处理，支持 Node.js/Electron 双环境"
+    ]
+  },
+  {
     "version": "1.2.10",
     "date": "2026-02-15",
     "en": [
