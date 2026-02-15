@@ -6,13 +6,15 @@
       "Upgraded Electron 35 → 40 and better-sqlite3 11 → 12",
       "Added E2E testing for both dev and packaged builds (Playwright)",
       "New local CI/CD pipeline: build + test + release from local machines",
-      "Improved native module handling for dual Node.js/Electron environments"
+      "Improved native module handling for dual Node.js/Electron environments",
+      "Lowered Node.js requirement from v25 to v24"
     ],
     "zh": [
       "Electron 35 → 40、better-sqlite3 11 → 12 升级",
       "新增端到端测试：覆盖开发版和打包后的应用（Playwright）",
       "全新本地 CI/CD 流程：本地构建 + 测试 + 发布",
-      "改进原生模块处理，支持 Node.js/Electron 双环境"
+      "改进原生模块处理，支持 Node.js/Electron 双环境",
+      "Node.js 最低版本要求从 v25 降至 v24"
     ]
   },
   {
