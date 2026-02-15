@@ -17,7 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^12.6.2",
     "@easyclaw/core": "workspace:*",
     "@easyclaw/logger": "workspace:*"
   },

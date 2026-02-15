@@ -64,8 +64,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/updater
       better-sqlite3:
-        specifier: ^11.9.1
-        version: 11.10.0
+        specifier: ^12.6.2
+        version: 12.6.2
       undici:
         specifier: ^7.21.0
         version: 7.21.0
@@ -86,8 +86,8 @@ importers:
         specifier: ^8.18.1
         version: 8.18.1
       electron:
-        specifier: ^35.1.2
-        version: 35.7.5
+        specifier: ^40.4.1
+        version: 40.4.1
       electron-builder:
         specifier: ^26.0.12
         version: 26.7.0(electron-builder-squirrel-windows@26.7.0)
@@ -162,8 +162,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/logger
       better-sqlite3:
-        specifier: ^11.8.1
-        version: 11.10.0
+        specifier: ^12.6.2
+        version: 12.6.2
       ws:
         specifier: ^8.18.0
         version: 8.19.0
@@ -186,15 +186,6 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(yaml@2.8.2)
-
-  extensions/dingtalk:
-    devDependencies:
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(typescript@5.9.3)
 
   extensions/wecom:
     dependencies:
@@ -396,8 +387,8 @@ importers:
         specifier: workspace:*
         version: link:../logger
       better-sqlite3:
-        specifier: ^11.9.1
-        version: 11.10.0
+        specifier: ^12.6.2
+        version: 12.6.2
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -1863,7 +1854,6 @@ packages:
   '@rolldown/binding-darwin-arm64@1.0.0-rc.3':
     resolution: {integrity: sha512-JWWLzvcmc/3pe7qdJqPpuPk91SoE/N+f3PcWx/6ZwuyDVyungAEJPvKm/eEldiDdwTmaEzWfIR+HORxYWrCi1A==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.3':
@@ -2684,8 +2674,9 @@ packages:
   before-after-hook@4.0.0:
     resolution: {integrity: sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ==}
 
-  better-sqlite3@11.10.0:
-    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
+  better-sqlite3@12.6.2:
+    resolution: {integrity: sha512-8VYKM3MjCa9WcaSAI3hzwhmyHVlH8tiGFwf0RlTsZPWJ1I5MkzjiudCo4KC4DxOaL/53A5B1sI/IbldNFDbsKA==}
+    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bignumber.js@9.3.1:
     resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
@@ -3128,8 +3119,8 @@ packages:
     resolution: {integrity: sha512-bO3y10YikuUwUuDUQRM4KfwNkKhnpVO7IPdbsrejwN9/AABJzzTQ4GeHwyzNSrVO+tEH3/Np255a3sVZpZDjvg==}
     engines: {node: '>=8.0.0'}
 
-  electron@35.7.5:
-    resolution: {integrity: sha512-dnL+JvLraKZl7iusXTVTGYs10TKfzUi30uEDTqsmTm0guN9V2tbOjTzyIZbh9n3ygUjgEYyo+igAwMRXIi3IPw==}
+  electron@40.4.1:
+    resolution: {integrity: sha512-N1ZXybQZL8kYemO8vAeh9nrk4mSvqlAO8xs0QCHkXIvRnuB/7VGwEehjvQbsU5/f4bmTKpG+2GQERe/zmKpudQ==}
     engines: {node: '>= 12.20.55'}
     hasBin: true
 
@@ -8308,7 +8299,7 @@ snapshots:
 
   before-after-hook@4.0.0: {}
 
-  better-sqlite3@11.10.0:
+  better-sqlite3@12.6.2:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -8819,10 +8810,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron@35.7.5:
+  electron@40.4.1:
     dependencies:
       '@electron/get': 2.0.3
-      '@types/node': 22.19.9
+      '@types/node': 24.10.12
       extract-zip: 2.0.1
     transitivePeerDependencies:
       - supports-color

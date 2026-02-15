@@ -30,7 +30,7 @@
     "@easyclaw/stt": "workspace:*",
     "@easyclaw/telemetry": "workspace:*",
     "@easyclaw/updater": "workspace:*",
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^12.6.2",
     "undici": "^7.21.0",
     "ws": "^8.18.0"
   },
@@ -39,7 +39,7 @@
     "@electron/rebuild": "^4.0.3",
     "@playwright/test": "^1.58.2",
     "@types/ws": "^8.18.1",
-    "electron": "^35.1.2",
+    "electron": "^40.4.1",
     "electron-builder": "^26.0.12",
     "oxlint": "^1.43.0",
     "playwright": "^1.58.2",

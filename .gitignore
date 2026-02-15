@@ -9,6 +9,8 @@ dist/
 .DS_Store
 server/
 apps/desktop/release/
+playwright-report/
+test-results/
 .venv/
 .env
 CLAUDE.md
