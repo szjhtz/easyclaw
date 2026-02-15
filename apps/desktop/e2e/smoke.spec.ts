@@ -90,6 +90,64 @@ test.describe("EasyClaw Smoke Tests", () => {
     await expect(apiTable).toBeVisible({ timeout: 10_000 });
   });
 
+  test("add second key and switch active provider", async ({ window }) => {
+    const zhipuKey = process.env.E2E_ZHIPU_API_KEY;
+    const volcengineKey = process.env.E2E_VOLCENGINE_API_KEY;
+    test.skip(!zhipuKey || !volcengineKey, "E2E_ZHIPU_API_KEY and E2E_VOLCENGINE_API_KEY required");
+
+    // Dismiss modals
+    for (let i = 0; i < 3; i++) {
+      const backdrop = window.locator(".modal-backdrop");
+      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+      await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
+    }
+
+    // Navigate to LLM Providers page
+    const providersBtn = window.locator(".nav-btn", { hasText: "LLM Providers" });
+    await providersBtn.click();
+    await expect(providersBtn).toHaveClass(/nav-active/);
+
+    // Verify pre-seeded volcengine key is active
+    const keyCards = window.locator(".key-card");
+    await expect(keyCards).toHaveCount(1);
+    await expect(keyCards.first()).toHaveClass(/key-card-active/);
+
+    // -- Add GLM key via the "Add Key" form --
+    const form = window.locator(".page-two-col");
+
+    // Switch to API tab
+    await form.locator(".tab-btn", { hasText: /API/i }).click();
+
+    // Select Zhipu (GLM)
+    await form.locator(".provider-select-trigger").click();
+    await form.locator(".provider-select-option", { hasText: /Zhipu \(GLM\) - China/i }).click();
+
+    // Select GLM-4.7-Flash model
+    await form.locator(".custom-select-trigger").click();
+    await window.locator(".custom-select-option", { hasText: /GLM-4\.7-Flash/i }).click();
+
+    // Enter API key and save
+    await form.locator("input[type='password']").fill(zhipuKey!);
+    await form.locator(".form-actions .btn.btn-primary").click();
+
+    // Wait for validation + save, then verify both keys appear
+    await expect(keyCards).toHaveCount(2, { timeout: 30_000 });
+
+    const volcengineCard = window.locator(".key-card", { hasText: /Volcengine/i });
+    const zhipuCard = window.locator(".key-card", { hasText: /Zhipu/i });
+    await expect(volcengineCard).toHaveClass(/key-card-active/);
+    await expect(zhipuCard).toHaveClass(/key-card-inactive/);
+
+    // -- Activate the GLM key --
+    await zhipuCard.locator(".btn", { hasText: /Activate/i }).click();
+
+    // Verify GLM is now active and volcengine is inactive
+    await expect(zhipuCard).toHaveClass(/key-card-active/, { timeout: 10_000 });
+    await expect(volcengineCard).toHaveClass(/key-card-inactive/);
+    await expect(zhipuCard.locator(".badge-active")).toBeVisible();
+  });
+
   test("window has correct web preferences", async ({ electronApp }) => {
     const prefs = await electronApp.evaluate(({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows()[0];
