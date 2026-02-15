@@ -33,11 +33,14 @@ test.describe("EasyClaw Smoke Tests", () => {
   });
 
   test("LLM Providers page: dropdowns and pricing", async ({ window }) => {
-    // Dismiss any modal blocking the UI (e.g. telemetry consent)
-    const closeBtn = window.locator(".modal-close-btn");
-    if (await closeBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await window.locator(".modal-backdrop").waitFor({ state: "hidden", timeout: 5_000 });
+    // Dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
+    // Prod builds may show modals that dev builds skip. Try up to 3 times.
+    for (let i = 0; i < 3; i++) {
+      const backdrop = window.locator(".modal-backdrop");
+      if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
+      // Click the top-left corner of the backdrop (outside modal-content) to trigger onClose
+      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+      await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
     }
 
     // Navigate to LLM Providers page
