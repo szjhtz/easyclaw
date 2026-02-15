@@ -11,21 +11,20 @@
 #   ./scripts/release-local.sh --skip-upload  # build + test, no upload
 #
 # Pipeline:
-#   1. pnpm run build            — build all workspace packages
-#   2. pnpm run test             — unit tests (vitest via turbo)
-#   3. pnpm run pack             — electron-builder --dir (unpacked app)
-#   4. test:e2e:prod             — Playwright e2e against packed app
-#   5. dist:mac / dist:win       — create distributable installers
-#   6. gh release upload         — upload artifacts to GitHub Release
-#   7. restore native modules    — rebuild better-sqlite3 for Node.js
+#   1. rebuild-native.sh         — prebuild better-sqlite3 for Node.js + Electron
+#   2. pnpm run build            — build all workspace packages
+#   3. pnpm run test             — unit tests (vitest via turbo)
+#   4. test:e2e:dev              — Playwright e2e against dev build
+#   5. pnpm run pack             — electron-builder --dir (unpacked app)
+#   6. test:e2e:prod             — Playwright e2e against packed app
+#   7. dist:mac / dist:win       — create distributable installers
+#   8. gh release upload         — upload artifacts to GitHub Release
 #
 # Native module strategy:
-#   better-sqlite3 is always kept compiled for Node.js (the newer ABI).
-#   electron-builder handles Electron-compatible compilation internally
-#   during pack/dist (into the output directory). E2E tests run against
-#   the packed app which has its own copy. After the pipeline finishes,
-#   we restore better-sqlite3 for Node.js so unit tests and git hooks
-#   continue to work.
+#   rebuild-native.sh builds better-sqlite3 twice (for Node.js and Electron)
+#   and places both in lib/binding/node-v{ABI}-{platform}-{arch}/. The
+#   `bindings` package auto-selects the correct one at runtime. No switching
+#   needed — unit tests and E2E dev tests coexist.
 # =============================================================================
 set -euo pipefail
 
@@ -71,25 +70,36 @@ case "$(uname -s)" in
   *)            PLATFORM="linux" ;;
 esac
 
-# ---- Step 1: Build all packages ----
+# ---- Step 1: Prebuild native modules ----
+step "Prebuild native modules (Node.js + Electron)"
+bash "$REPO_ROOT/scripts/rebuild-native.sh"
+info "Native prebuilds ready."
+
+# ---- Step 2: Build all packages ----
 step "Build all workspace packages"
 (cd "$REPO_ROOT" && pnpm run build)
 info "Build complete."
 
-# ---- Step 2: Unit tests ----
+# ---- Step 3: Unit tests ----
 if [ "$SKIP_TESTS" = false ]; then
   step "Run unit tests"
   (cd "$REPO_ROOT" && pnpm run test)
   info "Unit tests passed."
 fi
 
-# ---- Step 3: Pack (unpacked app for prod e2e) ----
-# electron-builder internally runs electron-rebuild for the packed output.
+# ---- Step 4: E2E tests (dev mode) ----
+if [ "$SKIP_TESTS" = false ]; then
+  step "Run E2E tests (dev mode)"
+  (cd "$DESKTOP_DIR" && pnpm run test:e2e:dev)
+  info "E2E dev tests passed."
+fi
+
+# ---- Step 5: Pack (unpacked app for prod e2e) ----
 step "Pack application (electron-builder --dir)"
 (cd "$DESKTOP_DIR" && pnpm run pack)
 info "Pack complete."
 
-# ---- Step 4: E2E tests (prod mode) ----
+# ---- Step 6: E2E tests (prod mode) ----
 if [ "$SKIP_TESTS" = false ]; then
   step "Run E2E tests (prod mode)"
 
@@ -112,7 +122,7 @@ if [ "$SKIP_TESTS" = false ]; then
   fi
 fi
 
-# ---- Step 5: Build distributable installers ----
+# ---- Step 7: Build distributable installers ----
 step "Build distributable installers"
 if [ "$PLATFORM" = "mac" ]; then
   (cd "$DESKTOP_DIR" && pnpm run dist:mac)
@@ -124,7 +134,7 @@ else
   warn "No dist target for platform $PLATFORM"
 fi
 
-# ---- Step 6: Upload to GitHub Release ----
+# ---- Step 8: Upload to GitHub Release ----
 if [ "$SKIP_UPLOAD" = true ]; then
   info "Skipping upload (--skip-upload flag)."
 else
@@ -157,15 +167,12 @@ else
   fi
 fi
 
-# ---- Step 7: Restore native modules for Node.js ----
-# electron-builder's internal electron-rebuild modifies node_modules in-place.
-# Restore better-sqlite3 for Node.js so unit tests and git hooks keep working.
-step "Restore native modules for Node.js"
-SQLITE_DIR="$REPO_ROOT/node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3"
-# shellcheck disable=SC2086
-rm -rf $SQLITE_DIR/build
-(cd $SQLITE_DIR && npx node-gyp rebuild --release 2>&1 | tail -3)
-info "Native modules restored for Node.js."
+# ---- Restore native prebuilds ----
+# electron-builder's internal electron-rebuild may overwrite build/Release/.
+# Re-run rebuild-native.sh to ensure both prebuilds are intact for dev use.
+step "Restore native prebuilds"
+bash "$REPO_ROOT/scripts/rebuild-native.sh"
+info "Native prebuilds restored."
 
 # ---- Done ----
 echo ""
