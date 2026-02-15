@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.2.10",
+    "date": "2026-02-15",
+    "en": [
+      "Robust update ready state, Windows compatibility, and banner UI cleanup"
+    ],
+    "zh": [
+      "更新就绪状态更可靠、Windows 兼容性改进、更新横幅 UI 优化"
+    ]
+  },
+  {
     "version": "1.2.9",
     "date": "2026-02-15",
     "en": [
