@@ -12,6 +12,11 @@ export type {
   ChannelAccountSnapshot,
   SttProvider,
   SttSettings,
+  UsageSnapshot,
+  KeyModelUsageRecord,
+  KeyModelUsageSummary,
+  KeyUsageDailyBucket,
+  KeyUsageQueryParams,
 } from "./types/index.js";
 export { easyClawConfigSchema, DEFAULT_STT_SETTINGS, STT_SETTINGS_KEYS, STT_SECRET_KEYS } from "./types/index.js";
 

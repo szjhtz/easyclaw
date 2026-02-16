@@ -434,6 +434,72 @@ export async function fetchUsage(
   return fetchJson<UsageSummary>("/usage" + (query ? "?" + query : ""));
 }
 
+// --- Per-Key/Model Usage ---
+
+export interface KeyModelUsageSummary {
+  keyId: string;
+  keyLabel: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalCostUsd: string;
+  authType: "api_key" | "oauth";
+}
+
+export interface ActiveKeyInfo {
+  keyId: string;
+  keyLabel: string;
+  provider: string;
+  model: string;
+  authType: "api_key" | "oauth";
+}
+
+export async function fetchKeyUsage(filter?: {
+  windowStart?: number;
+  windowEnd?: number;
+  keyId?: string;
+  provider?: string;
+  model?: string;
+}): Promise<KeyModelUsageSummary[]> {
+  const params = new URLSearchParams();
+  if (filter?.windowStart) params.set("windowStart", String(filter.windowStart));
+  if (filter?.windowEnd) params.set("windowEnd", String(filter.windowEnd));
+  if (filter?.keyId) params.set("keyId", filter.keyId);
+  if (filter?.provider) params.set("provider", filter.provider);
+  if (filter?.model) params.set("model", filter.model);
+  const query = params.toString();
+  return fetchJson<KeyModelUsageSummary[]>("/key-usage" + (query ? "?" + query : ""));
+}
+
+export async function fetchActiveKeyUsage(): Promise<ActiveKeyInfo | null> {
+  return fetchJson<ActiveKeyInfo | null>("/key-usage/active");
+}
+
+export interface KeyUsageDailyBucket {
+  keyId: string;
+  keyLabel: string;
+  provider: string;
+  model: string;
+  date: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalCostUsd: string;
+}
+
+export async function fetchKeyUsageTimeseries(filter?: {
+  windowStart?: number;
+  windowEnd?: number;
+}): Promise<KeyUsageDailyBucket[]> {
+  const params = new URLSearchParams();
+  if (filter?.windowStart) params.set("windowStart", String(filter.windowStart));
+  if (filter?.windowEnd) params.set("windowEnd", String(filter.windowEnd));
+  const query = params.toString();
+  return fetchJson<KeyUsageDailyBucket[]>("/key-usage/timeseries" + (query ? "?" + query : ""));
+}
+
 // --- Telemetry Settings ---
 
 export async function fetchTelemetrySetting(): Promise<boolean> {

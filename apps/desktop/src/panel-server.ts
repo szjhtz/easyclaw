@@ -17,6 +17,9 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { execFile } from "node:child_process";
 import WebSocket from "ws";
+import { UsageSnapshotEngine } from "./usage-snapshot-engine.js";
+import type { ModelUsageTotals } from "./usage-snapshot-engine.js";
+import { UsageQueryService } from "./usage-query-service.js";
 
 const log = createLogger("panel-server");
 
@@ -1307,6 +1310,53 @@ export function startPanelServer(options: PanelServerOptions): Server {
   // read from EasyClaw's state dir (~/.easyclaw/openclaw/) instead of ~/.openclaw/
   process.env.OPENCLAW_STATE_DIR = resolveOpenClawStateDir();
 
+  // --- Per-Key/Model Usage Tracking (W15-C) ---
+  const captureUsage = async (): Promise<Map<string, ModelUsageTotals>> => {
+    const result = new Map<string, ModelUsageTotals>();
+    try {
+      const ocConfigPath = resolveOpenClawConfigPath();
+      const ocConfig = readExistingConfig(ocConfigPath);
+      const sessions = await discoverAllSessions({});
+      for (const s of sessions) {
+        const summary = await loadSessionCostSummary({ sessionFile: s.sessionFile, config: ocConfig });
+        if (!summary?.modelUsage) continue;
+        for (const mu of summary.modelUsage) {
+          const key = `${mu.provider ?? "unknown"}/${mu.model ?? "unknown"}`;
+          const existing = result.get(key);
+          if (existing) {
+            existing.inputTokens += mu.totals.input;
+            existing.outputTokens += mu.totals.output;
+            existing.cacheReadTokens += mu.totals.cacheRead;
+            existing.cacheWriteTokens += mu.totals.cacheWrite;
+            existing.totalCostUsd = (parseFloat(existing.totalCostUsd) + mu.totals.totalCost).toFixed(6);
+          } else {
+            result.set(key, {
+              inputTokens: mu.totals.input,
+              outputTokens: mu.totals.output,
+              cacheReadTokens: mu.totals.cacheRead,
+              cacheWriteTokens: mu.totals.cacheWrite,
+              totalCostUsd: mu.totals.totalCost.toFixed(6),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      log.error("Failed to capture current usage:", err);
+    }
+    return result;
+  };
+
+  const snapshotEngine = new UsageSnapshotEngine(storage, captureUsage);
+  const queryService = new UsageQueryService(storage, captureUsage);
+
+  // Reconcile usage snapshots for all active keys on startup
+  const allActiveKeys = storage.providerKeys.getAll().filter((k) => k.isDefault);
+  for (const key of allActiveKeys) {
+    snapshotEngine.reconcileOnStartup(key.id, key.provider, key.model).catch((err) => {
+      log.error(`Failed to reconcile usage for key ${key.id}:`, err);
+    });
+  }
+
   // Start pairing notifier to send follow-up messages to Telegram users
   const pairingNotifier = startPairingNotifier();
 
@@ -1408,7 +1458,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
       }
 
       try {
-        await handleApiRoute(req, res, url, pathname, storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onTelemetryTrack, vendorDir, deviceId, getUpdateResult, getGatewayInfo);
+        await handleApiRoute(req, res, url, pathname, storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onPermissionsChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onTelemetryTrack, vendorDir, deviceId, getUpdateResult, getGatewayInfo, snapshotEngine, queryService);
       } catch (err) {
         log.error("API error:", err);
         sendJson(res, 500, { error: "Internal server error" });
@@ -1500,6 +1550,8 @@ async function handleApiRoute(
     releaseNotes?: string;
   } | null,
   getGatewayInfo?: () => { wsUrl: string; token?: string },
+  snapshotEngine?: UsageSnapshotEngine,
+  queryService?: UsageQueryService,
 ): Promise<void> {
   // --- Status ---
   if (pathname === "/api/status" && req.method === "GET") {
@@ -1944,6 +1996,15 @@ async function handleApiRoute(
     const modelChanged = oldDefault?.model !== entry.model;
     const activeProvider = storage.settings.get("llm-provider");
 
+    // W15-C: Record deactivation of old key BEFORE switching
+    if (oldDefault && snapshotEngine) {
+      await snapshotEngine.recordDeactivation(oldDefault.id, oldDefault.provider, oldDefault.model);
+    }
+    // W15-C: Record activation snapshot for new key
+    if (snapshotEngine) {
+      await snapshotEngine.recordActivation(entry.id, entry.provider, entry.model);
+    }
+
     storage.providerKeys.setDefault(id);
     await syncActiveKey(entry.provider, storage, secretStore);
 
@@ -2000,15 +2061,26 @@ async function handleApiRoute(
           }
         }
 
+        // W15-C: Record deactivation when model changes on active key (BEFORE update)
+        const modelChanging = !!(body.model && body.model !== existing.model);
+        if (modelChanging && existing.isDefault && snapshotEngine) {
+          await snapshotEngine.recordDeactivation(existing.id, existing.provider, existing.model);
+        }
+
         const updated = storage.providerKeys.update(id, {
           label: body.label,
           model: body.model,
           proxyBaseUrl,
         });
 
+        // W15-C: Record activation for the new model (AFTER update)
+        if (modelChanging && existing.isDefault && snapshotEngine && body.model) {
+          await snapshotEngine.recordActivation(existing.id, existing.provider, body.model);
+        }
+
         // If model or proxy changed on the active key of the active provider, trigger gateway update
         const activeProvider = storage.settings.get("llm-provider");
-        const modelChanged = !!(body.model && body.model !== existing.model);
+        const modelChanged = modelChanging;
         const proxyChanged = proxyBaseUrl !== undefined && proxyBaseUrl !== existing.proxyBaseUrl;
         if (existing.isDefault && existing.provider === activeProvider && (modelChanged || proxyChanged)) {
           // Model-only change can use SIGUSR1 reload (config file only, no env var change)
@@ -2649,6 +2721,61 @@ async function handleApiRoute(
     } catch (error) {
       log.error("Failed to load usage data", error);
       sendJson(res, 200, emptyUsageSummary());
+    }
+    return;
+  }
+
+  // --- Per-Key/Model Usage (W15-C) ---
+  if (pathname === "/api/key-usage" && req.method === "GET") {
+    if (!queryService) {
+      sendJson(res, 501, { error: "Per-key usage tracking not available" });
+      return;
+    }
+    try {
+      const windowStart = url.searchParams.get("windowStart");
+      const windowEnd = url.searchParams.get("windowEnd");
+      const results = await queryService.queryUsage({
+        windowStart: windowStart ? Number(windowStart) : 0,
+        windowEnd: windowEnd ? Number(windowEnd) : Date.now(),
+        keyId: url.searchParams.get("keyId") ?? undefined,
+        provider: url.searchParams.get("provider") ?? undefined,
+        model: url.searchParams.get("model") ?? undefined,
+      });
+      sendJson(res, 200, results);
+    } catch (err) {
+      log.error("Failed to query key usage:", err);
+      sendJson(res, 500, { error: "Failed to query key usage" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/key-usage/active" && req.method === "GET") {
+    try {
+      const currentProvider = storage.settings.get("llm-provider");
+      const activeKey = currentProvider
+        ? storage.providerKeys.getDefault(currentProvider as string)
+        : null;
+      sendJson(res, 200, activeKey ? { keyId: activeKey.id, keyLabel: activeKey.label, provider: activeKey.provider, model: activeKey.model, authType: activeKey.authType ?? "api_key" } : null);
+    } catch (err) {
+      log.error("Failed to get active key:", err);
+      sendJson(res, 500, { error: "Failed to get active key" });
+    }
+    return;
+  }
+
+  if (pathname === "/api/key-usage/timeseries" && req.method === "GET") {
+    if (!queryService) {
+      sendJson(res, 501, { error: "Per-key usage tracking not available" });
+      return;
+    }
+    try {
+      const windowStart = Number(url.searchParams.get("windowStart")) || 0;
+      const windowEnd = Number(url.searchParams.get("windowEnd")) || Date.now();
+      const buckets = queryService.queryTimeseries({ windowStart, windowEnd });
+      sendJson(res, 200, buckets);
+    } catch (err) {
+      log.error("Failed to query key usage timeseries:", err);
+      sendJson(res, 500, { error: "Failed to query key usage timeseries" });
     }
     return;
   }

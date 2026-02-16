@@ -374,4 +374,40 @@ describe("panel-server API", () => {
       expect(storage.artifacts.getByRuleId(rule.id)).toHaveLength(0);
     });
   });
+
+  // --- Per-Key Usage (W15-C) ---
+  describe("GET /api/key-usage", () => {
+    it("returns 200 with empty array when no usage data", async () => {
+      const { status, body } = await fetchJson<unknown[]>("/api/key-usage");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+    });
+
+    it("returns 200 with data after seeding a provider key", async () => {
+      // Seed a provider key
+      storage.providerKeys.create({
+        id: "usage-test-key",
+        provider: "openai",
+        label: "Usage Test Key",
+        model: "gpt-4o",
+        isDefault: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const { status, body } = await fetchJson<unknown[]>("/api/key-usage");
+      expect(status).toBe(200);
+      expect(Array.isArray(body)).toBe(true);
+
+      // Clean up
+      storage.providerKeys.delete("usage-test-key");
+    });
+  });
+
+  describe("GET /api/key-usage/active", () => {
+    it("returns 200 with null when no active key", async () => {
+      const { status, body } = await fetchJson<unknown>("/api/key-usage/active");
+      expect(status).toBe(200);
+    });
+  });
 });

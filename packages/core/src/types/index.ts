@@ -23,3 +23,10 @@ export type {
   WeComAccountConfig,
   WeComRelayMessage,
 } from "./wecom.js";
+export type {
+  UsageSnapshot,
+  KeyModelUsageRecord,
+  KeyModelUsageSummary,
+  KeyUsageDailyBucket,
+  KeyUsageQueryParams,
+} from "./key-usage.js";

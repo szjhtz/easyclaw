@@ -6,6 +6,8 @@ import { ChannelsRepository } from "./repo-channels.js";
 import { PermissionsRepository } from "./repo-permissions.js";
 import { SettingsRepository } from "./repo-settings.js";
 import { ProviderKeysRepository } from "./repo-provider-keys.js";
+import { UsageSnapshotsRepository } from "./repo-usage-snapshots.js";
+import { KeyUsageHistoryRepository } from "./repo-key-usage-history.js";
 
 export interface Storage {
   db: Database.Database;
@@ -15,6 +17,8 @@ export interface Storage {
   permissions: PermissionsRepository;
   settings: SettingsRepository;
   providerKeys: ProviderKeysRepository;
+  usageSnapshots: UsageSnapshotsRepository;
+  keyUsageHistory: KeyUsageHistoryRepository;
   close(): void;
 }
 
@@ -29,6 +33,8 @@ export function createStorage(dbPath?: string): Storage {
     permissions: new PermissionsRepository(db),
     settings: new SettingsRepository(db),
     providerKeys: new ProviderKeysRepository(db),
+    usageSnapshots: new UsageSnapshotsRepository(db),
+    keyUsageHistory: new KeyUsageHistoryRepository(db),
     close() {
       closeDatabase(db);
     },
@@ -42,4 +48,6 @@ export { ChannelsRepository } from "./repo-channels.js";
 export { PermissionsRepository } from "./repo-permissions.js";
 export { SettingsRepository } from "./repo-settings.js";
 export { ProviderKeysRepository } from "./repo-provider-keys.js";
+export { UsageSnapshotsRepository } from "./repo-usage-snapshots.js";
+export { KeyUsageHistoryRepository } from "./repo-key-usage-history.js";
 export type { Migration } from "./migrations.js";

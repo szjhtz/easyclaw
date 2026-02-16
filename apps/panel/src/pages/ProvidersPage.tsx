@@ -28,6 +28,8 @@ export function ProvidersPage() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [editLabelValue, setEditLabelValue] = useState("");
 
   useEffect(() => {
     loadData();
@@ -142,6 +144,19 @@ export function ProvidersPage() {
     }
   }
 
+  async function handleLabelSave(keyId: string) {
+    const trimmed = editLabelValue.trim();
+    if (!trimmed) return;
+    setError(null);
+    try {
+      const updated = await updateProviderKey(keyId, { label: trimmed });
+      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      setEditingLabelId(null);
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    }
+  }
+
   async function handleOAuthReauth(provider: string) {
     setOauthLoading(true);
     setError(null);
@@ -216,9 +231,35 @@ export function ProvidersPage() {
                         )}
                       </div>
                       <div className="key-details">
-                        <span className="key-label">
-                          {k.label}
-                        </span>
+                        {editingLabelId === k.id ? (
+                          <input
+                            className="key-label-input"
+                            value={editLabelValue}
+                            onChange={(e) => setEditLabelValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleLabelSave(k.id);
+                              if (e.key === "Escape") setEditingLabelId(null);
+                            }}
+                            onBlur={() => handleLabelSave(k.id)}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="key-label">
+                            {k.label}
+                            <button
+                              className="key-label-edit-btn"
+                              onClick={() => {
+                                setEditingLabelId(k.id);
+                                setEditLabelValue(k.label);
+                              }}
+                              title={t("common.edit")}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                              </svg>
+                            </button>
+                          </span>
+                        )}
                         <ModelSelect
                           provider={k.provider}
                           value={k.model}

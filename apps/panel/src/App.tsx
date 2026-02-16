@@ -8,7 +8,7 @@ import { ProvidersPage } from "./pages/ProvidersPage.js";
 import { ChannelsPage } from "./pages/ChannelsPage.js";
 import { PermissionsPage } from "./pages/PermissionsPage.js";
 import { SttPage } from "./pages/SttPage.js";
-import { UsagePage } from "./pages/UsagePage.js";
+import { KeyUsagePage } from "./pages/KeyUsagePage.js";
 import { SettingsPage } from "./pages/SettingsPage.js";
 import { OnboardingPage } from "./pages/OnboardingPage.js";
 import { WhatsNewModal } from "./components/WhatsNewModal.js";
@@ -23,7 +23,7 @@ const PAGES: Record<string, () => ReactNode> = {
   "/channels": ChannelsPage,
   "/permissions": PermissionsPage,
   "/stt": SttPage,
-  "/usage": UsagePage,
+  "/usage": KeyUsagePage,
   "/settings": SettingsPage,
 };
 

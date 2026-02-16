@@ -94,4 +94,52 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN auth_type TEXT NOT NULL DEFAULT 'api_key';
     `,
   },
+  {
+    id: 7,
+    name: "add_budget_columns_to_provider_keys",
+    sql: `
+      ALTER TABLE provider_keys ADD COLUMN monthly_budget_usd TEXT DEFAULT NULL;
+      ALTER TABLE provider_keys ADD COLUMN budget_reset_day INTEGER NOT NULL DEFAULT 1;
+    `,
+  },
+  {
+    id: 8,
+    name: "add_usage_snapshots_and_history",
+    sql: `
+      CREATE TABLE IF NOT EXISTS usage_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+        total_cost_usd TEXT NOT NULL DEFAULT '0',
+        snapshot_time INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS key_model_usage_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        start_time INTEGER NOT NULL,
+        end_time INTEGER NOT NULL,
+        input_tokens INTEGER NOT NULL DEFAULT 0,
+        output_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+        cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+        total_cost_usd TEXT NOT NULL DEFAULT '0',
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_history_key_model_end
+        ON key_model_usage_history (key_id, model, end_time DESC);
+
+      CREATE INDEX IF NOT EXISTS idx_snapshots_key_model_time
+        ON usage_snapshots (key_id, model, snapshot_time DESC);
+    `,
+  },
 ];

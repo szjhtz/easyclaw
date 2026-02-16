@@ -1,3 +1,4 @@
+/** @deprecated Replaced by KeyUsagePage. Kept for reference only. */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CNY_USD } from "@easyclaw/core";

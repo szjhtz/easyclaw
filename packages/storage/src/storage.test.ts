@@ -465,6 +465,375 @@ describe("ProviderKeysRepository", () => {
   });
 });
 
+describe("UsageSnapshotsRepository", () => {
+  it("should insert and getLatest", () => {
+    storage.usageSnapshots.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      inputTokens: 1000,
+      outputTokens: 500,
+      cacheReadTokens: 100,
+      cacheWriteTokens: 50,
+      totalCostUsd: "0.05",
+      snapshotTime: 1000000,
+    });
+
+    const latest = storage.usageSnapshots.getLatest("key-1", "gpt-4o");
+    expect(latest).toBeDefined();
+    expect(latest!.keyId).toBe("key-1");
+    expect(latest!.provider).toBe("openai");
+    expect(latest!.model).toBe("gpt-4o");
+    expect(latest!.inputTokens).toBe(1000);
+    expect(latest!.outputTokens).toBe(500);
+    expect(latest!.cacheReadTokens).toBe(100);
+    expect(latest!.cacheWriteTokens).toBe(50);
+    expect(latest!.totalCostUsd).toBe("0.05");
+    expect(latest!.snapshotTime).toBe(1000000);
+  });
+
+  it("should return undefined when no snapshots exist", () => {
+    const latest = storage.usageSnapshots.getLatest("key-1", "gpt-4o");
+    expect(latest).toBeUndefined();
+  });
+
+  it("should getRecent with limit", () => {
+    storage.usageSnapshots.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadTokens: 10,
+      cacheWriteTokens: 5,
+      totalCostUsd: "0.01",
+      snapshotTime: 1000000,
+    });
+    storage.usageSnapshots.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      inputTokens: 200,
+      outputTokens: 100,
+      cacheReadTokens: 20,
+      cacheWriteTokens: 10,
+      totalCostUsd: "0.02",
+      snapshotTime: 2000000,
+    });
+    storage.usageSnapshots.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      inputTokens: 300,
+      outputTokens: 150,
+      cacheReadTokens: 30,
+      cacheWriteTokens: 15,
+      totalCostUsd: "0.03",
+      snapshotTime: 3000000,
+    });
+
+    const recent = storage.usageSnapshots.getRecent("key-1", "gpt-4o", 2);
+    expect(recent).toHaveLength(2);
+    // newest first
+    expect(recent[0].snapshotTime).toBe(3000000);
+    expect(recent[1].snapshotTime).toBe(2000000);
+  });
+
+  it("should pruneOld keeping only N newest", () => {
+    for (let i = 1; i <= 6; i++) {
+      storage.usageSnapshots.insert({
+        keyId: "key-1",
+        provider: "openai",
+        model: "gpt-4o",
+        inputTokens: i * 100,
+        outputTokens: i * 50,
+        cacheReadTokens: i * 10,
+        cacheWriteTokens: i * 5,
+        totalCostUsd: `${(i * 0.01).toFixed(2)}`,
+        snapshotTime: i * 1000000,
+      });
+    }
+
+    const deleted = storage.usageSnapshots.pruneOld("key-1", "gpt-4o", 5);
+    expect(deleted).toBe(1);
+
+    const remaining = storage.usageSnapshots.getRecent("key-1", "gpt-4o", 10);
+    expect(remaining).toHaveLength(5);
+    // oldest (snapshotTime=1000000) should be gone
+    expect(remaining.every((s) => s.snapshotTime >= 2000000)).toBe(true);
+  });
+
+  it("should not interfere between different key/model pairs", () => {
+    storage.usageSnapshots.insert({
+      keyId: "keyA",
+      provider: "openai",
+      model: "modelX",
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadTokens: 10,
+      cacheWriteTokens: 5,
+      totalCostUsd: "0.01",
+      snapshotTime: 1000000,
+    });
+    storage.usageSnapshots.insert({
+      keyId: "keyB",
+      provider: "anthropic",
+      model: "modelY",
+      inputTokens: 200,
+      outputTokens: 100,
+      cacheReadTokens: 20,
+      cacheWriteTokens: 10,
+      totalCostUsd: "0.02",
+      snapshotTime: 2000000,
+    });
+
+    const latestA = storage.usageSnapshots.getLatest("keyA", "modelX");
+    expect(latestA).toBeDefined();
+    expect(latestA!.keyId).toBe("keyA");
+    expect(latestA!.inputTokens).toBe(100);
+
+    const latestB = storage.usageSnapshots.getLatest("keyB", "modelY");
+    expect(latestB).toBeDefined();
+    expect(latestB!.keyId).toBe("keyB");
+    expect(latestB!.inputTokens).toBe(200);
+
+    // Cross-lookup returns undefined
+    expect(storage.usageSnapshots.getLatest("keyA", "modelY")).toBeUndefined();
+    expect(storage.usageSnapshots.getLatest("keyB", "modelX")).toBeUndefined();
+  });
+});
+
+describe("KeyUsageHistoryRepository", () => {
+  it("should insert and queryByWindow", () => {
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 500,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      cacheWriteTokens: 25,
+      totalCostUsd: "0.03",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].keyId).toBe("key-1");
+    expect(results[0].provider).toBe("openai");
+    expect(results[0].model).toBe("gpt-4o");
+    expect(results[0].startTime).toBe(1000000);
+    expect(results[0].endTime).toBe(2000000);
+    expect(results[0].inputTokens).toBe(500);
+    expect(results[0].outputTokens).toBe(200);
+    expect(results[0].cacheReadTokens).toBe(50);
+    expect(results[0].cacheWriteTokens).toBe(25);
+    expect(results[0].totalCostUsd).toBe("0.03");
+  });
+
+  it("should return empty when no records match", () => {
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+    });
+    expect(results).toHaveLength(0);
+  });
+
+  it("should filter by keyId", () => {
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 500,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      cacheWriteTokens: 25,
+      totalCostUsd: "0.03",
+    });
+    storage.keyUsageHistory.insert({
+      keyId: "key-2",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 300,
+      outputTokens: 100,
+      cacheReadTokens: 30,
+      cacheWriteTokens: 15,
+      totalCostUsd: "0.02",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+      keyId: "key-1",
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].keyId).toBe("key-1");
+  });
+
+  it("should filter by provider", () => {
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 500,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      cacheWriteTokens: 25,
+      totalCostUsd: "0.03",
+    });
+    storage.keyUsageHistory.insert({
+      keyId: "key-2",
+      provider: "anthropic",
+      model: "claude-sonnet-4-5-20250929",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 400,
+      outputTokens: 150,
+      cacheReadTokens: 40,
+      cacheWriteTokens: 20,
+      totalCostUsd: "0.04",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+      provider: "anthropic",
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].provider).toBe("anthropic");
+  });
+
+  it("should filter by model", () => {
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 500,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      cacheWriteTokens: 25,
+      totalCostUsd: "0.03",
+    });
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 300,
+      outputTokens: 100,
+      cacheReadTokens: 30,
+      cacheWriteTokens: 15,
+      totalCostUsd: "0.01",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+      model: "gpt-4o-mini",
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].model).toBe("gpt-4o-mini");
+  });
+
+  it("should exclude records outside the window", () => {
+    // Record with end_time outside the window
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 5000000,
+      inputTokens: 500,
+      outputTokens: 200,
+      cacheReadTokens: 50,
+      cacheWriteTokens: 25,
+      totalCostUsd: "0.03",
+    });
+    // Record with end_time inside the window
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 300,
+      outputTokens: 100,
+      cacheReadTokens: 30,
+      cacheWriteTokens: 15,
+      totalCostUsd: "0.02",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 3000000,
+    });
+    expect(results).toHaveLength(1);
+    expect(results[0].endTime).toBe(2000000);
+  });
+
+  it("should return multiple records ordered by end_time DESC", () => {
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 1000000,
+      endTime: 2000000,
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadTokens: 10,
+      cacheWriteTokens: 5,
+      totalCostUsd: "0.01",
+    });
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 2000000,
+      endTime: 3000000,
+      inputTokens: 200,
+      outputTokens: 100,
+      cacheReadTokens: 20,
+      cacheWriteTokens: 10,
+      totalCostUsd: "0.02",
+    });
+    storage.keyUsageHistory.insert({
+      keyId: "key-1",
+      provider: "openai",
+      model: "gpt-4o",
+      startTime: 3000000,
+      endTime: 4000000,
+      inputTokens: 300,
+      outputTokens: 150,
+      cacheReadTokens: 30,
+      cacheWriteTokens: 15,
+      totalCostUsd: "0.03",
+    });
+
+    const results = storage.keyUsageHistory.queryByWindow({
+      windowStart: 1000000,
+      windowEnd: 5000000,
+    });
+    expect(results).toHaveLength(3);
+    // Ordered by end_time DESC
+    expect(results[0].endTime).toBe(4000000);
+    expect(results[1].endTime).toBe(3000000);
+    expect(results[2].endTime).toBe(2000000);
+  });
+});
+
 describe("Database", () => {
   it("should create storage with in-memory database", () => {
     expect(storage.db).toBeDefined();
@@ -481,13 +850,17 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string; applied_at: string }>;
 
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(8);
     expect(rows[0].id).toBe(1);
     expect(rows[0].name).toBe("initial_schema");
     expect(rows[1].id).toBe(2);
     expect(rows[1].name).toBe("add_provider_keys_table");
     expect(rows[5].id).toBe(6);
     expect(rows[5].name).toBe("add_auth_type_to_provider_keys");
+    expect(rows[6].id).toBe(7);
+    expect(rows[6].name).toBe("add_budget_columns_to_provider_keys");
+    expect(rows[7].id).toBe(8);
+    expect(rows[7].name).toBe("add_usage_snapshots_and_history");
   });
 
   it("should not re-apply migrations on second open", () => {
@@ -499,6 +872,6 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string }>;
 
-    expect(rows).toHaveLength(6);
+    expect(rows).toHaveLength(8);
   });
 });
