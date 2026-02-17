@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { PROVIDERS } from "@easyclaw/core";
+import { getProviderMeta } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import type { ProviderPricing, Plan } from "../api.js";
 
@@ -20,7 +20,7 @@ export function PricingTable({
 
   const data = pricingList?.find((p) => p.provider === provider) ?? null;
   const currencySymbol = data?.currency === "CNY" ? "¥" : "$";
-  const providerLabel = PROVIDERS[provider as LLMProvider]?.label ?? provider;
+  const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
 
   // Find the first free model to highlight as recommended
   const recommendedId = data?.models.find(
@@ -47,7 +47,7 @@ export function PricingTable({
         <div className="pricing-status-compact">
           <div>{t("providers.pricingUnavailable")}</div>
           <a
-            href={PROVIDERS[provider as LLMProvider]?.url}
+            href={getProviderMeta(provider as LLMProvider)?.url}
             target="_blank"
             rel="noopener noreferrer"
             className="pricing-link"
@@ -143,7 +143,7 @@ export function SubscriptionPricingTable({
 
   const data = pricingList?.find((p) => p.provider === provider) ?? null;
   const plans: Plan[] = data?.plans ?? [];
-  const providerLabel = PROVIDERS[provider as LLMProvider]?.label ?? provider;
+  const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
 
   return (
     <div className="section-card pricing-card">
@@ -161,9 +161,9 @@ export function SubscriptionPricingTable({
       {!loading && plans.length === 0 && (
         <div className="pricing-status-compact">
           <div>{t("providers.pricingPlansUnavailable")}</div>
-          {PROVIDERS[provider as LLMProvider]?.subscriptionUrl && (
+          {getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
             <a
-              href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl}
+              href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="pricing-link"
@@ -205,10 +205,10 @@ export function SubscriptionPricingTable({
           <div className="pricing-disclaimer">
             {t("providers.pricingDisclaimer")}
           </div>
-          {(PROVIDERS[provider as LLMProvider]?.subscriptionUrl || data?.pricingUrl) && (
+          {(getProviderMeta(provider as LLMProvider)?.subscriptionUrl || data?.pricingUrl) && (
             <div className="pricing-footer-link">
               <a
-                href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl || data?.pricingUrl}
+                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl || data?.pricingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="pricing-link"

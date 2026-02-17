@@ -7,7 +7,7 @@ import { createLogger } from "@easyclaw/logger";
 import type { Storage } from "@easyclaw/storage";
 import type { SecretStore } from "@easyclaw/secrets";
 import type { ArtifactStatus, ArtifactType, LLMProvider } from "@easyclaw/core";
-import { PROVIDERS, getDefaultModelForProvider, providerSecretKey, parseProxyUrl, reconstructProxyUrl } from "@easyclaw/core";
+import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, parseProxyUrl, reconstructProxyUrl } from "@easyclaw/core";
 import { readFullModelCatalog, resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, GatewayRpcClient, writeChannelAccount, removeChannelAccount, syncPermissions } from "@easyclaw/gateway";
 import { loadCostUsageSummary, discoverAllSessions, loadSessionCostSummary } from "../../../vendor/openclaw/src/infra/session-cost-usage.js";
 import type { CostUsageSummary, SessionCostSummary } from "../../../vendor/openclaw/src/infra/session-cost-usage.js";
@@ -1075,7 +1075,7 @@ export interface PanelServerOptions {
   onPermissionsChange?: () => void;
   /** Callback fired when a channel account is created or updated. */
   onChannelConfigured?: (channelId: string) => void;
-  /** Callback to initiate an OAuth flow for a provider (e.g. google-gemini-cli). */
+  /** Callback to initiate an OAuth flow for a provider (e.g. gemini). */
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
   /** Callback to acquire OAuth tokens (step 1: opens browser, returns token preview). */
   onOAuthAcquire?: (provider: string) => Promise<{ email?: string; tokenPreview: string }>;
@@ -1138,13 +1138,13 @@ async function validateProviderApiKey(
   apiKey: string,
   proxyUrl?: string,
 ): Promise<{ valid: boolean; error?: string }> {
-  const meta = PROVIDERS[provider as LLMProvider];
+  const meta = getProviderMeta(provider as LLMProvider);
   if (!meta) {
     return { valid: false, error: "Unknown provider" };
   }
   const baseUrl = meta.baseUrl;
 
-  // OAuth-only providers (e.g. google-gemini-cli) don't support API key validation
+  // OAuth-only providers (e.g. gemini) don't support API key validation
   if (meta.oauth) {
     return { valid: false, error: "This provider uses OAuth authentication and cannot be validated with an API key." };
   }
@@ -1166,7 +1166,7 @@ async function validateProviderApiKey(
   try {
     let res: Response;
 
-    if (provider === "anthropic") {
+    if (provider === "anthropic" || provider === "claude") {
       const isOAuthToken = apiKey.startsWith("sk-ant-oat01-");
       log.info(`Validating Anthropic ${isOAuthToken ? "OAuth token" : "API key"}...`);
 
@@ -2977,6 +2977,123 @@ async function handleApiRoute(
     return;
   }
 
+  // --- Skills Marketplace ---
+  if (pathname === "/api/skills/market" && req.method === "GET") {
+    const query = url.searchParams.get("query") ?? undefined;
+    const category = url.searchParams.get("category") ?? undefined;
+    const page = url.searchParams.get("page") ? Number(url.searchParams.get("page")) : undefined;
+    const pageSize = url.searchParams.get("pageSize") ? Number(url.searchParams.get("pageSize")) : undefined;
+    const chinaAvailableParam = url.searchParams.get("chinaAvailable");
+    const chinaAvailable = chinaAvailableParam === "true" ? true : chinaAvailableParam === "false" ? false : undefined;
+    const lang = url.searchParams.get("lang") ?? "en";
+    const apiUrl = lang === "zh" ? "https://api-cn.easy-claw.com/graphql" : "https://api.easy-claw.com/graphql";
+    try {
+      const gqlRes = await proxiedFetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `query($query: String, $category: String, $page: Int, $pageSize: Int, $chinaAvailable: Boolean) {
+            skills(query: $query, category: $category, page: $page, pageSize: $pageSize, chinaAvailable: $chinaAvailable) {
+              skills { slug name_en name_zh desc_en desc_zh author version tags labels chinaAvailable stars downloads }
+              total page pageSize
+            }
+          }`,
+          variables: { query, category, page, pageSize, chinaAvailable },
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!gqlRes.ok) {
+        sendJson(res, 502, { error: `GraphQL API returned ${gqlRes.status}` });
+        return;
+      }
+      const json = (await gqlRes.json()) as { data?: { skills?: unknown } };
+      sendJson(res, 200, json.data?.skills ?? { skills: [], total: 0, page: 1, pageSize: 20 });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      sendJson(res, 502, { error: msg });
+    }
+    return;
+  }
+  if (pathname === "/api/skills/installed" && req.method === "GET") {
+    const skillsDir = join(homedir(), ".easyclaw", "openclaw", "skills");
+    try {
+      let entries: string[];
+      try {
+        entries = await fs.readdir(skillsDir);
+      } catch {
+        sendJson(res, 200, { skills: [] });
+        return;
+      }
+      const skills: Array<{ slug: string; name?: string; description?: string; author?: string; version?: string }> = [];
+      for (const entry of entries) {
+        const entryPath = join(skillsDir, entry);
+        const stat = await fs.stat(entryPath);
+        if (!stat.isDirectory()) continue;
+        const skillMdPath = join(entryPath, "SKILL.md");
+        try {
+          const content = await fs.readFile(skillMdPath, "utf-8");
+          const meta = parseSkillFrontmatter(content);
+          skills.push({ slug: entry, ...meta });
+        } catch {
+          // SKILL.md missing or unreadable — include with slug only
+          skills.push({ slug: entry });
+        }
+      }
+      sendJson(res, 200, { skills });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+  if (pathname === "/api/skills/install" && req.method === "POST") {
+    const body = (await parseBody(req)) as { slug?: string };
+    if (!body.slug) {
+      sendJson(res, 400, { error: "Missing required field: slug" });
+      return;
+    }
+    try {
+      await new Promise<void>((resolve, reject) => {
+        execFile("clawhub", ["install", body.slug!], { timeout: 60_000 }, (err, _stdout, stderr) => {
+          if (err) {
+            if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+              reject(new Error("clawhub CLI not found. Install it with: npm install -g clawhub"));
+            } else {
+              reject(new Error(stderr || err.message));
+            }
+            return;
+          }
+          resolve();
+        });
+      });
+      sendJson(res, 200, { ok: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      sendJson(res, 200, { ok: false, error: msg });
+    }
+    return;
+  }
+  if (pathname === "/api/skills/delete" && req.method === "POST") {
+    const body = (await parseBody(req)) as { slug?: string };
+    if (!body.slug) {
+      sendJson(res, 400, { error: "Missing required field: slug" });
+      return;
+    }
+    if (body.slug.includes("..") || body.slug.includes("/") || body.slug.includes("\\")) {
+      sendJson(res, 400, { error: "Invalid slug" });
+      return;
+    }
+    const skillsDir = join(homedir(), ".easyclaw", "openclaw", "skills");
+    try {
+      await fs.rm(join(skillsDir, body.slug), { recursive: true, force: true });
+      sendJson(res, 200, { ok: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      sendJson(res, 500, { error: msg });
+    }
+    return;
+  }
+
   sendJson(res, 404, { error: "Not found" });
 }
 
@@ -3020,6 +3137,41 @@ function serveStatic(
     res.writeHead(500, { "Content-Type": "text/plain" });
     res.end("Internal Server Error");
   }
+}
+
+/**
+ * Parse YAML frontmatter from a SKILL.md file.
+ * Extracts name, description, author, version from between --- delimiters.
+ */
+function parseSkillFrontmatter(content: string): { name?: string; description?: string; author?: string; version?: string } {
+  const lines = content.split("\n");
+  let fmStart = -1;
+  let fmEnd = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i]!.trim() === "---") {
+      if (fmStart === -1) {
+        fmStart = i;
+      } else {
+        fmEnd = i;
+        break;
+      }
+    }
+  }
+  if (fmStart === -1 || fmEnd === -1) return {};
+
+  const result: { name?: string; description?: string; author?: string; version?: string } = {};
+  for (let i = fmStart + 1; i < fmEnd; i++) {
+    const line = lines[i]!;
+    const m = line.match(/^(\w+):\s*(.+)$/);
+    if (!m) continue;
+    const key = m[1]!.trim();
+    const val = m[2]!.trim();
+    if (key === "name") result.name = val;
+    else if (key === "description") result.description = val;
+    else if (key === "author") result.author = val;
+    else if (key === "version") result.version = val;
+  }
+  return result;
 }
 
 function sendJson(res: ServerResponse, status: number, data: unknown): void {

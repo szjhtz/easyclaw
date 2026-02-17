@@ -30,3 +30,11 @@ export type {
   KeyUsageDailyBucket,
   KeyUsageQueryParams,
 } from "./key-usage.js";
+export type {
+  SkillLabel,
+  MarketSkill,
+  InstalledSkill,
+  SkillCategory,
+  MarketQuery,
+  MarketResponse,
+} from "./skills.js";

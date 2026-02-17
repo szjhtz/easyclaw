@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join } from "node:path";
 import type { CatalogModelEntry } from "./model-catalog.js";
-import { PROVIDERS, ALL_PROVIDERS } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta } from "@easyclaw/core";
 
 // vi.hoisted runs before vi.mock hoisting, so mocks are available in the factory
 const mocks = vi.hoisted(() => ({
@@ -156,7 +156,7 @@ describe("readFullModelCatalog", () => {
 
     // Should contain extraModels providers (volcengine, zhipu, zhipu-coding)
     for (const provider of ALL_PROVIDERS) {
-      if (!PROVIDERS[provider].extraModels) continue;
+      if (!getProviderMeta(provider)?.extraModels) continue;
       expect(result[provider]).toBeDefined();
       expect(result[provider]!.length).toBeGreaterThan(0);
     }

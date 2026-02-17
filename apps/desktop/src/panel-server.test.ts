@@ -410,4 +410,46 @@ describe("panel-server API", () => {
       expect(status).toBe(200);
     });
   });
+
+  // --- Skills API ---
+  describe("Skills API", () => {
+    describe("GET /api/skills/installed", () => {
+      it("returns { skills: [] } when skills dir doesn't exist", async () => {
+        const { status, body } = await fetchJson<{ skills: unknown[] }>("/api/skills/installed");
+        expect(status).toBe(200);
+        expect(body.skills).toEqual([]);
+      });
+    });
+
+    describe("POST /api/skills/install", () => {
+      it("returns 400 when slug is missing", async () => {
+        const { status, body } = await fetchJson<{ error: string }>("/api/skills/install", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        expect(status).toBe(400);
+        expect(body.error).toContain("slug");
+      });
+    });
+
+    describe("POST /api/skills/delete", () => {
+      it("returns 400 when slug is missing", async () => {
+        const { status, body } = await fetchJson<{ error: string }>("/api/skills/delete", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        expect(status).toBe(400);
+        expect(body.error).toContain("slug");
+      });
+
+      it("returns 400 for path traversal attempt", async () => {
+        const { status, body } = await fetchJson<{ error: string }>("/api/skills/delete", {
+          method: "POST",
+          body: JSON.stringify({ slug: "../etc" }),
+        });
+        expect(status).toBe(400);
+        expect(body.error).toContain("Invalid slug");
+      });
+    });
+  });
 });

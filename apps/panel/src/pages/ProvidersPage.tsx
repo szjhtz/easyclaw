@@ -307,7 +307,7 @@ export function ProvidersPage() {
                           data-1p-ignore
                           value={updateApiKey}
                           onChange={(e) => setUpdateApiKey(e.target.value)}
-                          placeholder={k.provider === "anthropic" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
+                          placeholder={k.provider === "anthropic" || k.provider === "claude" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
                           className="flex-1 input-mono"
                         />
                         <button
@@ -319,7 +319,7 @@ export function ProvidersPage() {
                         </button>
                       </div>
                       <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
-                      {k.provider === "anthropic" && (
+                      {(k.provider === "anthropic" || k.provider === "claude") && (
                         <div className="info-box info-box-yellow" style={{ marginTop: 6 }}>
                           {t("providers.anthropicTokenWarning")}
                         </div>

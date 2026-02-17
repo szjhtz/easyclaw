@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveOpenClawStateDir } from "./config-writer.js";
 import { resolveVendorDir } from "./vendor.js";
-import { PROVIDERS, ALL_PROVIDERS, initKnownModels } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, initKnownModels } from "@easyclaw/core";
 
 /** A minimal model entry for the UI (no secrets, no cost data). */
 export interface CatalogModelEntry {
@@ -70,7 +70,9 @@ export function readGatewayModelCatalog(
 }
 
 /** Maps vendor provider names to our provider names where they differ. */
-const VENDOR_PROVIDER_ALIASES: Record<string, string> = {};
+const VENDOR_PROVIDER_ALIASES: Record<string, string> = {
+  "google-gemini-cli": "gemini",
+};
 
 /**
  * Apply provider name aliases and sort models in reverse alphabetical
@@ -200,7 +202,7 @@ export async function readFullModelCatalog(
 
   // Add extraModels providers that are missing from both vendor and gateway
   for (const p of ALL_PROVIDERS) {
-    const models = PROVIDERS[p].extraModels;
+    const models = getProviderMeta(p)?.extraModels;
     if (!merged[p] && models) {
       merged[p] = models.map((m) => ({ id: m.modelId, name: m.displayName }));
     }

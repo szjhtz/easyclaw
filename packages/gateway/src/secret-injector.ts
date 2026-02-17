@@ -1,6 +1,6 @@
 import type { SecretStore } from "@easyclaw/secrets";
 import type { Storage } from "@easyclaw/storage";
-import { ALL_PROVIDERS, PROVIDERS, providerSecretKey } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, providerSecretKey } from "@easyclaw/core";
 import { createLogger } from "@easyclaw/logger";
 
 const log = createLogger("gateway:secret-injector");
@@ -45,11 +45,11 @@ export async function resolveSecretEnv(
       // For Anthropic: detect OAuth/setup tokens (sk-ant-oat01-...) and inject
       // as ANTHROPIC_OAUTH_TOKEN instead of ANTHROPIC_API_KEY. OpenClaw checks
       // ANTHROPIC_OAUTH_TOKEN first, so this ensures the right auth flow is used.
-      if (provider === "anthropic" && value.startsWith("sk-ant-oat01-")) {
+      if ((provider === "anthropic" || provider === "claude") && value.startsWith("sk-ant-oat01-")) {
         env["ANTHROPIC_OAUTH_TOKEN"] = value;
         log.debug("Injecting secret: " + secretKey + " -> ANTHROPIC_OAUTH_TOKEN (OAuth token detected)");
       } else {
-        const envVar = PROVIDERS[provider].envVar;
+        const envVar = getProviderMeta(provider)!.envVar;
         env[envVar] = value;
         log.debug("Injecting secret: " + secretKey + " -> " + envVar);
       }

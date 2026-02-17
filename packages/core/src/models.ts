@@ -8,6 +8,8 @@ export type LLMProvider =
   | "zhipu-coding"
   | "zai"
   | "moonshot"
+  | "kimi"
+  | "moonshot-coding"
   | "qwen"
   | "groq"
   | "mistral"
@@ -18,7 +20,11 @@ export type LLMProvider =
   | "xiaomi"
   | "volcengine"
   | "amazon-bedrock"
-  | "google-gemini-cli";
+  | "gemini"
+  | "claude";
+
+/** Root provider IDs (excludes subscription plan IDs). */
+export type RootProvider = Exclude<LLMProvider, "zhipu-coding" | "moonshot-coding" | "gemini" | "claude">;
 
 /** Per-million-token cost in USD for OpenClaw usage tracking. */
 export interface ModelCost {
@@ -39,7 +45,29 @@ export interface ModelConfig {
   supportsVision?: boolean;
 }
 
-/** Unified metadata for a single LLM provider. */
+/** A subscription plan nested under a root provider. */
+export interface SubscriptionPlan {
+  /** Flat provider ID used in DB and secrets (e.g. "zhipu-coding"). */
+  id: LLMProvider;
+  /** Display name (e.g. "Zhipu Coding Plan"). */
+  label: string;
+  /** OpenAI-compatible API base URL (may differ from parent). */
+  baseUrl: string;
+  /** URL where users can subscribe. */
+  subscriptionUrl: string;
+  /** URL where users create/manage API keys for this plan. */
+  apiKeyUrl: string;
+  /** Well-known environment variable name for the API key. */
+  envVar: string;
+  /** Whether this plan uses OAuth instead of API keys. */
+  oauth?: boolean;
+  /** Extra models specific to this plan. */
+  extraModels?: ModelConfig[];
+  /** Preferred default model ID for this plan. */
+  preferredModel?: string;
+}
+
+/** Unified metadata for a root LLM provider. */
 export interface ProviderMeta {
   /** Display name (e.g. "OpenAI"). */
   label: string;
@@ -51,18 +79,33 @@ export interface ProviderMeta {
   apiKeyUrl: string;
   /** Well-known environment variable name for the API key. */
   envVar: string;
-  /** Optional subscription / pricing-plan URL. */
+  /**
+   * Optional subscription URL shown as an informational link in the API tab
+   * (e.g. zai links to zhipu-coding subscription page).
+   * For providers with their own subscription offering, use `subscriptionPlans` instead.
+   */
   subscriptionUrl?: string;
-  /** Whether this provider appears in the subscription tab (subscription-based access). */
-  subscription?: boolean;
-  /** Whether this provider uses OAuth instead of API keys. */
-  oauth?: boolean;
   /**
    * Extra models not supported by OpenClaw.
    * These are our own additions that won't appear in OpenClaw's models.json.
    */
   extraModels?: ModelConfig[];
   /** Preferred default model ID for this provider. */
+  preferredModel?: string;
+  /** Subscription plans that are logically children of this provider. */
+  subscriptionPlans?: SubscriptionPlan[];
+}
+
+/** Resolved metadata for any provider ID (root or subscription plan). */
+export interface ResolvedProviderMeta {
+  label: string;
+  baseUrl: string;
+  url: string;
+  apiKeyUrl: string;
+  envVar: string;
+  subscriptionUrl?: string;
+  oauth?: boolean;
+  extraModels?: ModelConfig[];
   preferredModel?: string;
 }
 
@@ -78,9 +121,9 @@ const FREE_COST: ModelCost = {
 
 /**
  * Unified provider registry. All provider metadata lives here.
- * To add a new provider, add a single entry to this record.
+ * Subscription plans are nested under their parent provider.
  */
-export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
+export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
   openai: {
     label: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
@@ -94,8 +137,16 @@ export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
     url: "https://www.anthropic.com/pricing",
     apiKeyUrl: "https://console.anthropic.com/settings/keys",
     envVar: "ANTHROPIC_API_KEY",
-    subscriptionUrl: "https://claude.ai/upgrade",
-    subscription: true,
+    subscriptionPlans: [
+      {
+        id: "claude",
+        label: "Claude (Subscription)",
+        baseUrl: "https://api.anthropic.com/v1",
+        subscriptionUrl: "https://claude.ai/upgrade",
+        apiKeyUrl: "https://console.anthropic.com/settings/keys",
+        envVar: "ANTHROPIC_API_KEY",
+      },
+    ],
   },
   google: {
     label: "Google (Gemini)",
@@ -103,6 +154,17 @@ export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
     url: "https://ai.google.dev/pricing",
     apiKeyUrl: "https://aistudio.google.com/app/apikey",
     envVar: "GEMINI_API_KEY",
+    subscriptionPlans: [
+      {
+        id: "gemini",
+        label: "Google Gemini (Subscription)",
+        baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+        subscriptionUrl: "https://gemini.google/subscriptions/",
+        apiKeyUrl: "https://gemini.google/subscriptions/",
+        envVar: "GOOGLE_GEMINI_CLI_API_KEY",
+        oauth: true,
+      },
+    ],
   },
   deepseek: {
     label: "DeepSeek",
@@ -193,52 +255,53 @@ export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
         cost: FREE_COST,
       },
     ],
-  },
-  "zhipu-coding": {
-    label: "Zhipu Coding Plan (GLM)",
-    baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
-    url: "https://open.bigmodel.cn/pricing",
-    apiKeyUrl: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
-    envVar: "ZHIPU_CODING_API_KEY",
-    subscriptionUrl: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
-    subscription: true,
-    extraModels: [
+    subscriptionPlans: [
       {
-        provider: "zhipu-coding",
-        modelId: "glm-5",
-        displayName: "GLM-5",
-        cost: { input: cny(4), output: cny(18), cacheRead: 0, cacheWrite: 0 },
-      },
-      {
-        provider: "zhipu-coding",
-        modelId: "glm-5-code",
-        displayName: "GLM-5-Code",
-        cost: { input: cny(6), output: cny(28), cacheRead: 0, cacheWrite: 0 },
-      },
-      {
-        provider: "zhipu-coding",
-        modelId: "glm-4.7-flash",
-        displayName: "GLM-4.7-Flash",
-        cost: FREE_COST,
-      },
-      {
-        provider: "zhipu-coding",
-        modelId: "glm-4.7",
-        displayName: "GLM-4.7",
-        cost: { input: cny(4), output: cny(16), cacheRead: 0, cacheWrite: 0 },
-      },
-      {
-        provider: "zhipu-coding",
-        modelId: "glm-4.6",
-        displayName: "GLM-4.6",
-        cost: { input: cny(4), output: cny(16), cacheRead: 0, cacheWrite: 0 },
-      },
-      {
-        provider: "zhipu-coding",
-        modelId: "glm-4.6v",
-        displayName: "GLM-4.6V",
-        cost: { input: cny(2), output: cny(6), cacheRead: 0, cacheWrite: 0 },
-        supportsVision: true,
+        id: "zhipu-coding",
+        label: "Zhipu Coding Plan (GLM)",
+        baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
+        subscriptionUrl: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
+        apiKeyUrl: "https://www.bigmodel.cn/glm-coding?ic=QWUW9KBBBL",
+        envVar: "ZHIPU_CODING_API_KEY",
+        extraModels: [
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-5",
+            displayName: "GLM-5",
+            cost: { input: cny(4), output: cny(18), cacheRead: 0, cacheWrite: 0 },
+          },
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-5-code",
+            displayName: "GLM-5-Code",
+            cost: { input: cny(6), output: cny(28), cacheRead: 0, cacheWrite: 0 },
+          },
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-4.7-flash",
+            displayName: "GLM-4.7-Flash",
+            cost: FREE_COST,
+          },
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-4.7",
+            displayName: "GLM-4.7",
+            cost: { input: cny(4), output: cny(16), cacheRead: 0, cacheWrite: 0 },
+          },
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-4.6",
+            displayName: "GLM-4.6",
+            cost: { input: cny(4), output: cny(16), cacheRead: 0, cacheWrite: 0 },
+          },
+          {
+            provider: "zhipu-coding",
+            modelId: "glm-4.6v",
+            displayName: "GLM-4.6V",
+            cost: { input: cny(2), output: cny(6), cacheRead: 0, cacheWrite: 0 },
+            supportsVision: true,
+          },
+        ],
       },
     ],
   },
@@ -253,10 +316,86 @@ export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
   },
   moonshot: {
     label: "Moonshot (Kimi)",
+    baseUrl: "https://api.moonshot.ai/v1",
+    url: "https://platform.moonshot.ai/docs/pricing/chat",
+    apiKeyUrl: "https://platform.moonshot.ai/console/api-keys",
+    envVar: "MOONSHOT_API_KEY",
+    preferredModel: "kimi-k2.5",
+    extraModels: [
+      {
+        provider: "moonshot",
+        modelId: "kimi-k2.5",
+        displayName: "Kimi K2.5",
+        supportsVision: true,
+      },
+      {
+        provider: "moonshot",
+        modelId: "kimi-k2-thinking",
+        displayName: "Kimi K2 Thinking",
+      },
+      {
+        provider: "moonshot",
+        modelId: "kimi-k2-0905-preview",
+        displayName: "Kimi K2",
+      },
+    ],
+  },
+  kimi: {
+    label: "Kimi",
     baseUrl: "https://api.moonshot.cn/v1",
     url: "https://platform.moonshot.cn/docs/pricing/chat",
     apiKeyUrl: "https://platform.moonshot.cn/console/api-keys",
-    envVar: "MOONSHOT_API_KEY",
+    envVar: "KIMI_API_KEY",
+    extraModels: [
+      {
+        provider: "kimi",
+        modelId: "kimi-k2.5",
+        displayName: "Kimi K2.5",
+        supportsVision: true,
+      },
+      {
+        provider: "kimi",
+        modelId: "kimi-k2-thinking",
+        displayName: "Kimi K2 Thinking",
+      },
+      {
+        provider: "kimi",
+        modelId: "kimi-k2-0905-preview",
+        displayName: "Kimi K2",
+      },
+      {
+        provider: "kimi",
+        modelId: "moonshot-v1-128k",
+        displayName: "Moonshot V1 128K",
+      },
+      {
+        provider: "kimi",
+        modelId: "moonshot-v1-32k",
+        displayName: "Moonshot V1 32K",
+      },
+      {
+        provider: "kimi",
+        modelId: "moonshot-v1-8k",
+        displayName: "Moonshot V1 8K",
+      },
+    ],
+    subscriptionPlans: [
+      {
+        id: "moonshot-coding",
+        label: "Kimi Code",
+        baseUrl: "https://api.kimi.com/coding/v1",
+        subscriptionUrl: "https://www.kimi.com/code",
+        apiKeyUrl: "https://www.kimi.com/code/docs/",
+        envVar: "KIMI_CODE_API_KEY",
+        extraModels: [
+          {
+            provider: "moonshot-coding",
+            modelId: "kimi-for-coding",
+            displayName: "Kimi for Coding",
+          },
+        ],
+      },
+    ],
   },
   qwen: {
     label: "Qwen",
@@ -357,22 +496,76 @@ export const PROVIDERS: Record<LLMProvider, ProviderMeta> = {
     apiKeyUrl: "https://console.aws.amazon.com/iam/home#/security_credentials",
     envVar: "AWS_ACCESS_KEY_ID",
   },
-  "google-gemini-cli": {
-    label: "Google Gemini (Subscription)",
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    url: "https://gemini.google/subscriptions/",
-    apiKeyUrl: "https://gemini.google/subscriptions/",
-    envVar: "GOOGLE_GEMINI_CLI_API_KEY",
-    subscriptionUrl: "https://gemini.google/subscriptions/",
-    subscription: true,
-    oauth: true,
-  },
 };
 
-/** Ordered list of all providers. */
-export const ALL_PROVIDERS: LLMProvider[] = Object.keys(
-  PROVIDERS,
-) as LLMProvider[];
+// ---------------------------------------------------------------------------
+// Derived constants & lookup
+// ---------------------------------------------------------------------------
+
+/** Pre-built O(1) lookup map for any provider ID (root or subscription plan). */
+const _metaMap = new Map<LLMProvider, ResolvedProviderMeta>();
+const _allProviders: LLMProvider[] = [];
+
+for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
+  const meta = PROVIDERS[root];
+  _allProviders.push(root);
+  _metaMap.set(root, {
+    label: meta.label,
+    baseUrl: meta.baseUrl,
+    url: meta.url,
+    apiKeyUrl: meta.apiKeyUrl,
+    envVar: meta.envVar,
+    subscriptionUrl: meta.subscriptionUrl,
+    extraModels: meta.extraModels,
+    preferredModel: meta.preferredModel,
+  });
+  for (const plan of meta.subscriptionPlans ?? []) {
+    _allProviders.push(plan.id);
+    _metaMap.set(plan.id, {
+      label: plan.label,
+      baseUrl: plan.baseUrl,
+      url: meta.url, // inherit parent's pricing URL
+      apiKeyUrl: plan.apiKeyUrl,
+      envVar: plan.envVar,
+      subscriptionUrl: plan.subscriptionUrl,
+      oauth: plan.oauth,
+      extraModels: plan.extraModels,
+      preferredModel: plan.preferredModel,
+    });
+  }
+}
+
+/** Ordered list of all provider IDs (root + subscription plans). */
+export const ALL_PROVIDERS: LLMProvider[] = _allProviders;
+
+/**
+ * Get resolved metadata for any provider ID (root or subscription plan).
+ * Returns undefined if the provider ID is unknown.
+ */
+export function getProviderMeta(provider: LLMProvider): ResolvedProviderMeta | undefined {
+  return _metaMap.get(provider);
+}
+
+/** Provider IDs that appear in the subscription tab (all nested plan IDs). */
+export const SUBSCRIPTION_PROVIDER_IDS: LLMProvider[] = (() => {
+  const ids: LLMProvider[] = [];
+  for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
+    for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {
+      ids.push(plan.id);
+    }
+  }
+  return ids;
+})();
+
+/** Provider IDs that appear in the API tab. */
+export const API_PROVIDER_IDS: LLMProvider[] = (() => {
+  const subSet = new Set(SUBSCRIPTION_PROVIDER_IDS);
+  return ALL_PROVIDERS.filter((p) => !subSet.has(p));
+})();
+
+// ---------------------------------------------------------------------------
+// Known regions & secret keys
+// ---------------------------------------------------------------------------
 
 /** Known regions. */
 export type Region = "us" | "eu" | "cn" | (string & {});
@@ -385,6 +578,10 @@ export function providerSecretKey(provider: LLMProvider): string {
   return `${provider}-api-key`;
 }
 
+// ---------------------------------------------------------------------------
+// Model catalog
+// ---------------------------------------------------------------------------
+
 /**
  * All known models grouped by provider.
  *
@@ -396,8 +593,8 @@ export function providerSecretKey(provider: LLMProvider): string {
 export let KNOWN_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> =
   Object.fromEntries(
     ALL_PROVIDERS
-      .filter((p) => PROVIDERS[p].extraModels)
-      .map((p) => [p, PROVIDERS[p].extraModels!]),
+      .filter((p) => getProviderMeta(p)?.extraModels)
+      .map((p) => [p, getProviderMeta(p)!.extraModels!]),
   );
 
 /**
@@ -423,7 +620,7 @@ export function initKnownModels(
 
   // extraModels take precedence
   for (const p of ALL_PROVIDERS) {
-    const extra = PROVIDERS[p].extraModels;
+    const extra = getProviderMeta(p)?.extraModels;
     if (extra && extra.length > 0) {
       result[p] = extra;
     }
@@ -431,6 +628,10 @@ export function initKnownModels(
 
   KNOWN_MODELS = result;
 }
+
+// ---------------------------------------------------------------------------
+// Default model resolution
+// ---------------------------------------------------------------------------
 
 /** Default model configurations per region. */
 const REGION_DEFAULTS: Record<string, ModelConfig> = {
@@ -467,7 +668,7 @@ export function getDefaultModelForProvider(
 ): ModelConfig | undefined {
   const models = KNOWN_MODELS[provider];
   if (!models || models.length === 0) return undefined;
-  const preferred = PROVIDERS[provider].preferredModel;
+  const preferred = getProviderMeta(provider)?.preferredModel;
   if (preferred) {
     const match = models.find((m) => m.modelId === preferred);
     if (match) return match;
@@ -520,21 +721,25 @@ export function getProvidersForRegion(region: string): LLMProvider[] {
       "deepseek",
       "zhipu",
       "zhipu-coding",
-      "moonshot",
+      "kimi",
+      "moonshot-coding",
       "qwen",
       "volcengine",
       "minimax",
       "xiaomi",
       "openai",
       "anthropic",
+      "claude",
       "google",
     ];
   }
   return [
     "openai",
     "anthropic",
+    "claude",
     "google",
     "deepseek",
+    "moonshot",
     "zai",
     "groq",
     "mistral",

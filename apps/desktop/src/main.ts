@@ -20,7 +20,7 @@ import {
 } from "@easyclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials } from "@easyclaw/gateway";
 import type { GatewayState } from "@easyclaw/gateway";
-import { resolveModelConfig, ALL_PROVIDERS, getDefaultModelForProvider, providerSecretKey, reconstructProxyUrl, parseProxyUrl } from "@easyclaw/core";
+import { resolveModelConfig, ALL_PROVIDERS, getDefaultModelForProvider, getProviderMeta, providerSecretKey, reconstructProxyUrl, parseProxyUrl } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import { createStorage } from "@easyclaw/storage";
 import { createSecretStore } from "@easyclaw/secrets";
@@ -99,36 +99,32 @@ function resolveProxyRouterConfigPath(): string {
 
 /**
  * Well-known domain to provider mapping for major LLM APIs.
- * Domains extracted from PROVIDER_BASE_URLS in packages/core/src/models.ts
+ * Auto-generated from PROVIDERS baseUrl in packages/core/src/models.ts,
+ * with manual overrides for domains not derivable from baseUrl.
  */
-const DOMAIN_TO_PROVIDER: Record<string, string> = {
-  "api.openai.com": "openai",
-  "api.anthropic.com": "anthropic",
-  "generativelanguage.googleapis.com": "google",
-  "api.deepseek.com": "deepseek",
-  "open.bigmodel.cn": "zhipu",
-  "api.z.ai": "zai",
-  "api.moonshot.cn": "moonshot",
-  "dashscope.aliyuncs.com": "qwen",
-  "api.groq.com": "groq",
-  "api.mistral.ai": "mistral",
-  "api.x.ai": "xai",
-  "openrouter.ai": "openrouter",
-  "api.minimax.chat": "minimax",
-  "api.venice.ai": "venice",
-  "api.xiaomi.com": "xiaomi",
-  "ark.cn-beijing.volces.com": "volcengine",
-  // Amazon Bedrock regional endpoints
-  "bedrock-runtime.us-east-1.amazonaws.com": "amazon-bedrock",
-  "bedrock-runtime.us-west-2.amazonaws.com": "amazon-bedrock",
-  "bedrock-runtime.eu-west-1.amazonaws.com": "amazon-bedrock",
-  "bedrock-runtime.eu-central-1.amazonaws.com": "amazon-bedrock",
-  "bedrock-runtime.ap-southeast-1.amazonaws.com": "amazon-bedrock",
-  "bedrock-runtime.ap-northeast-1.amazonaws.com": "amazon-bedrock",
-  // Google Gemini CLI OAuth (Cloud Code API)
-  "cloudcode-pa.googleapis.com": "google-gemini-cli",
-  "oauth2.googleapis.com": "google-gemini-cli",
-};
+const DOMAIN_TO_PROVIDER: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const p of ALL_PROVIDERS) {
+    const meta = getProviderMeta(p);
+    if (!meta) continue;
+    try {
+      const domain = new URL(meta.baseUrl).hostname;
+      if (!map[domain]) map[domain] = p; // first (root) provider wins for shared domains
+    } catch { /* skip invalid URLs */ }
+  }
+  // Amazon Bedrock regional endpoints (only us-east-1 is derived from baseUrl)
+  Object.assign(map, {
+    "bedrock-runtime.us-west-2.amazonaws.com": "amazon-bedrock",
+    "bedrock-runtime.eu-west-1.amazonaws.com": "amazon-bedrock",
+    "bedrock-runtime.eu-central-1.amazonaws.com": "amazon-bedrock",
+    "bedrock-runtime.ap-southeast-1.amazonaws.com": "amazon-bedrock",
+    "bedrock-runtime.ap-northeast-1.amazonaws.com": "amazon-bedrock",
+  });
+  // Google Gemini CLI OAuth (Cloud Code API) — not in baseUrl
+  map["cloudcode-pa.googleapis.com"] = "gemini";
+  map["oauth2.googleapis.com"] = "gemini";
+  return map;
+})();
 
 /**
  * Parse Electron's PAC-format proxy string into a URL.
@@ -682,7 +678,7 @@ app.whenReady().then(async () => {
 
   // Check if there's an active Gemini OAuth key — if so, enable the plugin
   const hasGeminiOAuth = storage.providerKeys.getAll()
-    .some((k) => k.provider === "google-gemini-cli" && k.authType === "oauth" && k.isDefault);
+    .some((k) => k.provider === "gemini" && k.authType === "oauth" && k.isDefault);
 
   writeGatewayConfig({
     configPath,

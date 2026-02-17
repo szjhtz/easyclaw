@@ -1,29 +1,34 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { ALL_PROVIDERS, PROVIDERS } from "@easyclaw/core";
+import { ALL_PROVIDERS, SUBSCRIPTION_PROVIDER_IDS, getProviderMeta } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import { fetchModelCatalog } from "../api.js";
 
 /** Providers with extraModels are always shown (statically defined, not catalog-dependent). */
 const EXTRA_MODEL_PROVIDERS = new Set(
-  ALL_PROVIDERS.filter((p) => PROVIDERS[p].extraModels),
+  ALL_PROVIDERS.filter((p) => getProviderMeta(p)?.extraModels),
 );
+
+/** Subscription plan providers are always shown (they share models with their parent). */
+const SUBSCRIPTION_SET = new Set(SUBSCRIPTION_PROVIDER_IDS);
 
 /** Priority-ordered providers by language. */
 const ZH_PRIORITY_PROVIDERS: LLMProvider[] = [
   "zhipu-coding",
-  "google-gemini-cli",
+  "moonshot-coding",
+  "gemini",
   "zhipu",
+  "kimi",
   "volcengine",
   "deepseek",
-  "moonshot",
   "qwen",
   "minimax",
   "xiaomi",
 ];
 
 const EN_PRIORITY_PROVIDERS: LLMProvider[] = [
-  "google-gemini-cli",
+  "gemini",
+  "claude",
   "anthropic",
 ];
 
@@ -61,7 +66,7 @@ export function ProviderSelect({
   // Sort providers by locale-specific priority, then alphabetically.
   const sortedProviders = useMemo(() => {
     const all = ALL_PROVIDERS.filter((p) =>
-      EXTRA_MODEL_PROVIDERS.has(p) || !catalogProviders || catalogProviders.has(p),
+      EXTRA_MODEL_PROVIDERS.has(p) || SUBSCRIPTION_SET.has(p) || !catalogProviders || catalogProviders.has(p),
     );
     const available = filterProviders
       ? all.filter((p) => filterProviders.includes(p))

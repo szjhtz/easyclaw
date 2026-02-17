@@ -9,6 +9,7 @@ import {
   PROVIDERS,
   ALL_PROVIDERS,
   initKnownModels,
+  getProviderMeta,
 } from "./models.js";
 
 describe("PROVIDERS extraModels", () => {
@@ -19,7 +20,7 @@ describe("PROVIDERS extraModels", () => {
 
   it("should have valid model configs for all extraModels", () => {
     for (const provider of ALL_PROVIDERS) {
-      const models = PROVIDERS[provider].extraModels;
+      const models = getProviderMeta(provider)?.extraModels;
       if (!models) continue;
       for (const model of models) {
         expect(model.provider).toBe(provider);
@@ -34,7 +35,7 @@ describe("KNOWN_MODELS (before initKnownModels)", () => {
   it("should initially contain only extraModels providers", () => {
     // Before initKnownModels is called, KNOWN_MODELS only has providers with extraModels
     for (const provider of ALL_PROVIDERS) {
-      if (!PROVIDERS[provider].extraModels) continue;
+      if (!getProviderMeta(provider)?.extraModels) continue;
       expect(KNOWN_MODELS[provider]).toBeDefined();
     }
   });
@@ -103,7 +104,7 @@ describe("initKnownModels", () => {
 describe("ALL_PROVIDERS / PROVIDERS", () => {
   it("should have labels for all providers", () => {
     for (const p of ALL_PROVIDERS) {
-      expect(PROVIDERS[p].label).toBeTruthy();
+      expect(getProviderMeta(p)?.label).toBeTruthy();
     }
   });
 
@@ -174,7 +175,7 @@ describe("getDefaultModelForProvider", () => {
 
     for (const provider of ALL_PROVIDERS) {
       const model = getDefaultModelForProvider(provider);
-      if (PROVIDERS[provider].extraModels) {
+      if (getProviderMeta(provider)?.extraModels) {
         // extraModels providers should return real model data
         expect(model).toBeDefined();
         expect(model!.modelId).not.toBe(provider);
@@ -219,7 +220,7 @@ describe("getModelsForProvider", () => {
     initKnownModels({}); // empty catalog
 
     for (const provider of ALL_PROVIDERS) {
-      const expectedModels = PROVIDERS[provider].extraModels;
+      const expectedModels = getProviderMeta(provider)?.extraModels;
       if (!expectedModels) continue;
       const models = getModelsForProvider(provider);
       expect(models.length).toBe(expectedModels.length);
@@ -280,7 +281,8 @@ describe("getProvidersForRegion", () => {
     const providers = getProvidersForRegion("cn");
     expect(providers[0]).toBe("deepseek");
     expect(providers).toContain("zhipu");
-    expect(providers).toContain("moonshot");
+    expect(providers).toContain("kimi");
+    expect(providers).toContain("moonshot-coding");
     expect(providers).toContain("qwen");
     expect(providers).toContain("volcengine");
   });
@@ -290,6 +292,7 @@ describe("getProvidersForRegion", () => {
     expect(providers[0]).toBe("openai");
     expect(providers).toContain("anthropic");
     expect(providers).toContain("google");
+    expect(providers).toContain("moonshot");
     expect(providers).toContain("zai");
   });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { ALL_PROVIDERS, PROVIDERS, getDefaultModelForProvider } from "@easyclaw/core";
+import { SUBSCRIPTION_PROVIDER_IDS, API_PROVIDER_IDS, getProviderMeta, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import {
   fetchProviderKeys,
@@ -16,10 +16,6 @@ import { ModelSelect } from "./ModelSelect.js";
 import { ProviderSelect } from "./ProviderSelect.js";
 import { PricingTable, SubscriptionPricingTable } from "./PricingTable.js";
 
-/** Providers shown in the subscription tab. */
-const SUBSCRIPTION_PROVIDERS = ALL_PROVIDERS.filter((p) => PROVIDERS[p].subscription);
-/** Providers shown in the API tab (everything except OAuth-only providers). */
-const API_PROVIDERS = ALL_PROVIDERS.filter((p) => !PROVIDERS[p].oauth);
 
 export interface ProviderSetupFormProps {
   /** Called after a provider key is successfully saved. */
@@ -49,7 +45,7 @@ export function ProviderSetupForm({
 }: ProviderSetupFormProps) {
   const { t, i18n } = useTranslation();
 
-  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "google-gemini-cli";
+  const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "gemini";
   const [tab, setTab] = useState<"subscription" | "api">("subscription");
   const [provider, setProvider] = useState(defaultProv);
   const [model, setModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
@@ -111,7 +107,7 @@ export function ProviderSetupForm({
   function handleTabChange(newTab: "subscription" | "api") {
     setTab(newTab);
     const prov = newTab === "subscription"
-      ? (i18n.language === "zh" ? "zhipu-coding" : "google-gemini-cli")
+      ? (i18n.language === "zh" ? "zhipu-coding" : "gemini")
       : (i18n.language === "zh" ? "zhipu" : "openai");
     handleProviderChange(prov);
   }
@@ -164,7 +160,7 @@ export function ProviderSetupForm({
     try {
       const result = await startOAuthFlow(provider);
       setOauthTokenPreview(result.tokenPreview || "oauth-token-••••••••");
-      setLabel(result.email || PROVIDERS[provider as LLMProvider]?.label || "OAuth");
+      setLabel(result.email || getProviderMeta(provider as LLMProvider)?.label || "OAuth");
       setModel(getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? "");
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
@@ -203,9 +199,9 @@ export function ProviderSetupForm({
     }
   }
 
-  const providerFilter = tab === "subscription" ? SUBSCRIPTION_PROVIDERS : API_PROVIDERS;
-  const isOAuth = !!PROVIDERS[provider as LLMProvider]?.oauth;
-  const isAnthropicSub = provider === "anthropic" && tab === "subscription";
+  const providerFilter = tab === "subscription" ? SUBSCRIPTION_PROVIDER_IDS : API_PROVIDER_IDS;
+  const isOAuth = !!getProviderMeta(provider as LLMProvider)?.oauth;
+  const isAnthropicSub = provider === "claude";
   const btnSave = saveButtonLabel || t("common.save");
   const btnValidating = validatingLabel || t("providers.validating");
   const btnSaving = savingLabel || "...";
@@ -239,10 +235,10 @@ export function ProviderSetupForm({
           <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
           <ProviderSelect value={provider} onChange={handleProviderChange} providers={providerFilter} />
           {tab === "subscription" ? (
-            PROVIDERS[provider as LLMProvider]?.subscriptionUrl && (
+            getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
             <div className="form-help-sm provider-links">
               <a
-                href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl}
+                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -254,15 +250,15 @@ export function ProviderSetupForm({
             !isOAuth && (
             <div className="form-help-sm provider-links">
               <a
-                href={PROVIDERS[provider as LLMProvider]?.apiKeyUrl}
+                href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 {t("providers.getApiKey")} &rarr;
               </a>
-              {PROVIDERS[provider as LLMProvider]?.subscriptionUrl && (
+              {getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
                 <a
-                  href={PROVIDERS[provider as LLMProvider]?.subscriptionUrl}
+                  href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
