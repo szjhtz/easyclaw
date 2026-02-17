@@ -230,4 +230,49 @@ describe("readFullModelCatalog", () => {
     expect(KNOWN_MODELS.openai![0].modelId).toBe("gpt-4o");
     expect(KNOWN_MODELS.anthropic).toBeDefined();
   });
+
+  it("should inherit parent models for subscription plans without extraModels", async () => {
+    mocks.existsSync.mockImplementation((p: string) =>
+      String(p).includes(join("agents", "main", "agent", "models.json")),
+    );
+    mocks.readFileSync.mockReturnValue(JSON.stringify({
+      providers: {
+        anthropic: {
+          models: [
+            { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
+            { id: "claude-opus-4-6", name: "Claude Opus 4.6" },
+          ],
+        },
+        google: {
+          models: [
+            { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+          ],
+        },
+      },
+    }));
+
+    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+
+    // "claude" subscription plan should inherit anthropic's models
+    expect(result.claude).toBeDefined();
+    expect(result.claude!.length).toBe(2);
+    expect(result.claude!.map((m) => m.id)).toContain("claude-sonnet-4-20250514");
+    expect(result.claude!.map((m) => m.id)).toContain("claude-opus-4-6");
+
+    // "gemini" subscription plan should inherit google's models
+    expect(result.gemini).toBeDefined();
+    expect(result.gemini!.length).toBe(1);
+    expect(result.gemini![0].id).toBe("gemini-2.5-pro");
+  });
+
+  it("should NOT override subscription plans that have their own extraModels", async () => {
+    mocks.existsSync.mockReturnValue(false);
+    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+
+    // "zhipu-coding" has its own extraModels and should keep them (not inherit zhipu's)
+    expect(result["zhipu-coding"]).toBeDefined();
+    expect(result["zhipu-coding"]!.some((m) => m.id === "glm-5")).toBe(true);
+    // zhipu-coding should have fewer models than zhipu (6 vs 12)
+    expect(result["zhipu-coding"]!.length).toBeLessThan(result.zhipu!.length);
+  });
 });

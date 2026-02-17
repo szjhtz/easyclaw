@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveOpenClawStateDir } from "./config-writer.js";
 import { resolveVendorDir } from "./vendor.js";
-import { ALL_PROVIDERS, getProviderMeta, initKnownModels } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type RootProvider } from "@easyclaw/core";
 
 /** A minimal model entry for the UI (no secrets, no cost data). */
 export interface CatalogModelEntry {
@@ -70,9 +70,7 @@ export function readGatewayModelCatalog(
 }
 
 /** Maps vendor provider names to our provider names where they differ. */
-const VENDOR_PROVIDER_ALIASES: Record<string, string> = {
-  "google-gemini-cli": "gemini",
-};
+const VENDOR_PROVIDER_ALIASES: Record<string, string> = {};
 
 /**
  * Apply provider name aliases and sort models in reverse alphabetical
@@ -205,6 +203,15 @@ export async function readFullModelCatalog(
     const models = getProviderMeta(p)?.extraModels;
     if (!merged[p] && models) {
       merged[p] = models.map((m) => ({ id: m.modelId, name: m.displayName }));
+    }
+  }
+
+  // Subscription plans without their own models inherit from the parent provider
+  for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
+    for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {
+      if (!merged[plan.id] && merged[root]) {
+        merged[plan.id] = merged[root];
+      }
     }
   }
 
