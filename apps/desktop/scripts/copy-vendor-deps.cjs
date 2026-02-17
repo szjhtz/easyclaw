@@ -43,14 +43,27 @@ exports.default = async function copyVendorDeps(context) {
   console.log(`  to:   ${vendorDest}`);
 
   // Skip files that break macOS universal (arm64+x64) merge:
-  // 1. Native binaries (.node, .dylib) — architecture-specific, not needed
-  //    for the pure-JS gateway runtime.
+  // 1. Most native binaries (.node, .dylib) — architecture-specific and cause
+  //    lipo merge conflicts in universal builds.
+  //    EXCEPTION: sharp's .node binary is required at runtime for image
+  //    processing (resizing, metadata). The gateway subprocess uses sharp to
+  //    sanitize images before sending them to the AI model. Without it, all
+  //    inbound images are silently dropped. For universal builds, sharp's
+  //    .node is architecture-specific but is listed in x64ArchFiles in the
+  //    electron-builder config so the merge tool handles it correctly.
   // 2. ALL .bin/ directories (top-level and nested) — contain symlinks with
   //    relative targets that resolve differently in x64 vs arm64 temp dirs,
   //    causing the universal merge tool to see them as unique files.
   //    Not needed at runtime (just CLI convenience links).
   // 3. Symlinks — resolve to different absolute paths in each arch build.
   const SKIP_EXTS = new Set([".node", ".dylib"]);
+  // Native binaries that ARE required at runtime and must not be skipped.
+  // sharp is needed by the gateway for image sanitization (resize/metadata).
+  // This includes both the .node addon (@img/sharp-darwin-*) and the libvips
+  // shared library (@img/sharp-libvips-darwin-*) it links against.
+  const ALLOWED_NATIVE_PATTERNS = [
+    /[\\/]@img[\\/]sharp-/,
+  ];
   let skippedCount = 0;
 
   fs.cpSync(vendorSrc, vendorDest, {
@@ -76,6 +89,10 @@ exports.default = async function copyVendorDeps(context) {
       }
       const ext = path.extname(src);
       if (SKIP_EXTS.has(ext)) {
+        // Allow whitelisted native modules (e.g. sharp)
+        if (ALLOWED_NATIVE_PATTERNS.some((re) => re.test(src))) {
+          return true;
+        }
         skippedCount++;
         return false;
       }
