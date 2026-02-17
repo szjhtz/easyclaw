@@ -224,6 +224,23 @@ export function WeComBindingModal({
         {/* QR code display */}
         {qrDataUrl && !bindingSuccess && !loading && (
           <div className="wecom-qr-container">
+            {/* Privacy notice badge with hover popover */}
+            <div className="wecom-privacy-badge-wrapper">
+              <span className="wecom-privacy-badge">
+                {t("channels.wecomPrivacyLabel")}
+              </span>
+              <div className="wecom-privacy-popover">
+                <p>{t("channels.wecomPrivacyNotice")}</p>
+                <a
+                  href="https://github.com/gaoyangz77/easyclaw/tree/main/apps/wecom-relay"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="wecom-privacy-link"
+                >
+                  {t("channels.wecomPrivacySourceCode")} &rarr;
+                </a>
+              </div>
+            </div>
             <img
               src={qrDataUrl}
               alt="WeChat QR Code"
