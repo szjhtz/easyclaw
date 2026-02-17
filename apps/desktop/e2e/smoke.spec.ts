@@ -389,7 +389,7 @@ test.describe("EasyClaw Smoke Tests", () => {
     await expect(window.locator(".td-meta")).toBeVisible();
   });
 
-  test("Skills page: market browse, search, labels, and API validation", async ({ window }) => {
+  test("Skills page: market browse, search, and labels", async ({ window }) => {
     // Dismiss any modal(s) blocking the UI
     for (let i = 0; i < 3; i++) {
       const backdrop = window.locator(".modal-backdrop");
@@ -410,8 +410,8 @@ test.describe("EasyClaw Smoke Tests", () => {
     const marketTab = window.locator(".skills-tab-bar .btn", { hasText: /Market|市场/ });
     await expect(marketTab).toHaveClass(/btn-outline/);
 
-    // Wait for loading to finish
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
+    // Wait for skills grid to render (loading finished)
+    await window.locator(".skills-grid").waitFor({ state: "visible", timeout: 30_000 });
 
     // No error alert
     await expect(window.locator(".error-alert")).not.toBeVisible();
@@ -455,26 +455,22 @@ test.describe("EasyClaw Smoke Tests", () => {
       // Click a non-"All" category chip to filter
       if (chipCount > 1) {
         const secondChip = categoryChips.nth(1);
-        const chipText = await secondChip.textContent();
         await secondChip.click();
         await expect(secondChip).toHaveClass(/btn-outline/);
 
-        // Wait for filtered results
-        await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
+        // Wait for filtered results to load
+        await window.waitForTimeout(1_000);
 
         // Skill cards should still render (possibly fewer)
         const filteredCards = window.locator(".skills-grid .section-card");
         const filteredCount = await filteredCards.count();
-        // Either we have filtered results or empty state
         if (filteredCount > 0) {
-          // All visible cards should have the selected tag in their meta
           expect(filteredCount).toBeLessThanOrEqual(cardCount);
         }
 
         // Reset to "All" filter
         await categoryChips.first().click();
-        await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
-        void chipText; // used above for filter verification
+        await window.waitForTimeout(1_000);
       }
     }
 
@@ -485,14 +481,14 @@ test.describe("EasyClaw Smoke Tests", () => {
     // Type a search query — use a term likely to match something
     await searchInput.fill("a");
     // Wait for debounce (300ms) + API response
-    await window.waitForTimeout(500);
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
+    await window.waitForTimeout(1_500);
 
     // Clear search
     await searchInput.fill("");
-    await window.waitForTimeout(500);
-    await window.locator(".text-muted").waitFor({ state: "hidden", timeout: 10_000 }).catch(() => {});
+    await window.waitForTimeout(1_500);
+  });
 
+  test("Skills page: API validation", async ({ window }) => {
     // --- Verify API responses directly ---
     // GET /api/skills/market — proxy to server GraphQL
     const marketRes = await window.evaluate(async () => {
@@ -671,6 +667,69 @@ test.describe("EasyClaw Smoke Tests", () => {
     const { existsSync } = await import("node:fs");
     const exists = existsSync(skillDir);
     expect(exists).toBe(false);
+  });
+
+  test("Skills page: install from server + delete lifecycle", async ({ window }) => {
+    // --- Get a real skill slug from the market API ---
+    const marketRes = await window.evaluate(async () => {
+      const res = await fetch("http://127.0.0.1:3210/api/skills/market?pageSize=1");
+      return { status: res.status, body: await res.json() };
+    });
+    expect(marketRes.status).toBe(200);
+    expect(marketRes.body.skills.length).toBeGreaterThanOrEqual(1);
+    const realSlug = marketRes.body.skills[0].slug as string;
+
+    // --- Install skill via API (downloads from server) ---
+    const installRes = await window.evaluate(async (slug: string) => {
+      const res = await fetch("http://127.0.0.1:3210/api/skills/install", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, realSlug);
+    expect(installRes.status).toBe(200);
+
+    if (!installRes.body.ok) {
+      // Server download endpoint not available — skip gracefully
+      console.warn("Skill install lifecycle skipped (server not ready):", installRes.body.error);
+      return;
+    }
+
+    // --- Verify skill directory was created on disk ---
+    const { existsSync: existsSyncCheck, readdirSync } = await import("node:fs");
+    const { join: joinPath } = await import("node:path");
+    const { homedir } = await import("node:os");
+    const installedSkillDir = joinPath(homedir(), ".easyclaw", "openclaw", "skills", realSlug);
+    expect(existsSyncCheck(installedSkillDir)).toBe(true);
+
+    // Verify directory has content (at least one file like SKILL.md)
+    const files = readdirSync(installedSkillDir);
+    expect(files.length).toBeGreaterThanOrEqual(1);
+
+    // --- Verify it shows up in the installed list API ---
+    const installedRes = await window.evaluate(async () => {
+      const res = await fetch("http://127.0.0.1:3210/api/skills/installed");
+      return { status: res.status, body: await res.json() };
+    });
+    expect(installedRes.status).toBe(200);
+    const installedSlugs = (installedRes.body.skills as Array<{ slug: string }>).map(s => s.slug);
+    expect(installedSlugs).toContain(realSlug);
+
+    // --- Delete the installed skill via API ---
+    const deleteRes = await window.evaluate(async (slug: string) => {
+      const res = await fetch("http://127.0.0.1:3210/api/skills/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      return { status: res.status, body: await res.json() };
+    }, realSlug);
+    expect(deleteRes.status).toBe(200);
+    expect(deleteRes.body.ok).toBe(true);
+
+    // Verify directory was removed
+    expect(existsSyncCheck(installedSkillDir)).toBe(false);
   });
 
   test("window has correct web preferences", async ({ electronApp, window }) => {

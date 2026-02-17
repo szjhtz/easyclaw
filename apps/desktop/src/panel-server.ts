@@ -3090,13 +3090,33 @@ async function handleApiRoute(
         sendJson(res, 200, { ok: false, error: `Server returned ${response.status}: ${errText}` });
         return;
       }
-      const content = await response.text();
 
-      // Write to skills directory
+      // Download zip bundle and extract to skills directory
+      const zipBuffer = Buffer.from(await response.arrayBuffer());
+      const { tmpdir } = await import("node:os");
+      const tmpDir = join(tmpdir(), `skill-install-${Date.now()}`);
+      const zipPath = join(tmpDir, `${body.slug}.zip`);
+      await fs.mkdir(tmpDir, { recursive: true });
+      await fs.writeFile(zipPath, zipBuffer);
+
       const skillsDir = join(homedir(), ".easyclaw", "openclaw", "skills");
       const skillDir = join(skillsDir, body.slug);
       await fs.mkdir(skillDir, { recursive: true });
-      await fs.writeFile(join(skillDir, "SKILL.md"), content, "utf-8");
+
+      // Extract zip: ditto on macOS, unzip on Linux/Windows
+      const extractCmd = process.platform === "darwin" ? "ditto" : "unzip";
+      const extractArgs = process.platform === "darwin"
+        ? ["-xk", zipPath, skillDir]
+        : ["-o", zipPath, "-d", skillDir];
+      await new Promise<void>((resolve, reject) => {
+        execFile(extractCmd, extractArgs, { timeout: 30_000 }, (err) => {
+          if (err) reject(new Error(`Failed to extract skill zip: ${err.message}`));
+          else resolve();
+        });
+      });
+
+      // Cleanup temp files
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
 
       sendJson(res, 200, { ok: true });
     } catch (err: unknown) {
