@@ -110,6 +110,13 @@
   color: var(--color-text-secondary);
 }
 
+.chat-agent-phase-inline {
+  align-self: flex-start;
+  padding: 0 14px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
 .chat-tool-event {
   align-self: flex-start;
   display: flex;

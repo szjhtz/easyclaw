@@ -410,7 +410,8 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           setAgentPhase("processing");
         }
       } else if (stream === "assistant") {
-        setAgentPhase("generating");
+        // Don't overwrite an active tool phase — tool status is more informative
+        setAgentPhase((prev) => (prev && prev.startsWith("tool:") ? prev : "generating"));
       }
       return;
     }
@@ -947,9 +948,16 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             </div>
           )}
           {streaming !== null && (
-            <div className="chat-bubble chat-bubble-assistant chat-streaming-cursor">
-              {formatMessage(cleanMessageText(streaming))}
-            </div>
+            <>
+              {agentPhase && agentPhase.startsWith("tool:") && showAgentEvents && (
+                <div className="chat-agent-phase-inline">
+                  {t("chat.phaseUsingTool", { tool: agentPhase.slice(5) })}
+                </div>
+              )}
+              <div className="chat-bubble chat-bubble-assistant chat-streaming-cursor">
+                {formatMessage(cleanMessageText(streaming))}
+              </div>
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
