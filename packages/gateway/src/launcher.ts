@@ -14,6 +14,8 @@ const log = createLogger("gateway");
 const DEFAULT_INITIAL_BACKOFF_MS = 1000;
 const DEFAULT_MAX_BACKOFF_MS = 30_000;
 const DEFAULT_HEALTHY_THRESHOLD_MS = 60_000;
+/** Skip reload if the gateway was spawned less than this many ms ago. */
+const STARTUP_GRACE_MS = 15_000;
 
 /**
  * Calculate exponential backoff delay.
@@ -102,6 +104,19 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
       log.warn("Gateway not running, falling back to stop+start for reload");
       await this.stop();
       await this.start();
+      return;
+    }
+
+    // If the gateway was spawned very recently, it's still initializing and
+    // will read the latest config file when it finishes starting up.
+    // Skip the reload to avoid killing a process that hasn't started listening.
+    const uptime = this.lastStartedAt
+      ? Date.now() - this.lastStartedAt.getTime()
+      : 0;
+    if (uptime < STARTUP_GRACE_MS) {
+      log.info(
+        `Gateway started ${uptime}ms ago, skipping reload (config already on disk)`,
+      );
       return;
     }
 

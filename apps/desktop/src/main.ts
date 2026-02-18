@@ -400,6 +400,7 @@ app.whenReady().then(async () => {
   }
 
   // --- Update checker ---
+  let currentState: GatewayState = "stopped";
   let latestUpdateResult: UpdateCheckResult | null = null;
 
   async function performUpdateCheck(): Promise<void> {
@@ -731,7 +732,6 @@ app.whenReady().then(async () => {
     configPath,
     stateDir,
   });
-  let currentState: GatewayState = "stopped";
 
   // Initialize gateway RPC client for channels.status and other RPC calls
   let rpcClient: GatewayRpcClient | null = null;

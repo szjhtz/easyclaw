@@ -186,6 +186,37 @@ describe("GatewayLauncher", () => {
       const launcher = createLauncher();
       await launcher.start();
 
+      // Advance past the startup grace period so reload is not skipped
+      vi.advanceTimersByTime(15_000);
+
+      await launcher.reload();
+
+      expect(mockChild.killSignals).toContain("SIGUSR1");
+      expect(launcher.getStatus().state).toBe("running");
+    });
+
+    it("skips reload during startup grace period", async () => {
+      const { spawn } = await import("node:child_process");
+      const launcher = createLauncher();
+      await launcher.start();
+
+      // Immediately call reload — gateway just spawned (< 15s ago)
+      await launcher.reload();
+
+      // Should NOT have stopped+restarted — process still the same
+      expect(spawn).toHaveBeenCalledTimes(1);
+      expect(launcher.getStatus().state).toBe("running");
+      // No SIGUSR1 or SIGTERM sent
+      expect(mockChild.killSignals).toHaveLength(0);
+    });
+
+    it.skipIf(process.platform === "win32")("sends SIGUSR1 after startup grace period", async () => {
+      const launcher = createLauncher();
+      await launcher.start();
+
+      // Advance past the 15s startup grace period
+      vi.advanceTimersByTime(15_000);
+
       await launcher.reload();
 
       expect(mockChild.killSignals).toContain("SIGUSR1");
