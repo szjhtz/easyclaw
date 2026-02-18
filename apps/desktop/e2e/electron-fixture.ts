@@ -126,7 +126,8 @@ async function seedProvider(opts: {
  * gateway API when E2E_VOLCENGINE_API_KEY is set. Otherwise, skips
  * onboarding so basic smoke tests still work without real API keys.
  *
- * Always lands on the main page with sidebar visible.
+ * Always lands on the main page with a fully connected gateway, so
+ * individual tests don't race against gateway startup time.
  */
 export const test = base.extend<ElectronFixtures>({
   electronApp: async ({}, use) => {
@@ -152,12 +153,13 @@ export const test = base.extend<ElectronFixtures>({
           model: "doubao-seed-1-6-flash-250828",
           apiKey,
         });
-        // Wait for gateway to complete all restart cycles after provider seeding.
-        // On Windows, provider seeding triggers multiple restarts (config + model change),
-        // each requiring a full stop+start since SIGUSR1 is not supported.
+        // On Windows, provider seeding triggers multiple gateway restarts
+        // (config + model change), each requiring a full stop+start since
+        // SIGUSR1 is not supported. Wait for all restart cycles to settle
+        // before reloading — otherwise the reload triggers yet another restart.
         await window.waitForTimeout(10000);
-        // Reload to trigger onboarding check — the app needs to re-mount to detect
-        // the newly configured provider and transition to the main page.
+        // Reload to trigger onboarding re-check so the app transitions to
+        // the main page now that a provider is configured.
         await window.reload();
       } else {
         // No API key available — skip onboarding to reach the main page
@@ -165,6 +167,14 @@ export const test = base.extend<ElectronFixtures>({
       }
       await window.waitForSelector(".sidebar-brand", { timeout: 45_000 });
     }
+
+    // Wait for the gateway to be fully connected before handing the window
+    // to tests. The gateway takes 6-7 s to bind on Windows (extensions load
+    // before the port opens) and can restart multiple times after a provider
+    // change. Waiting here removes the race from every individual test.
+    await window.waitForSelector(".chat-status-dot-connected", {
+      timeout: 45_000,
+    });
 
     await use(window);
   },
