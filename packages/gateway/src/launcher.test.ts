@@ -47,12 +47,14 @@ class MockChildProcess extends EventEmitter {
 }
 
 let mockChild: MockChildProcess;
+const mockExecSync = vi.fn();
 
 vi.mock("node:child_process", () => ({
   spawn: vi.fn(() => {
     mockChild = new MockChildProcess();
     return mockChild;
   }),
+  execSync: (...args: unknown[]) => mockExecSync(...args),
 }));
 
 vi.mock("@easyclaw/logger", () => ({
@@ -169,7 +171,15 @@ describe("GatewayLauncher", () => {
       await stopPromise;
 
       expect(launcher.getStatus().state).toBe("stopped");
-      expect(mockChild.killSignals).toContain("SIGTERM");
+      if (process.platform === "win32") {
+        // On Windows, killProcessTree uses taskkill instead of proc.kill
+        expect(mockExecSync).toHaveBeenCalledWith(
+          `taskkill /T /F /PID ${mockChild.pid}`,
+          { stdio: "ignore" },
+        );
+      } else {
+        expect(mockChild.killSignals).toContain("SIGTERM");
+      }
     });
 
     it("is safe to call when already stopped", async () => {
