@@ -28,14 +28,14 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveClass(/nav-active/);
 
+    // Find the Chat Settings section by its heading (wait for Settings page to finish loading)
+    const chatSection = window.locator(".section-card:visible", { hasText: /Chat Settings|聊天设置/ });
+    await expect(chatSection).toBeVisible({ timeout: 10_000 });
+
     // Verify all three sections exist: Agent, Chat, Telemetry
-    const sectionCards = window.locator(".section-card");
+    const sectionCards = window.locator(".section-card:visible");
     const cardCount = await sectionCards.count();
     expect(cardCount).toBeGreaterThanOrEqual(3);
-
-    // Find the Chat Settings section by its heading
-    const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
-    await expect(chatSection).toBeVisible();
 
     // Verify it has toggle switches
     const toggles = chatSection.locator(".toggle-switch");
