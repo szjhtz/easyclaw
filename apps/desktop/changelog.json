@@ -3,12 +3,16 @@
     "version": "1.4.2",
     "date": "2026-02-18",
     "en": [
-      "Fixed gateway startup race condition on Windows that caused flaky E2E test failures",
+      "Smarter timeout detection: replaced fixed timeout with stall detection heartbeat for chat responses",
+      "Fixed gateway startup race condition on Windows that caused flaky test failures",
+      "Added DevTools shortcut (Ctrl+Shift+I / Cmd+Option+I) in production builds",
       "Fixed update checker crash (currentState temporal dead zone error)",
       "Auto-provision Gemini project for Pro subscribers during OAuth"
     ],
     "zh": [
-      "修复 Windows 上 gateway 启动竞态条件，解决 E2E 测试偶发失败问题",
+      "更智能的超时检测：聊天响应从固定超时改为停滞检测心跳机制",
+      "修复 Windows 上 gateway 启动竞态条件导致的测试偶发失败",
+      "生产构建中新增 DevTools 快捷键（Ctrl+Shift+I / Cmd+Option+I）",
       "修复更新检查器崩溃（currentState 暂时性死区错误）",
       "Gemini Pro 订阅用户 OAuth 时自动配置项目"
     ]
