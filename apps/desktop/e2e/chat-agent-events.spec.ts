@@ -331,10 +331,9 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveClass(/nav-active/);
 
-    // Wait for settings sections to render
-    await expect(window.locator(".section-card").first()).toBeVisible({ timeout: 10_000 });
-
-    const sectionCards = window.locator(".section-card");
+    // Wait for settings sections to render (use :visible to exclude hidden ChannelsPage cards)
+    const sectionCards = window.locator(".section-card:visible");
+    await expect(sectionCards.first()).toBeVisible({ timeout: 10_000 });
     const count = await sectionCards.count();
     expect(count).toBeGreaterThanOrEqual(3);
 
@@ -362,8 +361,8 @@ test.describe("Chat Agent Events & Settings", () => {
     await settingsBtn.click();
     await expect(settingsBtn).toHaveClass(/nav-active/);
 
-    // Agent Settings section should have a select/dropdown for DM scope
-    const agentSection = window.locator(".section-card").first();
+    // Agent Settings section should have a select/dropdown for DM scope (use :visible to exclude hidden ChannelsPage cards)
+    const agentSection = window.locator(".section-card:visible").first();
     await expect(agentSection).toContainText(/Agent Settings|智能体设置/);
     await expect(agentSection).toContainText(/DM Session Scope|私信会话隔离/);
 
