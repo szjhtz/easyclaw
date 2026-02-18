@@ -644,12 +644,16 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     if (envProject) {
       return envProject;
     }
-    throw new Error(
-      "This account requires GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_PROJECT_ID to be set.",
-    );
+    // No project associated yet — fall through to onboarding to auto-provision one.
+    // This happens for consumer Gemini Pro/Advanced subscriptions where the Cloud
+    // project hasn't been provisioned yet.
   }
 
-  const tier = getDefaultTier(data.allowedTiers);
+  // When the user already has a tier (e.g. Gemini Pro subscriber) but no project,
+  // use free-tier onboarding to auto-provision a project. Google's backend will
+  // still respect the user's actual subscription tier.
+  const hasExistingTierButNoProject = !!data.currentTier;
+  const tier = hasExistingTierButNoProject ? { id: TIER_FREE } : getDefaultTier(data.allowedTiers);
   const tierId = tier?.id || TIER_FREE;
   if (tierId !== TIER_FREE && !envProject) {
     throw new Error(
