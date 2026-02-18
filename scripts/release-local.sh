@@ -126,6 +126,14 @@ bash "$REPO_ROOT/scripts/rebuild-native.sh"
 if [ "$SKIP_TESTS" = false ]; then
   step "Run E2E tests (prod mode)"
 
+  # Kill lingering Electron processes (Windows flaky test fix)
+  if [ "$PLATFORM" = "win" ]; then
+    info "Killing lingering Electron processes..."
+    taskkill //IM electron.exe //F 2>/dev/null || true
+    taskkill //IM EasyClaw.exe //F 2>/dev/null || true
+    sleep 5
+  fi
+
   EXEC_PATH=""
   if [ "$PLATFORM" = "mac" ]; then
     APP_DIR=$(find "$RELEASE_DIR" -maxdepth 2 -name "EasyClaw.app" -print -quit 2>/dev/null || true)
