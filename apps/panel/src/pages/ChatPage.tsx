@@ -445,16 +445,8 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         // External run is actively streaming — show thinking indicator
         setExternalRunActive(true);
       } else if (payload.state === "error") {
-        console.error("[chat] error event:", payload.errorMessage ?? "unknown error", "runId:", payload.runId);
+        console.error("[chat] external run error:", payload.errorMessage ?? "unknown error", "runId:", payload.runId);
         setExternalRunActive(false);
-        // Surface error to user if we're waiting for a response
-        if (runIdRef.current) {
-          const raw = payload.errorMessage ?? t("chat.unknownError");
-          const errText = localizeError(raw, t);
-          setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
-          setStreaming(null);
-          setRunId(null);
-        }
       } else if (payload.state === "final") {
         setExternalRunActive(false);
         // Another run finished on our session (channel message reply done) — reload history
