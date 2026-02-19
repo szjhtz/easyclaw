@@ -17,6 +17,8 @@ import {
   acquireGeminiOAuthToken,
   saveGeminiOAuthCredentials,
   validateGeminiAccessToken,
+  startManualOAuthFlow,
+  completeManualOAuthFlow,
 } from "@easyclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials } from "@easyclaw/gateway";
 import type { GatewayState } from "@easyclaw/gateway";
@@ -669,6 +671,8 @@ app.whenReady().then(async () => {
 
   // Temporary storage for pending OAuth credentials (between acquire and save steps)
   let pendingOAuthCreds: AcquiredOAuthCredentials | null = null;
+  // PKCE verifier for pending manual OAuth flow (between start and manual-complete steps)
+  let pendingManualOAuthVerifier: string | null = null;
 
   // Check if there's an active Gemini OAuth key — if so, enable the plugin
   const hasGeminiOAuth = storage.providerKeys.getAll()
@@ -1260,16 +1264,43 @@ app.whenReady().then(async () => {
         log.error("Failed to handle permissions change:", err);
       });
     },
-    onOAuthAcquire: async (provider: string): Promise<{ email?: string; tokenPreview: string }> => {
+    onOAuthAcquire: async (provider: string): Promise<{ email?: string; tokenPreview: string; manualMode?: boolean; authUrl?: string }> => {
       const proxyRouterUrl = `http://127.0.0.1:${PROXY_ROUTER_PORT}`;
-      const acquired = await acquireGeminiOAuthToken({
-        openUrl: (url) => shell.openExternal(url),
-        onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
-        proxyUrl: proxyRouterUrl,
-      });
-      // Store credentials temporarily until onOAuthSave is called
+      try {
+        const acquired = await acquireGeminiOAuthToken({
+          openUrl: (url) => shell.openExternal(url),
+          onStatusUpdate: (msg) => log.info(`OAuth: ${msg}`),
+          proxyUrl: proxyRouterUrl,
+        });
+        // Store credentials temporarily until onOAuthSave is called
+        pendingOAuthCreds = acquired;
+        log.info(`OAuth acquired for ${provider}, email=${acquired.email ?? "(none)"}`);
+        return { email: acquired.email, tokenPreview: acquired.tokenPreview };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Port 8085") || msg.includes("EADDRINUSE")) {
+          log.warn("OAuth callback server failed, falling back to manual mode");
+          const manual = await startManualOAuthFlow({
+            onStatusUpdate: (m: string) => log.info(`OAuth manual: ${m}`),
+            proxyUrl: proxyRouterUrl,
+          });
+          pendingManualOAuthVerifier = manual.verifier;
+          await shell.openExternal(manual.authUrl);
+          return { email: undefined, tokenPreview: "", manualMode: true, authUrl: manual.authUrl };
+        }
+        throw err;
+      }
+    },
+    onOAuthManualComplete: async (provider: string, callbackUrl: string): Promise<{ email?: string; tokenPreview: string }> => {
+      const verifier = pendingManualOAuthVerifier;
+      if (!verifier) {
+        throw new Error("No pending manual OAuth flow. Please start the sign-in process first.");
+      }
+      const proxyRouterUrl = `http://127.0.0.1:${PROXY_ROUTER_PORT}`;
+      const acquired = await completeManualOAuthFlow(callbackUrl, verifier, proxyRouterUrl);
       pendingOAuthCreds = acquired;
-      log.info(`OAuth acquired for ${provider}, email=${acquired.email ?? "(none)"}`);
+      pendingManualOAuthVerifier = null;
+      log.info(`OAuth manual complete for ${provider}, email=${acquired.email ?? "(none)"}`);
       return { email: acquired.email, tokenPreview: acquired.tokenPreview };
     },
     onOAuthSave: async (provider: string, options: { proxyUrl?: string; label?: string; model?: string }): Promise<OAuthFlowResult> => {
