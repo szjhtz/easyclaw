@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.4.5",
+    "date": "2026-02-19",
+    "en": [
+      "Fixed Gemini OAuth: require projectId and surface discovery errors instead of silencing them",
+      "Fixed E2E tests: handle telemetry consent dialog in production builds"
+    ],
+    "zh": [
+      "修复 Gemini OAuth：要求 projectId 并正确显示项目发现错误",
+      "修复 E2E 测试：处理生产构建中的遥测同意弹窗"
+    ]
+  },
+  {
     "version": "1.4.4",
     "date": "2026-02-19",
     "en": [
