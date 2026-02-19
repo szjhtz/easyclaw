@@ -24,9 +24,14 @@ export function Select({ value, onChange, options, placeholder, disabled, classN
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropdownMaxHeight = 280;
+    const openAbove = spaceBelow < dropdownMaxHeight && rect.top > spaceBelow;
     setDropdownStyle({
       position: "fixed",
-      top: rect.bottom + 4,
+      ...(openAbove
+        ? { bottom: window.innerHeight - rect.top + 4, maxHeight: rect.top - 8 }
+        : { top: rect.bottom + 4, maxHeight: spaceBelow - 8 }),
       left: rect.left,
       width: rect.width,
     });
