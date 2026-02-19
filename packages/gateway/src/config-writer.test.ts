@@ -742,11 +742,12 @@ describe("config-writer", () => {
       expect(configs.zhipu).toBeDefined();
     });
 
-    it("sets api to openai-completions for all providers", () => {
+    it("defaults api to openai-completions unless provider declares otherwise", () => {
       const configs = buildExtraProviderConfigs();
-      for (const config of Object.values(configs)) {
-        expect(config.api).toBe("openai-completions");
-      }
+      expect(configs.volcengine.api).toBe("openai-completions");
+      expect(configs.zhipu.api).toBe("openai-completions");
+      // moonshot-coding declares api: "anthropic-messages" in its subscription plan
+      expect(configs["moonshot-coding"].api).toBe("anthropic-messages");
     });
 
     it("uses correct base URLs from PROVIDER_BASE_URLS", () => {

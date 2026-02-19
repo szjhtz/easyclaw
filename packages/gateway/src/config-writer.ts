@@ -103,7 +103,7 @@ export function buildExtraProviderConfigs(): Record<string, {
 
     result[provider] = {
       baseUrl: meta!.baseUrl,
-      api: "openai-completions",
+      api: meta!.api ?? "openai-completions",
       models: models.map((m) => ({
         id: m.modelId,
         name: m.displayName,
@@ -322,6 +322,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         token: options.gatewayToken,
       };
     }
+
+    // Allow the panel (control-ui) to connect without device identity while
+    // preserving self-declared scopes. Without this flag the vendor clears
+    // scopes to [] for non-device connections.
+    merged.controlUi = { dangerouslyDisableDeviceAuth: true };
 
     config.gateway = merged;
   }

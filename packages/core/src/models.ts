@@ -67,6 +67,8 @@ export interface SubscriptionPlan {
   extraModels?: ModelConfig[];
   /** Preferred default model ID for this plan. */
   preferredModel?: string;
+  /** API format used by this plan's endpoint (defaults to "openai-completions"). */
+  api?: string;
 }
 
 /** Unified metadata for a root LLM provider. */
@@ -94,6 +96,8 @@ export interface ProviderMeta {
   extraModels?: ModelConfig[];
   /** Preferred default model ID for this provider. */
   preferredModel?: string;
+  /** API format used by this provider's endpoint (defaults to "openai-completions"). */
+  api?: string;
   /** Subscription plans that are logically children of this provider. */
   subscriptionPlans?: SubscriptionPlan[];
 }
@@ -109,6 +113,8 @@ export interface ResolvedProviderMeta {
   oauth?: boolean;
   extraModels?: ModelConfig[];
   preferredModel?: string;
+  /** API format used by this provider's endpoint (defaults to "openai-completions"). */
+  api?: string;
 }
 
 // CNY → USD conversion rate used for cost estimates below.
@@ -389,6 +395,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         subscriptionUrl: "https://www.kimi.com/code",
         apiKeyUrl: "https://www.kimi.com/code/docs/",
         envVar: "KIMI_CODE_API_KEY",
+        api: "anthropic-messages",
         extraModels: [
           {
             provider: "moonshot-coding",
@@ -570,6 +577,7 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
     subscriptionUrl: meta.subscriptionUrl,
     extraModels: meta.extraModels,
     preferredModel: meta.preferredModel,
+    api: meta.api,
   });
   for (const plan of meta.subscriptionPlans ?? []) {
     _allProviders.push(plan.id);
@@ -584,6 +592,7 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
       oauth: plan.oauth,
       extraModels: plan.extraModels,
       preferredModel: plan.preferredModel,
+      api: plan.api,
     });
   }
 }
