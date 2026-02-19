@@ -4,12 +4,25 @@ const API_BASE = "http://127.0.0.1:3210";
 
 /**
  * Helper: dismiss any modal(s) blocking the UI (e.g. "What's New", telemetry consent).
+ *
+ * The telemetry consent dialog may appear asynchronously after the page renders.
+ * Setting localStorage prevents it from appearing if the React useEffect hasn't
+ * fired yet; the close-button loop handles dialogs that are already visible.
  */
 async function dismissModals(window: Awaited<ReturnType<typeof import("@playwright/test")["Page"]["prototype"]["waitForLoadState"]>> extends void ? never : import("@playwright/test").Page) {
-  for (let i = 0; i < 3; i++) {
+  // Mark telemetry consent as shown so it won't appear (or reappear) later.
+  await window.evaluate(() => localStorage.setItem("telemetry.consentShown", "1"));
+
+  for (let i = 0; i < 5; i++) {
     const backdrop = window.locator(".modal-backdrop");
     if (!await backdrop.isVisible({ timeout: 3_000 }).catch(() => false)) break;
-    await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+    // Prefer the × close button — more reliable than clicking a backdrop coordinate.
+    const closeBtn = backdrop.locator(".modal-close-btn");
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click();
+    } else {
+      await backdrop.click({ position: { x: 5, y: 5 }, force: true });
+    }
     await backdrop.waitFor({ state: "hidden", timeout: 3_000 }).catch(() => {});
   }
 }

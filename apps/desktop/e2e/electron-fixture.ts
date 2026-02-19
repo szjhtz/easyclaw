@@ -177,6 +177,10 @@ export const test = base.extend<ElectronFixtures>({
     const window = await electronApp.firstWindow({ timeout: 45_000 });
     await window.waitForLoadState("domcontentloaded");
 
+    // Pre-dismiss telemetry consent so the dialog never blocks test interactions.
+    // Must run before React's useEffect checks localStorage.
+    await window.evaluate(() => localStorage.setItem("telemetry.consentShown", "1"));
+
     // Wait for the page to render (onboarding or main page)
     await window.waitForSelector(".onboarding-page, .sidebar-brand", {
       timeout: 45_000,
