@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.4.4",
+    "date": "2026-02-19",
+    "en": [
+      "Fixed Kimi Coding 404 error, subscription badge display, and activate persistence"
+    ],
+    "zh": [
+      "修复 Kimi Coding 404 错误、订阅标识显示和激活持久化问题"
+    ]
+  },
+  {
     "version": "1.4.3",
     "date": "2026-02-19",
     "en": [
