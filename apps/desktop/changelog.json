@@ -4,18 +4,22 @@
     "date": "2026-02-19",
     "en": [
       "Fixed Gemini OAuth failure on IPv6 systems with manual fallback UI",
+      "Fixed app unable to quit (gateway restart loop on shutdown)",
       "Faster app startup: skip slow cleanup when gateway port is free",
-      "Fixed gateway RPC connection race condition (defer until gateway is listening)",
+      "Fixed gateway RPC connection race condition",
+      "Fixed missing scope error after vendor upgrade with per-provider API format support",
+      "Model dropdown now opens upward when near page bottom",
       "Added device identity authentication for gateway RPC",
-      "Faster app shutdown with gateway-first kill and timeout guard",
       "Fixed port conflicts between E2E test runs"
     ],
     "zh": [
       "修复 IPv6 系统上 Gemini OAuth 失败问题，新增手动授权备选界面",
+      "修复程序无法正常退出的问题（关闭时 gateway 重启死循环）",
       "更快启动速度：gateway 端口空闲时跳过耗时清理",
-      "修复 gateway RPC 连接竞态条件（延迟到 gateway 就绪后再连接）",
+      "修复 gateway RPC 连接竞态条件",
+      "修复 vendor 升级后的 scope 缺失错误，支持按模型商配置 API 格式",
+      "模型下拉菜单在页面底部时自动向上展开",
       "新增设备身份认证用于 gateway RPC 通信",
-      "更快关闭速度：优先终止 gateway 并添加超时保护",
       "修复 E2E 测试之间的端口冲突问题"
     ]
   },
