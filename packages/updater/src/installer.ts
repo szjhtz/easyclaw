@@ -35,20 +35,28 @@ if not errorlevel 1 (\r
   goto waitapp\r
 )\r
 \r
+:: Kill orphan gateway/openclaw child processes that may hold file locks\r
+taskkill /f /im openclaw-gateway.exe 2>nul\r
+taskkill /f /im openclaw.exe 2>nul\r
+\r
 :: Extra delay to ensure all file handles are released\r
-timeout /t 2 /nobreak >nul\r
+timeout /t 3 /nobreak >nul\r
 \r
-:: Run NSIS installer silently (blocks until complete)\r
-"${exePath}" /S\r
+:: Run NSIS installer with visible progress (blocks until complete)\r
+"${exePath}"\r
 \r
-:: Wait for installer process to finish (in case it detaches)\r
+:: Wait for installer process to finish (in case it detaches, max 120s)\r
+set WAIT=0\r
 :waitinst\r
 tasklist /fi "imagename eq ${installerName}" /nh 2>nul | find /i "${installerName}" >nul\r
 if not errorlevel 1 (\r
+  if %WAIT% GEQ 120 goto relaunch\r
   timeout /t 1 /nobreak >nul\r
+  set /a WAIT+=1\r
   goto waitinst\r
 )\r
 \r
+:relaunch\r
 timeout /t 2 /nobreak >nul\r
 \r
 :: Relaunch the app\r
