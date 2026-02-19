@@ -16,10 +16,26 @@ export async function installWindows(exePath: string, quitApp: () => void): Prom
   const tempDir = dirname(exePath);
   const scriptPath = join(tempDir, "easyclaw-update.cmd");
   const launcherPath = join(tempDir, "easyclaw-update-launcher.vbs");
+  const progressPath = join(tempDir, "easyclaw-update-progress.hta");
   const appExePath = process.execPath;
   const installerName = basename(exePath);
 
   log.info(`Writing update helper script: ${scriptPath}`);
+
+  // HTA progress dialog shown during silent NSIS install.
+  // Uses mshta.exe (built into Windows) — no extra dependencies.
+  const progressHta = `<html>\r
+<head>\r
+<title>EasyClaw Update</title>\r
+<HTA:APPLICATION INNERBORDER="no" BORDER="thin" SCROLL="no"\r
+  SINGLEINSTANCE="yes" MAXIMIZEBUTTON="no" MINIMIZEBUTTON="no"\r
+  SYSMENU="no" CONTEXTMENU="no" SHOWINTASKBAR="yes" />\r
+<script>window.resizeTo(420,140);window.moveTo((screen.width-420)/2,(screen.height-140)/2);</script>\r
+</head>\r
+<body style="font-family:'Segoe UI',sans-serif;text-align:center;padding:24px 20px 16px;background:#f3f3f3;overflow:hidden">\r
+<p style="margin:0 0 14px;font-size:14px;color:#333">Updating EasyClaw, please wait...</p>\r
+<progress style="width:90%;height:18px"></progress>\r
+</body></html>`;
 
   const script = `@echo off\r
 :: EasyClaw auto-update helper script\r
@@ -42,8 +58,11 @@ taskkill /f /im openclaw.exe 2>nul\r
 :: Extra delay to ensure all file handles are released\r
 timeout /t 3 /nobreak >nul\r
 \r
-:: Run NSIS installer with visible progress (blocks until complete)\r
-"${exePath}"\r
+:: Show progress dialog during installation\r
+start "" mshta.exe "${progressPath}"\r
+\r
+:: Run NSIS installer silently (blocks until complete)\r
+"${exePath}" /S\r
 \r
 :: Wait for installer process to finish (in case it detaches, max 120s)\r
 set WAIT=0\r
@@ -57,6 +76,9 @@ if not errorlevel 1 (\r
 )\r
 \r
 :relaunch\r
+:: Close progress dialog\r
+taskkill /f /im mshta.exe 2>nul\r
+\r
 timeout /t 2 /nobreak >nul\r
 \r
 :: Relaunch the app\r
@@ -64,16 +86,20 @@ start "" "${appExePath}"\r
 \r
 :: Cleanup\r
 del "${exePath}" 2>nul\r
+del "${progressPath}" 2>nul\r
 del "${launcherPath}" 2>nul\r
 del "%~f0"\r
 goto :eof\r
 \r
 :timeout\r
 echo Timeout waiting for process to exit\r
+taskkill /f /im mshta.exe 2>nul\r
+del "${progressPath}" 2>nul\r
 del "${launcherPath}" 2>nul\r
 del "%~f0"\r
 `;
 
+  await writeFile(progressPath, progressHta);
   await writeFile(scriptPath, script);
 
   // Use a VBS launcher to run the batch script in a fully hidden window.
