@@ -25,6 +25,7 @@ portable:
 
 nsis:
   artifactName: "${productName}.Setup.${version}.${ext}"
+  include: "installer.nsh"
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerSidebar: build/installerSidebar.png

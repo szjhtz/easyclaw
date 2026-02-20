@@ -18,6 +18,7 @@ export async function installWindows(exePath: string, quitApp: () => void): Prom
   const launcherPath = join(tempDir, "easyclaw-update-launcher.vbs");
   const progressPath = join(tempDir, "easyclaw-update-progress.hta");
   const appExePath = process.execPath;
+  const appExeName = basename(appExePath); // e.g. "EasyClaw.exe"
   const installerName = basename(exePath);
 
   log.info(`Writing update helper script: ${scriptPath}`);
@@ -57,7 +58,10 @@ if not errorlevel 1 (\r
   goto waitapp\r
 )\r
 \r
-:: Kill orphan gateway/openclaw child processes that may hold file locks\r
+:: Kill orphan gateway processes that may hold file locks.\r
+:: The gateway runs as ${appExeName} (with ELECTRON_RUN_AS_NODE=1, detached=true)\r
+:: so after the main process exits, any remaining ${appExeName} is an orphan.\r
+taskkill /f /im ${appExeName} 2>nul\r
 taskkill /f /im openclaw-gateway.exe 2>nul\r
 taskkill /f /im openclaw.exe 2>nul\r
 \r
