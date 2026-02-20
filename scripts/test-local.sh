@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
-# release-local.sh — Build, test (e2e), and upload release to GitHub
+# test-local.sh — Build and run full test suite locally (unit + e2e)
 #
 # Usage:
-#   ./scripts/release-local.sh [version] [--skip-tests] [--skip-upload] [--upload-only]
+#   ./scripts/test-local.sh [version] [--skip-tests]
 #
 # Examples:
-#   ./scripts/release-local.sh 1.2.8          # full pipeline
-#   ./scripts/release-local.sh --skip-tests   # build + upload only
-#   ./scripts/release-local.sh --skip-upload  # build + test, no upload
-#   ./scripts/release-local.sh 1.2.8 --upload-only  # upload existing artifacts only
+#   ./scripts/test-local.sh 1.2.8          # full pipeline
+#   ./scripts/test-local.sh --skip-tests   # build + pack only (no tests)
 #
 # Pipeline:
 #   1. pnpm install              — ensure dependencies match lockfile
@@ -19,9 +17,8 @@
 #   5. pnpm run test             — unit tests (vitest via turbo)
 #   6. test:e2e:dev              — Playwright e2e against dev build
 #   7. pnpm run pack             — electron-builder --dir (unpacked app)
-#   8. test:e2e:prod             — Playwright e2e against packed app
-#   9. dist:mac / dist:win       — create distributable installers
-#  10. gh release upload         — upload artifacts to GitHub Release
+#   8. rebuild-native.sh         — restore dual prebuilds after electron-builder
+#   9. test:e2e:prod             — Playwright e2e against packed app
 #
 # Native module strategy:
 #   rebuild-native.sh builds better-sqlite3 twice (for Node.js and Electron)
@@ -47,15 +44,11 @@ step()  { echo ""; echo "========================================"; echo "  STEP
 
 # ---- Parse arguments ----
 SKIP_TESTS=false
-SKIP_UPLOAD=false
-UPLOAD_ONLY=false
 VERSION=""
 
 for arg in "$@"; do
   case "$arg" in
     --skip-tests)  SKIP_TESTS=true ;;
-    --skip-upload) SKIP_UPLOAD=true ;;
-    --upload-only) UPLOAD_ONLY=true ;;
     *)             VERSION="$arg" ;;
   esac
 done
@@ -63,11 +56,10 @@ done
 if [ -z "$VERSION" ]; then
   VERSION=$(node -e "console.log(require('$DESKTOP_DIR/package.json').version)")
 fi
-[ "$VERSION" = "0.0.0" ] && error "Version is 0.0.0. Pass a version: ./scripts/release-local.sh 1.2.8"
+[ "$VERSION" = "0.0.0" ] && error "Version is 0.0.0. Pass a version: ./scripts/test-local.sh 1.2.8"
 
-info "Release pipeline for EasyClaw v$VERSION"
+info "Test pipeline for EasyClaw v$VERSION"
 info "Platform: $(uname -s) ($(uname -m))"
-[ "$UPLOAD_ONLY" = true ] && info "Mode: upload-only (skipping build/test steps)"
 
 # ---- Determine platform ----
 case "$(uname -s)" in
@@ -75,11 +67,6 @@ case "$(uname -s)" in
   MINGW*|MSYS*) PLATFORM="win" ;;
   *)            PLATFORM="linux" ;;
 esac
-
-if [ "$UPLOAD_ONLY" = true ]; then
-  # Jump straight to upload
-  info "Skipping steps 1-9 (--upload-only)."
-else
 
 # ---- Step 1: Install dependencies ----
 step "Install dependencies"
@@ -140,11 +127,12 @@ rm -rf "$RELEASE_DIR"
 (cd "$DESKTOP_DIR" && pnpm run pack)
 info "Pack complete."
 
+# ---- Step 8: Restore dual prebuilds ----
 # electron-builder's @electron/rebuild overwrites build/Release/ with Electron ABI.
 # Restore dual prebuilds so the Node.js-based E2E seed helper can load better-sqlite3.
 bash "$REPO_ROOT/scripts/rebuild-native.sh"
 
-# ---- Step 8: E2E tests (prod mode) ----
+# ---- Step 9: E2E tests (prod mode) ----
 if [ "$SKIP_TESTS" = false ]; then
   step "Run E2E tests (prod mode)"
 
@@ -195,69 +183,10 @@ if [ "$SKIP_TESTS" = false ]; then
   fi
 fi
 
-# ---- Step 9: Build distributable installers ----
-step "Build distributable installers"
-if [ "$PLATFORM" = "mac" ]; then
-  (cd "$DESKTOP_DIR" && pnpm run dist:mac)
-  info "macOS DMG + ZIP built."
-elif [ "$PLATFORM" = "win" ]; then
-  (cd "$DESKTOP_DIR" && pnpm run dist:win)
-  info "Windows NSIS installer built."
-else
-  warn "No dist target for platform $PLATFORM"
-fi
-
-fi  # end of UPLOAD_ONLY skip
-
-# ---- Step 10: Upload to GitHub Release ----
-if [ "$SKIP_UPLOAD" = true ]; then
-  info "Skipping upload (--skip-upload flag)."
-else
-  step "Upload to GitHub Release v$VERSION"
-
-  command -v gh &>/dev/null || error "gh CLI not found. Install: https://cli.github.com/"
-  gh auth status || error "gh not authenticated. Run: gh auth login"
-
-  TAG="v$VERSION"
-
-  if ! gh release view "$TAG" &>/dev/null; then
-    info "Creating draft release $TAG ..."
-    gh release create "$TAG" --title "EasyClaw $TAG" --notes "Release $TAG" --draft
-    info "Draft release $TAG created."
-  fi
-
-  ARTIFACTS=()
-  while IFS= read -r -d '' file; do
-    ARTIFACTS+=("$file")
-  done < <(find "$RELEASE_DIR" -maxdepth 1 \( -name "*.dmg" -o -name "*.zip" -o -name "*Setup*.exe" \) -print0 2>/dev/null)
-
-  if [ ${#ARTIFACTS[@]} -eq 0 ]; then
-    warn "No artifacts found in $RELEASE_DIR to upload."
-  else
-    for artifact in "${ARTIFACTS[@]}"; do
-      info "Uploading: $(basename "$artifact")"
-      gh release upload "$TAG" "$artifact" --clobber
-    done
-    info "All artifacts uploaded to release $TAG."
-  fi
-fi
-
-# ---- Restore native prebuilds ----
-# electron-builder's internal electron-rebuild may overwrite build/Release/.
-# Re-run rebuild-native.sh to ensure both prebuilds are intact for dev use.
-if [ "$UPLOAD_ONLY" = false ]; then
-  step "Restore native prebuilds"
-  bash "$REPO_ROOT/scripts/rebuild-native.sh"
-  info "Native prebuilds restored."
-fi
-
 # ---- Done ----
 echo ""
 info "==============================================="
-info "  Release pipeline v$VERSION complete!"
+info "  Test pipeline v$VERSION complete!"
 info ""
-info "  Artifacts: $RELEASE_DIR/"
-if [ "$SKIP_UPLOAD" = false ]; then
-  info "  Review and publish the draft release on GitHub."
-fi
+info "  All local checks passed. Ready to publish."
 info "==============================================="

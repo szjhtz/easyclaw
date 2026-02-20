@@ -37,8 +37,8 @@ Only two operations re-create `build/Release/` with an Electron-ABI binary:
 
 | Operation | Where | Handled? |
 |-----------|-------|----------|
-| `electron-builder --dir` (pack) | `release-local.sh` Step 6 | Yes — `rebuild-native.sh` runs after |
-| `electron-builder --mac/--win` (dist) | `release-local.sh` Step 8 | Yes — `rebuild-native.sh` runs at end |
+| `electron-builder --dir` (pack) | `test-local.sh` Step 7 | Yes — `rebuild-native.sh` runs after (Step 8) |
+| `electron-builder --mac/--win` (dist) | CI `build.yml` only | N/A — runs on CI, not locally |
 
 The `dev` script does **not** run `electron-rebuild`. It relies on the prebuilds from `postinstall`.
 

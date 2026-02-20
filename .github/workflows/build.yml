@@ -122,3 +122,59 @@ jobs:
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
           retention-days: 30
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Read version from package.json
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./apps/desktop/package.json').version)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installers
+          path: artifacts/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-installers
+          path: artifacts/macos
+
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+
+          # Delete existing draft release for this tag (if re-running workflow)
+          if gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null | grep -q true; then
+            echo "Deleting existing draft release $TAG..."
+            gh release delete "$TAG" --yes
+            git push --delete origin "$TAG" 2>/dev/null || true
+          fi
+
+          # Create the draft release with release notes and all artifacts
+          gh release create "$TAG" \
+            --title "EasyClaw $TAG" \
+            --notes-file .github/RELEASE_BODY.md \
+            --draft \
+            artifacts/windows/* \
+            artifacts/macos/*
+
+          echo "Draft release $TAG created with all artifacts."

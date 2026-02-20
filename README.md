@@ -91,7 +91,8 @@ easyclaw/
 │   ├── file-permissions/ # OpenClaw plugin for file access control
 │   └── wecom/            # WeCom channel plugin (runs inside gateway)
 ├── scripts/
-│   ├── release-local.sh  # Local release pipeline (build, test, upload)
+│   ├── test-local.sh     # Local test pipeline (build + unit + e2e tests)
+│   ├── publish-release.sh # Publish draft GitHub Release
 │   └── rebuild-native.sh # Prebuild better-sqlite3 for Node.js + Electron
 ├── vendor/
 │   └── openclaw/         # Vendored OpenClaw binary (gitignored)
@@ -274,14 +275,13 @@ CSC_LINK=<path-to-.pfx-certificate>
 CSC_KEY_PASSWORD=<certificate-password>
 ```
 
-### Local Release
+### Local Testing
 
-The `scripts/release-local.sh` script handles the full pipeline:
+The `scripts/test-local.sh` script runs the full local test pipeline:
 
 ```bash
-./scripts/release-local.sh 1.2.8            # full pipeline
-./scripts/release-local.sh --skip-tests      # build + upload only
-./scripts/release-local.sh --skip-upload     # build + test, no upload
+./scripts/test-local.sh 1.2.8            # full pipeline
+./scripts/test-local.sh --skip-tests      # build + pack only
 ```
 
 This will:
@@ -289,8 +289,15 @@ This will:
 1. Prebuild native modules for Node.js + Electron
 2. Build all workspace packages
 3. Run unit tests and E2E tests (dev + prod)
-4. Build macOS DMG/ZIP or Windows NSIS installer
-5. Upload artifacts to a draft GitHub Release
+4. Pack the app (electron-builder --dir)
+
+### Publishing
+
+After CI builds complete and local tests pass:
+
+```bash
+./scripts/publish-release.sh             # publish draft release
+```
 
 ## Note: better-sqlite3 native module
 

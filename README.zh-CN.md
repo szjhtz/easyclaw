@@ -91,7 +91,8 @@ easyclaw/
 │   ├── file-permissions/ # OpenClaw 文件访问控制插件
 │   └── wecom/            # 企业微信通道插件（运行在网关内）
 ├── scripts/
-│   ├── release-local.sh  # 本地发布流程（构建、测试、上传）
+│   ├── test-local.sh     # 本地测试流程（构建 + 单元测试 + E2E 测试）
+│   ├── publish-release.sh # 发布 GitHub Release 草稿
 │   └── rebuild-native.sh # 预编译 better-sqlite3（Node.js + Electron）
 ├── vendor/
 │   └── openclaw/         # 内置的 OpenClaw（gitignored）
@@ -273,14 +274,13 @@ CSC_LINK=<.pfx 证书路径>
 CSC_KEY_PASSWORD=<证书密码>
 ```
 
-### 本地发布
+### 本地测试
 
-`scripts/release-local.sh` 脚本处理完整流程：
+`scripts/test-local.sh` 脚本运行完整的本地测试流程：
 
 ```bash
-./scripts/release-local.sh 1.2.8            # 完整流程
-./scripts/release-local.sh --skip-tests      # 仅构建 + 上传
-./scripts/release-local.sh --skip-upload     # 构建 + 测试，不上传
+./scripts/test-local.sh 1.2.8            # 完整流程
+./scripts/test-local.sh --skip-tests      # 仅构建 + 打包
 ```
 
 它会：
@@ -288,8 +288,15 @@ CSC_KEY_PASSWORD=<证书密码>
 1. 预编译 Node.js + Electron 的原生模块
 2. 构建所有工作区包
 3. 运行单元测试和 E2E 测试（开发 + 生产模式）
-4. 构建 macOS DMG/ZIP 或 Windows NSIS 安装包
-5. 上传到 GitHub Release 草稿
+4. 打包应用（electron-builder --dir）
+
+### 发布
+
+CI 构建完成且本地测试通过后：
+
+```bash
+./scripts/publish-release.sh             # 发布草稿 Release
+```
 
 ## 注意：better-sqlite3 原生模块
 

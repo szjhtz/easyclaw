@@ -130,7 +130,7 @@ E2E_EXECUTABLE_PATH=release/win-unpacked/EasyClaw.exe \
 
 ### Full release pipeline
 
-Both dev and prod E2E are included in `scripts/release-local.sh`. See the script header for the full 9-step pipeline and available flags (`--skip-tests`, `--skip-upload`, `--upload-only`).
+Both dev and prod E2E are included in `scripts/test-local.sh`. See the script header for the full 9-step pipeline and the `--skip-tests` flag.
 
 ## Writing New Tests
 
