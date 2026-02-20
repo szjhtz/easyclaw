@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.4.7",
+    "date": "2026-02-20",
+    "en": [
+      "Fixed portable exe filename containing spaces that broke release scripts"
+    ],
+    "zh": [
+      "修复 portable exe 文件名含空格导致发布脚本出错"
+    ]
+  },
+  {
     "version": "1.4.6",
     "date": "2026-02-20",
     "en": [
