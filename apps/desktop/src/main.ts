@@ -1411,7 +1411,8 @@ app.whenReady().then(async () => {
   const resolvedVendorDir = vendorDir ?? join(import.meta.dirname, "..", "..", "..", "vendor", "openclaw");
   const proxySetupPath = writeProxySetupModule(stateDir, resolvedVendorDir);
   // Quote the path — Windows usernames with spaces break unquoted --require
-  const gatewayNodeOptions = `--require "${proxySetupPath}"`;
+  const gatewayNodeOptions = `--require "${proxySetupPath.replaceAll("\\", "/")}"`;
+
 
   /**
    * Build the complete proxy env including NODE_OPTIONS.
