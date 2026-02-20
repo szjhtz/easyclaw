@@ -206,11 +206,16 @@ export async function readFullModelCatalog(
     }
   }
 
-  // Subscription plans without their own models inherit from the parent provider
+  // Subscription plans without their own models inherit from a catalog provider.
+  // Plans with `catalogProvider` (e.g. gemini → google-gemini-cli) use that
+  // vendor catalog; others fall back to the parent root provider.
   for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
     for (const plan of PROVIDERS[root].subscriptionPlans ?? []) {
-      if (!merged[plan.id] && merged[root]) {
-        merged[plan.id] = merged[root];
+      if (!merged[plan.id]) {
+        const source = plan.catalogProvider ?? root;
+        if (merged[source]) {
+          merged[plan.id] = merged[source];
+        }
       }
     }
   }

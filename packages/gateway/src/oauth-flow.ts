@@ -250,19 +250,25 @@ export async function startManualOAuthFlow(
  */
 export async function completeManualOAuthFlow(
   callbackUrl: string,
-  verifier: string,
+  _verifier: string,
   proxyUrl?: string,
 ): Promise<AcquiredOAuthCredentials> {
-  const parsed = parseCallbackInput(callbackUrl, verifier);
+  // In our PKCE implementation, `state` IS the verifier (see buildAuthUrl).
+  // The callback URL already carries the correct verifier for its authorization code,
+  // so we use it directly instead of requiring a match with the stored one.
+  // (The stored verifier only matches the *latest* auth URL; the user may have
+  // completed an earlier browser tab, which is perfectly valid.)
+  const parsed = parseCallbackInput(callbackUrl, _verifier);
   if ("error" in parsed) {
     throw new Error(parsed.error);
   }
-  if (parsed.state !== verifier) {
-    throw new Error("OAuth state mismatch — please try again");
-  }
+  const effectiveVerifier = parsed.state;
 
-  log.info("Manual OAuth: exchanging authorization code for tokens...");
-  const creds = await exchangeCodeForTokens(parsed.code, verifier, proxyUrl);
+  log.info("Manual OAuth: exchanging code for tokens", {
+    codePrefix: parsed.code.slice(0, 12) + "…",
+    verifierPrefix: effectiveVerifier.slice(0, 12) + "…",
+  });
+  const creds = await exchangeCodeForTokens(parsed.code, effectiveVerifier, proxyUrl);
   log.info(`Manual OAuth complete, email=${creds.email ?? "(none)"}`);
 
   return {

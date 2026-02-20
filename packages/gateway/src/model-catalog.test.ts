@@ -248,6 +248,12 @@ describe("readFullModelCatalog", () => {
             { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
           ],
         },
+        "google-gemini-cli": {
+          models: [
+            { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
+            { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+          ],
+        },
       },
     }));
 
@@ -259,10 +265,12 @@ describe("readFullModelCatalog", () => {
     expect(result.claude!.map((m) => m.id)).toContain("claude-sonnet-4-20250514");
     expect(result.claude!.map((m) => m.id)).toContain("claude-opus-4-6");
 
-    // "gemini" subscription plan should inherit google's models
+    // "gemini" subscription plan should inherit google-gemini-cli's models
+    // (via catalogProvider: "google-gemini-cli" — OAuth tokens require Bearer auth)
     expect(result.gemini).toBeDefined();
-    expect(result.gemini!.length).toBe(1);
-    expect(result.gemini![0].id).toBe("gemini-2.5-pro");
+    expect(result.gemini!.length).toBe(2);
+    expect(result.gemini!.map((m) => m.id)).toContain("gemini-2.5-pro");
+    expect(result.gemini!.map((m) => m.id)).toContain("gemini-2.5-flash");
   });
 
   it("should NOT override subscription plans that have their own extraModels", async () => {

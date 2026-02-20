@@ -158,17 +158,23 @@ export async function syncAllAuthProfiles(
             email?: string;
             projectId?: string;
           };
-          const profileId = `${gwProvider}:${cred.email ?? "default"}`;
+          // Google OAuth requires "google-gemini-cli" provider — the vendor has
+          // two separate Google API types:
+          //   "google" (google-generative-ai) → @google/genai SDK, x-goog-api-key header
+          //   "google-gemini-cli"              → raw fetch, Authorization: Bearer header
+          // OAuth tokens only work with the Bearer auth path.
+          const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
+          const profileId = `${oauthProvider}:${cred.email ?? "default"}`;
           store.profiles[profileId] = {
             type: "oauth",
-            provider: gwProvider,
+            provider: oauthProvider,
             access: cred.access,
             refresh: cred.refresh,
             expires: cred.expires,
             email: cred.email,
             projectId: cred.projectId,
           };
-          store.order![gwProvider] = [profileId];
+          store.order![oauthProvider] = [profileId];
         } catch {
           log.warn(`Failed to parse OAuth credential for ${key.provider} (key ${key.id})`);
         }
@@ -227,10 +233,11 @@ export async function syncBackOAuthCredentials(
 
   let synced = 0;
   for (const key of oauthKeys) {
-    // Find the matching profile in auth-profiles.json using the gateway provider name
+    // Find the matching OAuth profile in auth-profiles.json.
     const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
+    const oauthProvider = gwProvider === "google" ? "google-gemini-cli" : gwProvider;
     const matchingProfile = Object.values(store.profiles).find(
-      (p) => p.type === "oauth" && p.provider === gwProvider,
+      (p) => p.type === "oauth" && p.provider === oauthProvider,
     ) as OAuthProfile | undefined;
 
     if (!matchingProfile) continue;

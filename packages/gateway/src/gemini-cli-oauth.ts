@@ -548,7 +548,7 @@ export async function exchangeCodeForTokens(
   const response = await proxiedFetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
+    body: body.toString(),
   }, proxyUrl);
 
   if (!response.ok) {
@@ -646,6 +646,13 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     throw new Error("loadCodeAssist failed", { cause: err });
   }
 
+  // TODO: remove after debugging customer tier issue
+  console.log("[discoverProject] loadCodeAssist response:", JSON.stringify({
+    currentTier: data.currentTier,
+    allowedTiers: data.allowedTiers,
+    cloudaicompanionProject: data.cloudaicompanionProject,
+  }));
+
   if (data.currentTier) {
     const project = data.cloudaicompanionProject;
     if (typeof project === "string" && project) {
@@ -662,15 +669,14 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     // project hasn't been provisioned yet.
   }
 
-  // When the user already has a tier (e.g. Gemini Pro subscriber) but no project,
-  // use free-tier onboarding to auto-provision a project. Google's backend will
-  // still respect the user's actual subscription tier.
-  const hasExistingTierButNoProject = !!data.currentTier;
-  const tier = hasExistingTierButNoProject ? { id: TIER_FREE } : getDefaultTier(data.allowedTiers);
+  const tier = getDefaultTier(data.allowedTiers);
   const tierId = tier?.id || TIER_FREE;
   if (tierId !== TIER_FREE && !envProject) {
+    // TODO: once we understand what loadCodeAssist returns for consumer Gemini Pro
+    // users, replace this with the correct fallback logic.
     throw new Error(
-      "This account requires GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_PROJECT_ID to be set.",
+      `This account's default tier is "${tierId}" which requires GOOGLE_CLOUD_PROJECT. ` +
+      `allowedTiers=${JSON.stringify(data.allowedTiers)}`,
     );
   }
 

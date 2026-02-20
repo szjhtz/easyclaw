@@ -675,8 +675,21 @@ app.whenReady().then(async () => {
   let pendingManualOAuthVerifier: string | null = null;
 
   // Check if there's an active Gemini OAuth key — if so, enable the plugin
-  const hasGeminiOAuth = storage.providerKeys.getAll()
-    .some((k) => k.provider === "gemini" && k.authType === "oauth" && k.isDefault);
+  // and route Google models through the "google-gemini-cli" provider (Bearer auth).
+  function isGeminiOAuthActive(): boolean {
+    return storage.providerKeys.getAll()
+      .some((k) => k.provider === "gemini" && k.authType === "oauth" && k.isDefault);
+  }
+  // Resolve model for OAuth: when Gemini OAuth is active, route to "google-gemini-cli"
+  // (Cloud Code Assist API with Bearer auth) instead of "google" (Generative AI API
+  // with x-goog-api-key header which rejects OAuth tokens).
+  function resolveGeminiOAuthModel(provider: string, modelId: string): { provider: string; modelId: string } {
+    if (!isGeminiOAuthActive() || provider !== "gemini") {
+      return { provider, modelId };
+    }
+    return { provider: "google-gemini-cli", modelId };
+  }
+  const hasGeminiOAuth = isGeminiOAuthActive();
 
   writeGatewayConfig({
     configPath,
@@ -688,10 +701,7 @@ app.whenReady().then(async () => {
     enableGeminiCliAuth: hasGeminiOAuth,
     skipBootstrap: false,
     filePermissionsPluginPath,
-    defaultModel: {
-      provider: startupModelConfig.provider,
-      modelId: startupModelConfig.modelId,
-    },
+    defaultModel: resolveGeminiOAuthModel(startupModelConfig.provider, startupModelConfig.modelId),
     stt: {
       enabled: sttEnabled,
       provider: sttProvider,
@@ -953,10 +963,7 @@ app.whenReady().then(async () => {
     // Rewrite the OpenClaw config with the new default model
     writeGatewayConfig({
       configPath,
-      defaultModel: {
-        provider: modelConfig.provider,
-        modelId: modelConfig.modelId,
-      },
+      defaultModel: resolveGeminiOAuthModel(modelConfig.provider, modelConfig.modelId),
       extraProviders: buildExtraProviderConfigs(),
     });
 
@@ -1334,12 +1341,18 @@ app.whenReady().then(async () => {
       });
       pendingOAuthCreds = null;
 
-      // Enable plugin + sync auth profiles + rewrite config
+      // Enable plugin + sync auth profiles + rewrite config with google-gemini-cli model
       await syncAllAuthProfiles(stateDir, storage, secretStore);
       await writeProxyRouterConfig(storage, secretStore, lastSystemProxy);
+      // Resolve the model to write: prefer user-selected model from the form,
+      // fall back to current settings, then to the default CLI model.
+      const oauthModelId = options.model
+        ?? storage.providerKeys.getDefault("gemini")?.model
+        ?? "gemini-2.5-pro";
       writeGatewayConfig({
         configPath,
         enableGeminiCliAuth: true,
+        defaultModel: resolveGeminiOAuthModel("gemini", oauthModelId),
         extraProviders: buildExtraProviderConfigs(),
       });
       // Restart gateway to pick up new plugin + auth profile

@@ -63,6 +63,9 @@ export interface SubscriptionPlan {
   envVar: string;
   /** Whether this plan uses OAuth instead of API keys. */
   oauth?: boolean;
+  /** Vendor catalog provider to inherit models from (instead of parent).
+   *  e.g. "google-gemini-cli" for Gemini OAuth which uses Cloud Code Assist API. */
+  catalogProvider?: string;
   /** Extra models specific to this plan. */
   extraModels?: ModelConfig[];
   /** Preferred default model ID for this plan. */
@@ -171,6 +174,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
         apiKeyUrl: "https://gemini.google/subscriptions/",
         envVar: "GOOGLE_GEMINI_CLI_API_KEY",
         oauth: true,
+        catalogProvider: "google-gemini-cli",
       },
     ],
   },
