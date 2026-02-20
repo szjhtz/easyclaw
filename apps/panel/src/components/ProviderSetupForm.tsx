@@ -141,7 +141,12 @@ export function ProviderSetupForm({
         .then((h) => {
           setHealthStatus(h);
           if (h.ok) {
-            return fetchLocalModels(url).then(setLocalModels);
+            return fetchLocalModels(url).then((models) => {
+              setLocalModels(models);
+              if (models.length > 0 && !modelName) {
+                setModelName(models[0].id);
+              }
+            });
           }
         })
         .catch(() => setHealthStatus({ ok: false }))
