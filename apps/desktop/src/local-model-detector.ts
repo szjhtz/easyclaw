@@ -1,4 +1,5 @@
 import { createLogger } from "@easyclaw/logger";
+import { request } from "node:http";
 
 const log = createLogger("local-model-detector");
 
@@ -22,19 +23,35 @@ const PROBE_TARGETS: ProbeTarget[] = [
 
 const PROBE_TIMEOUT_MS = 2000;
 
+/** HTTP GET using node:http — see local-model-fetcher.ts for rationale. */
+function httpGet(url: string, timeoutMs: number): Promise<{ status: number; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = request(new URL(url), (res) => {
+      let body = "";
+      res.setEncoding("utf8");
+      res.on("data", (chunk) => { body += chunk; });
+      res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      reject(new Error("Connection timed out"));
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 /**
  * Probe a single local model server.
  * Returns a detected server or null if unreachable.
  */
 async function probeServer(target: ProbeTarget): Promise<LocalModelServer | null> {
   const url = `http://${target.host}:${target.port}${target.versionPath}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
   try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) return null;
-    const data = await res.json() as { version?: string };
+    const { status, body } = await httpGet(url, PROBE_TIMEOUT_MS);
+    if (status < 200 || status >= 300) return null;
+    const data = JSON.parse(body) as { version?: string };
     return {
       type: target.type,
       baseUrl: `http://${target.host}:${target.port}`,
@@ -43,8 +60,6 @@ async function probeServer(target: ProbeTarget): Promise<LocalModelServer | null
     };
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
