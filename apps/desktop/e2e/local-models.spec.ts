@@ -245,8 +245,9 @@ test.describe("Local Models E2E", () => {
     const removeBtn = card.locator(".btn-danger");
     await removeBtn.click();
 
-    // Key card should disappear
-    await expect(keyCards).toHaveCount(initialCount, { timeout: 10_000 });
+    // The specific card should disappear, then total count should match
+    await expect(card).not.toBeVisible();
+    await expect(keyCards).toHaveCount(initialCount);
   });
 
   // ── Test 3: Connection failure handling ─────────────────────────────
