@@ -123,7 +123,8 @@ export interface ProviderKeyEntry {
   model: string;
   isDefault: boolean;
   proxyUrl?: string;
-  authType?: "api_key" | "oauth";
+  authType?: "api_key" | "oauth" | "local";
+  baseUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -139,9 +140,10 @@ export async function createProviderKey(data: {
   provider: string;
   label: string;
   model: string;
-  apiKey: string;
+  apiKey?: string;
   proxyUrl?: string;
-  authType?: "api_key" | "oauth";
+  authType?: "api_key" | "oauth" | "local";
+  baseUrl?: string;
 }): Promise<ProviderKeyEntry> {
   const result = await fetchJson<ProviderKeyEntry>("/provider-keys", {
     method: "POST",
@@ -153,7 +155,7 @@ export async function createProviderKey(data: {
 
 export async function updateProviderKey(
   id: string,
-  fields: { label?: string; model?: string; proxyUrl?: string },
+  fields: { label?: string; model?: string; proxyUrl?: string; baseUrl?: string },
 ): Promise<ProviderKeyEntry> {
   const result = await fetchJson<ProviderKeyEntry>("/provider-keys/" + id, {
     method: "PUT",
@@ -171,6 +173,34 @@ export async function activateProviderKey(id: string): Promise<void> {
 export async function deleteProviderKey(id: string): Promise<void> {
   await fetchJson("/provider-keys/" + id, { method: "DELETE" });
   invalidateCache("provider-keys");
+}
+
+// --- Local Models ---
+
+export interface LocalModelServer {
+  type: "ollama" | "lmstudio" | "vllm" | "custom";
+  baseUrl: string;
+  version?: string;
+  status: "detected" | "offline";
+}
+
+export async function detectLocalModels(): Promise<LocalModelServer[]> {
+  const data = await fetchJson<{ servers: LocalModelServer[] }>("/local-models/detect");
+  return data.servers;
+}
+
+export async function fetchLocalModels(baseUrl: string): Promise<Array<{ id: string; name: string }>> {
+  const data = await fetchJson<{ models: Array<{ id: string; name: string }> }>(
+    "/local-models/models?baseUrl=" + encodeURIComponent(baseUrl),
+  );
+  return data.models;
+}
+
+export async function checkLocalModelHealth(baseUrl: string): Promise<{ ok: boolean; version?: string; error?: string }> {
+  return fetchJson<{ ok: boolean; version?: string; error?: string }>(
+    "/local-models/health",
+    { method: "POST", body: JSON.stringify({ baseUrl }) },
+  );
 }
 
 // --- OAuth Flow ---

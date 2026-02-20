@@ -272,6 +272,11 @@ export interface WriteGatewayConfigOptions {
       maxTokens?: number;
     }>;
   }>;
+  /** Override base URLs and models for local providers (e.g. Ollama with user-configured endpoint). */
+  localProviderOverrides?: Record<string, {
+    baseUrl: string;
+    models: Array<{ id: string; name: string }>;
+  }>;
 }
 
 
@@ -597,6 +602,44 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
       providers: {
         ...existingProviders,
         ...options.extraProviders,
+      },
+    };
+  }
+
+  // Local provider overrides → models.providers (e.g. Ollama with dynamic models)
+  if (options.localProviderOverrides !== undefined && Object.keys(options.localProviderOverrides).length > 0) {
+    const existingModels =
+      typeof config.models === "object" && config.models !== null
+        ? (config.models as Record<string, unknown>)
+        : {};
+    const existingProviders =
+      typeof existingModels.providers === "object" && existingModels.providers !== null
+        ? (existingModels.providers as Record<string, unknown>)
+        : {};
+
+    const localEntries: Record<string, unknown> = {};
+    for (const [provider, override] of Object.entries(options.localProviderOverrides)) {
+      localEntries[provider] = {
+        baseUrl: override.baseUrl,
+        api: "openai-completions",
+        models: override.models.map((m) => ({
+          id: m.id,
+          name: m.name,
+          reasoning: false,
+          input: ["text"],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128000,
+          maxTokens: 8192,
+        })),
+      };
+    }
+
+    config.models = {
+      ...existingModels,
+      mode: existingModels.mode ?? "merge",
+      providers: {
+        ...existingProviders,
+        ...localEntries,
       },
     };
   }

@@ -179,6 +179,17 @@ export async function syncAllAuthProfiles(
           log.warn(`Failed to parse OAuth credential for ${key.provider} (key ${key.id})`);
         }
       }
+    } else if (key.authType === "local") {
+      // Local provider (e.g. Ollama): key is optional — use dummy if absent
+      const realKey = await secretStore.get(`provider-key-${key.id}`);
+      const apiKey = realKey ?? key.provider;
+      const profileId = `${gwProvider}:active`;
+      store.profiles[profileId] = {
+        type: "api_key",
+        provider: gwProvider,
+        key: apiKey,
+      };
+      store.order![gwProvider] = [profileId];
     } else {
       // API key entry: existing behavior
       const apiKey = await secretStore.get(`provider-key-${key.id}`);

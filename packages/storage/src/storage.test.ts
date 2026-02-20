@@ -463,6 +463,36 @@ describe("ProviderKeysRepository", () => {
   it("should return false when deleting non-existent key", () => {
     expect(storage.providerKeys.delete("nope")).toBe(false);
   });
+
+  it("should create and update a local provider key with baseUrl", () => {
+    const key = storage.providerKeys.create({
+      id: "local-1",
+      provider: "ollama",
+      label: "Ollama",
+      model: "llama3.2",
+      isDefault: true,
+      authType: "local",
+      baseUrl: "http://localhost:11434",
+      createdAt: "",
+      updatedAt: "",
+    });
+
+    expect(key.provider).toBe("ollama");
+    expect(key.authType).toBe("local");
+    expect(key.baseUrl).toBe("http://localhost:11434");
+
+    const fetched = storage.providerKeys.getById("local-1");
+    expect(fetched?.baseUrl).toBe("http://localhost:11434");
+    expect(fetched?.authType).toBe("local");
+
+    // Update baseUrl
+    const updated = storage.providerKeys.update("local-1", { baseUrl: "http://192.168.1.100:11434" });
+    expect(updated?.baseUrl).toBe("http://192.168.1.100:11434");
+
+    // Verify persisted
+    const refetched = storage.providerKeys.getById("local-1");
+    expect(refetched?.baseUrl).toBe("http://192.168.1.100:11434");
+  });
 });
 
 describe("UsageSnapshotsRepository", () => {
@@ -850,7 +880,7 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string; applied_at: string }>;
 
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
     expect(rows[0].id).toBe(1);
     expect(rows[0].name).toBe("initial_schema");
     expect(rows[1].id).toBe(2);
@@ -861,6 +891,8 @@ describe("Database", () => {
     expect(rows[6].name).toBe("add_budget_columns_to_provider_keys");
     expect(rows[7].id).toBe(8);
     expect(rows[7].name).toBe("add_usage_snapshots_and_history");
+    expect(rows[8].id).toBe(9);
+    expect(rows[8].name).toBe("add_base_url_to_provider_keys");
   });
 
   it("should not re-apply migrations on second open", () => {
@@ -872,6 +904,6 @@ describe("Database", () => {
       .prepare("SELECT * FROM _migrations")
       .all() as Array<{ id: number; name: string }>;
 
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
   });
 });

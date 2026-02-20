@@ -37,6 +37,7 @@ export {
   ALL_PROVIDERS,
   SUBSCRIPTION_PROVIDER_IDS,
   API_PROVIDER_IDS,
+  LOCAL_PROVIDER_IDS,
   CNY_USD,
   providerSecretKey,
   getProviderMeta,

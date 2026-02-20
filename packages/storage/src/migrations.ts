@@ -142,4 +142,11 @@ export const migrations: Migration[] = [
         ON usage_snapshots (key_id, model, snapshot_time DESC);
     `,
   },
+  {
+    id: 9,
+    name: "add_base_url_to_provider_keys",
+    sql: `
+      ALTER TABLE provider_keys ADD COLUMN base_url TEXT DEFAULT NULL;
+    `,
+  },
 ];

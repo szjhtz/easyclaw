@@ -1156,6 +1156,20 @@ tbody td {
   gap: 8px;
 }
 
+.form-row-vcenter {
+  align-items: center;
+}
+
+.form-col-4 {
+  flex: 4;
+  min-width: 0;
+}
+
+.form-col-6 {
+  flex: 6;
+  min-width: 0;
+}
+
 .provider-links {
   display: flex;
   gap: 16px;

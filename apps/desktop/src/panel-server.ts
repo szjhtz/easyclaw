@@ -1312,6 +1312,10 @@ async function syncActiveKey(
     if (keyValue) {
       await secretStore.set(canonicalKey, keyValue);
       log.info(`Synced active key for ${provider} (${activeKey.label}) to ${canonicalKey}`);
+    } else if (activeKey.authType === "local") {
+      // Local providers (e.g. Ollama) don't require an API key — use provider name as dummy
+      await secretStore.set(canonicalKey, provider);
+      log.info(`Synced dummy key for local provider ${provider} to ${canonicalKey}`);
     }
   } else {
     await secretStore.delete(canonicalKey);
@@ -1999,18 +2003,29 @@ async function handleApiRoute(
       model?: string;
       apiKey?: string;
       proxyUrl?: string;
-      authType?: "api_key" | "oauth";
+      authType?: "api_key" | "oauth" | "local";
+      baseUrl?: string;
     };
-    if (!body.provider || !body.apiKey) {
-      sendJson(res, 400, { error: "Missing required fields: provider, apiKey" });
+
+    const isLocal = body.authType === "local";
+
+    if (!body.provider) {
+      sendJson(res, 400, { error: "Missing required field: provider" });
+      return;
+    }
+    if (!isLocal && !body.apiKey) {
+      sendJson(res, 400, { error: "Missing required field: apiKey" });
       return;
     }
 
-    // Validate key before saving
-    const validation = await validateProviderApiKey(body.provider, body.apiKey, body.proxyUrl || undefined);
-    if (!validation.valid) {
-      sendJson(res, 422, { error: validation.error || "Invalid API key" });
-      return;
+    // For local providers: skip API key validation (key is optional)
+    // For cloud providers: validate key before saving
+    if (!isLocal) {
+      const validation = await validateProviderApiKey(body.provider, body.apiKey!, body.proxyUrl || undefined);
+      if (!validation.valid) {
+        sendJson(res, 422, { error: validation.error || "Invalid API key" });
+        return;
+      }
     }
 
     const id = randomUUID();
@@ -2046,12 +2061,15 @@ async function handleApiRoute(
       isDefault: isFirst,
       proxyBaseUrl,
       authType: body.authType ?? "api_key",
+      baseUrl: isLocal ? (body.baseUrl || null) : null,
       createdAt: "",
       updatedAt: "",
     });
 
-    // Store the actual key in secret store
-    await secretStore.set(`provider-key-${id}`, body.apiKey);
+    // Store the actual key in secret store (optional for local providers)
+    if (body.apiKey) {
+      await secretStore.set(`provider-key-${id}`, body.apiKey);
+    }
 
     // If first key for this provider, set as active provider
     if (isFirst) {
@@ -2124,7 +2142,7 @@ async function handleApiRoute(
     // Skip if contains slash (handled by activate above)
     if (!id.includes("/")) {
       if (req.method === "PUT") {
-        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string };
+        const body = (await parseBody(req)) as { label?: string; model?: string; proxyUrl?: string; baseUrl?: string };
         const existing = storage.providerKeys.getById(id);
         if (!existing) {
           sendJson(res, 404, { error: "Key not found" });
@@ -2167,6 +2185,7 @@ async function handleApiRoute(
           label: body.label,
           model: body.model,
           proxyBaseUrl,
+          baseUrl: body.baseUrl,
         });
 
         // W15-C: Record activation for the new model (AFTER update)
@@ -2224,6 +2243,39 @@ async function handleApiRoute(
         return;
       }
     }
+  }
+
+  // --- Local Models ---
+
+  if (pathname === "/api/local-models/detect" && req.method === "GET") {
+    const { detectLocalServers } = await import("./local-model-detector.js");
+    const servers = await detectLocalServers();
+    sendJson(res, 200, { servers });
+    return;
+  }
+
+  if (pathname === "/api/local-models/models" && req.method === "GET") {
+    const baseUrl = url.searchParams.get("baseUrl");
+    if (!baseUrl) {
+      sendJson(res, 400, { error: "Missing required parameter: baseUrl" });
+      return;
+    }
+    const { fetchOllamaModels } = await import("./local-model-fetcher.js");
+    const models = await fetchOllamaModels(baseUrl);
+    sendJson(res, 200, { models });
+    return;
+  }
+
+  if (pathname === "/api/local-models/health" && req.method === "POST") {
+    const body = (await parseBody(req)) as { baseUrl?: string };
+    if (!body.baseUrl) {
+      sendJson(res, 400, { error: "Missing required field: baseUrl" });
+      return;
+    }
+    const { checkHealth } = await import("./local-model-fetcher.js");
+    const result = await checkHealth(body.baseUrl);
+    sendJson(res, 200, result);
+    return;
   }
 
   // --- Model Catalog ---

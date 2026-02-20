@@ -36,7 +36,7 @@ export interface KeyModelUsageSummary {
   cacheReadTokens: number;
   cacheWriteTokens: number;
   totalCostUsd: string;
-  authType: "api_key" | "oauth";
+  authType: "api_key" | "oauth" | "local";
 }
 
 /** Daily-bucketed usage for a key/model (for time-series charts). */

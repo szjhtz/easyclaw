@@ -10,7 +10,6 @@ import {
   updateProviderKey,
   activateProviderKey,
   deleteProviderKey,
-  startOAuthFlow,
 } from "../api.js";
 import type { ProviderKeyEntry } from "../api.js";
 import { ModelSelect } from "../components/ModelSelect.js";
@@ -27,9 +26,9 @@ export function ProvidersPage() {
   const [validating, setValidating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [error, setError] = useState<{ key: string; detail?: string } | null>(null);
-  const [oauthLoading, setOauthLoading] = useState(false);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editLabelValue, setEditLabelValue] = useState("");
+  const [editBaseUrl, setEditBaseUrl] = useState("");
 
   useEffect(() => {
     loadData();
@@ -144,6 +143,21 @@ export function ProvidersPage() {
     }
   }
 
+  async function handleBaseUrlChange(keyId: string, newBaseUrl: string) {
+    setError(null);
+    setSaving(true);
+    try {
+      const updated = await updateProviderKey(keyId, { baseUrl: newBaseUrl || null as any });
+      setKeys((prev) => prev.map((k) => (k.id === keyId ? updated : k)));
+      setSavedId(keyId);
+      setTimeout(() => setSavedId(null), 2000);
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleLabelSave(keyId: string) {
     const trimmed = editLabelValue.trim();
     if (!trimmed) return;
@@ -154,19 +168,6 @@ export function ProvidersPage() {
       setEditingLabelId(null);
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
-    }
-  }
-
-  async function handleOAuthReauth(provider: string) {
-    setOauthLoading(true);
-    setError(null);
-    try {
-      await startOAuthFlow(provider);
-      await loadData();
-    } catch (err) {
-      setError({ key: "providers.failedToSave", detail: String(err) });
-    } finally {
-      setOauthLoading(false);
     }
   }
 
@@ -209,9 +210,11 @@ export function ProvidersPage() {
                       <div className="key-meta">
                         <strong style={{ fontSize: 13 }}>{t(`providers.label_${k.provider}`)}</strong>
                         <span className="badge badge-muted">
-                          {k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
-                            ? t("providers.authTypeSubscription")
-                            : t("providers.authTypeApiKey")}
+                          {k.authType === "local"
+                            ? t("providers.badgeLocal")
+                            : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
+                              ? t("providers.authTypeSubscription")
+                              : t("providers.authTypeApiKey")}
                         </span>
                         {isActive && (
                           <span className="badge badge-active">
@@ -225,6 +228,9 @@ export function ProvidersPage() {
                               <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#b8860b" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                           </span>
+                        )}
+                        {k.authType === "local" && k.baseUrl && (
+                          <span className="text-secondary" style={{ fontSize: 12 }}>{k.baseUrl}</span>
                         )}
                         {savedId === k.id && (
                           <span className="badge-saved">{t("common.saved")}</span>
@@ -275,75 +281,94 @@ export function ProvidersPage() {
                           {t("providers.activate")}
                         </button>
                       )}
-                      {k.authType === "oauth" ? (
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleOAuthReauth(k.provider)} disabled={oauthLoading}>
-                          {oauthLoading ? t("providers.oauthLoading") : t("providers.oauthReauthenticate")}
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setExpandedKeyId(isExp ? null : k.id);
-                            setUpdateApiKey("");
-                            setEditProxyUrl(k.proxyUrl || "");
-                          }}
-                        >
-                          {t("providers.updateKey")}
-                        </button>
-                      )}
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setExpandedKeyId(isExp ? null : k.id);
+                          setUpdateApiKey("");
+                          setEditProxyUrl(k.proxyUrl || "");
+                          setEditBaseUrl(k.baseUrl || "");
+                        }}
+                      >
+                        {k.authType === "local" ? t("providers.updateUrl") : t("providers.updateKey")}
+                      </button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
                         {t("providers.removeKey")}
                       </button>
                     </div>
                   </div>
 
-                  {/* Expanded: update key / proxy form */}
+                  {/* Expanded: update key / proxy / baseUrl form */}
                   {isExp && (
                     <div className="key-expanded">
-                      <div className="form-row">
-                        <input
-                          type="password"
-                          autoComplete="off"
-                          data-1p-ignore
-                          value={updateApiKey}
-                          onChange={(e) => setUpdateApiKey(e.target.value)}
-                          placeholder={k.provider === "anthropic" || k.provider === "claude" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
-                          className="flex-1 input-mono"
-                        />
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => handleUpdateKey(k.id, k.provider)}
-                          disabled={saving || validating || !updateApiKey.trim()}
-                        >
-                          {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
-                        </button>
-                      </div>
-                      <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
-                      {(k.provider === "anthropic" || k.provider === "claude") && (
-                        <div className="info-box info-box-yellow" style={{ marginTop: 6 }}>
-                          {t("providers.anthropicTokenWarning")}
-                        </div>
+                      {k.authType === "local" ? (
+                        <>
+                          <div className="form-row">
+                            <input
+                              type="text"
+                              value={editBaseUrl}
+                              onChange={(e) => setEditBaseUrl(e.target.value)}
+                              placeholder={t("providers.baseUrlPlaceholder")}
+                              className="flex-1 input-mono"
+                            />
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => handleBaseUrlChange(k.id, editBaseUrl)}
+                              disabled={saving || editBaseUrl === (k.baseUrl || "")}
+                            >
+                              {saving ? "..." : t("common.save")}
+                            </button>
+                          </div>
+                          <small className="form-help-sm">{t("providers.baseUrlHelp")}</small>
+                        </>
+                      ) : (
+                        <>
+                          <div className="form-row">
+                            <input
+                              type="password"
+                              autoComplete="off"
+                              data-1p-ignore
+                              value={updateApiKey}
+                              onChange={(e) => setUpdateApiKey(e.target.value)}
+                              placeholder={k.provider === "anthropic" || k.provider === "claude" ? t("providers.anthropicUpdatePlaceholder") : t("providers.updateKeyPlaceholder")}
+                              className="flex-1 input-mono"
+                            />
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => handleUpdateKey(k.id, k.provider)}
+                              disabled={saving || validating || !updateApiKey.trim()}
+                            >
+                              {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
+                            </button>
+                          </div>
+                          <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
+                          {(k.provider === "anthropic" || k.provider === "claude") && (
+                            <div className="info-box info-box-yellow" style={{ marginTop: 6 }}>
+                              {t("providers.anthropicTokenWarning")}
+                            </div>
+                          )}
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid var(--color-border)` }}>
+                            <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
+                            <div className="form-row">
+                              <input
+                                type="text"
+                                value={editProxyUrl}
+                                onChange={(e) => setEditProxyUrl(e.target.value)}
+                                placeholder={t("providers.proxyPlaceholder")}
+                                className="flex-1 input-mono"
+                              />
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => handleProxyChange(k.id, editProxyUrl)}
+                                disabled={saving || editProxyUrl === (k.proxyUrl || "")}
+                              >
+                                {saving ? "..." : t("common.save")}
+                              </button>
+                            </div>
+                            <small className="form-help-sm">{t("providers.proxyHelp")}</small>
+                          </div>
+                        </>
                       )}
-                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid var(--color-border)` }}>
-                        <div className="form-label text-secondary">{t("providers.proxyLabel")}</div>
-                        <div className="form-row">
-                          <input
-                            type="text"
-                            value={editProxyUrl}
-                            onChange={(e) => setEditProxyUrl(e.target.value)}
-                            placeholder={t("providers.proxyPlaceholder")}
-                            className="flex-1 input-mono"
-                          />
-                          <button
-                            className="btn btn-primary"
-                            onClick={() => handleProxyChange(k.id, editProxyUrl)}
-                            disabled={saving || editProxyUrl === (k.proxyUrl || "")}
-                          >
-                            {saving ? "..." : t("common.save")}
-                          </button>
-                        </div>
-                        <small className="form-help-sm">{t("providers.proxyHelp")}</small>
-                      </div>
                     </div>
                   )}
                 </div>

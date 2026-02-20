@@ -22,7 +22,7 @@ import {
 } from "@easyclaw/gateway";
 import type { OAuthFlowResult, AcquiredOAuthCredentials } from "@easyclaw/gateway";
 import type { GatewayState } from "@easyclaw/gateway";
-import { resolveModelConfig, ALL_PROVIDERS, getDefaultModelForProvider, getProviderMeta, providerSecretKey, reconstructProxyUrl, parseProxyUrl } from "@easyclaw/core";
+import { resolveModelConfig, ALL_PROVIDERS, LOCAL_PROVIDER_IDS, getDefaultModelForProvider, getProviderMeta, providerSecretKey, reconstructProxyUrl, parseProxyUrl } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import { createStorage } from "@easyclaw/storage";
 import { createSecretStore } from "@easyclaw/secrets";
@@ -237,6 +237,10 @@ function buildProxyEnv(): Record<string, string> {
   const noProxy = [
     "localhost",
     "127.0.0.1",
+    // RFC 1918 private networks — LAN-deployed models (e.g. Ollama on another machine)
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
     // Chinese-domestic channel APIs — no GFW bypass needed, connect directly
     "open.feishu.cn",
     "open.larksuite.com",
@@ -709,6 +713,7 @@ app.whenReady().then(async () => {
       sttCliPath,
     },
     extraProviders: buildExtraProviderConfigs(),
+    localProviderOverrides: buildLocalProviderOverrides(),
     forceStandaloneBrowser: true,
     agentWorkspace: join(stateDir, "workspace"),
     extraSkillDirs: [join(stateDir, "skills")],
@@ -898,6 +903,29 @@ app.whenReady().then(async () => {
     await launcher.start();
   }
 
+  function buildLocalProviderOverrides(): Record<string, { baseUrl: string; models: Array<{ id: string; name: string }> }> {
+    const overrides: Record<string, { baseUrl: string; models: Array<{ id: string; name: string }> }> = {};
+    for (const localProvider of LOCAL_PROVIDER_IDS) {
+      const activeKey = storage.providerKeys.getDefault(localProvider);
+      if (!activeKey) continue;
+      const meta = getProviderMeta(localProvider);
+      let baseUrl = activeKey.baseUrl || meta?.baseUrl || "http://localhost:11434/v1";
+      // Ollama's OpenAI-compatible endpoint lives under /v1; users typically
+      // enter just the server URL (e.g. http://localhost:11434), so normalise.
+      if (!baseUrl.match(/\/v\d\/?$/)) {
+        baseUrl = baseUrl.replace(/\/+$/, "") + "/v1";
+      }
+      const modelId = activeKey.model;
+      if (modelId) {
+        overrides[localProvider] = {
+          baseUrl,
+          models: [{ id: modelId, name: modelId }],
+        };
+      }
+    }
+    return overrides;
+  }
+
   /**
    * Called when provider settings change (API key added/removed, default changed, proxy changed).
    *
@@ -965,6 +993,7 @@ app.whenReady().then(async () => {
       configPath,
       defaultModel: resolveGeminiOAuthModel(modelConfig.provider, modelConfig.modelId),
       extraProviders: buildExtraProviderConfigs(),
+      localProviderOverrides: buildLocalProviderOverrides(),
     });
 
     // Full gateway restart to ensure model change takes effect.

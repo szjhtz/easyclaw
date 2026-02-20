@@ -1,4 +1,4 @@
-/** Supported LLM providers (cloud API services requiring API keys). */
+/** Supported LLM providers (cloud APIs, subscriptions, and local servers). */
 export type LLMProvider =
   | "openai"
   | "anthropic"
@@ -23,7 +23,8 @@ export type LLMProvider =
   | "volcengine"
   | "amazon-bedrock"
   | "gemini"
-  | "claude";
+  | "claude"
+  | "ollama";
 
 /** Root provider IDs (excludes subscription plan IDs). */
 export type RootProvider = Exclude<LLMProvider, "zhipu-coding" | "moonshot-coding" | "minimax-coding" | "gemini" | "claude">;
@@ -558,6 +559,13 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     apiKeyUrl: "https://console.aws.amazon.com/iam/home#/security_credentials",
     envVar: "AWS_ACCESS_KEY_ID",
   },
+  ollama: {
+    label: "Ollama",
+    baseUrl: "http://localhost:11434/v1",
+    url: "https://ollama.com",
+    apiKeyUrl: "https://ollama.com/download",
+    envVar: "OLLAMA_API_KEY",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -639,11 +647,15 @@ export const SUBSCRIPTION_PROVIDER_IDS: LLMProvider[] = (() => {
   return ids;
 })();
 
-/** Provider IDs that appear in the API tab. */
+/** Provider IDs that appear in the API tab (excludes subscription plans and local providers). */
 export const API_PROVIDER_IDS: LLMProvider[] = (() => {
   const subSet = new Set(SUBSCRIPTION_PROVIDER_IDS);
-  return ALL_PROVIDERS.filter((p) => !subSet.has(p));
+  const localSet = new Set<LLMProvider>(["ollama"]);
+  return ALL_PROVIDERS.filter((p) => !subSet.has(p) && !localSet.has(p));
 })();
+
+/** Provider IDs that appear in the Local LLM tab. */
+export const LOCAL_PROVIDER_IDS: LLMProvider[] = ["ollama"];
 
 // ---------------------------------------------------------------------------
 // Known regions & secret keys
@@ -814,6 +826,7 @@ export function getProvidersForRegion(region: string): LLMProvider[] {
       "anthropic",
       "claude",
       "google",
+      "ollama",
     ];
   }
   return [
@@ -828,5 +841,6 @@ export function getProvidersForRegion(region: string): LLMProvider[] {
     "mistral",
     "xai",
     "openrouter",
+    "ollama",
   ];
 }

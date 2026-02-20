@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { SUBSCRIPTION_PROVIDER_IDS, API_PROVIDER_IDS, getProviderMeta, getDefaultModelForProvider } from "@easyclaw/core";
+import { SUBSCRIPTION_PROVIDER_IDS, API_PROVIDER_IDS, LOCAL_PROVIDER_IDS, getProviderMeta, getDefaultModelForProvider } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import {
   fetchProviderKeys,
@@ -11,8 +11,11 @@ import {
   startOAuthFlow,
   saveOAuthFlow,
   completeManualOAuth,
+  detectLocalModels,
+  fetchLocalModels,
+  checkLocalModelHealth,
 } from "../api.js";
-import type { ProviderPricing } from "../api.js";
+import type { ProviderPricing, LocalModelServer } from "../api.js";
 import { ModelSelect } from "./ModelSelect.js";
 import { ProviderSelect } from "./ProviderSelect.js";
 import { PricingTable, SubscriptionPricingTable } from "./PricingTable.js";
@@ -47,12 +50,20 @@ export function ProviderSetupForm({
   const { t, i18n } = useTranslation();
 
   const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "gemini";
-  const [tab, setTab] = useState<"subscription" | "api">("subscription");
+  const [tab, setTab] = useState<"subscription" | "api" | "local">("subscription");
   const [provider, setProvider] = useState(defaultProv);
   const [model, setModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
   const [proxyUrl, setProxyUrl] = useState("");
+  const [baseUrl, setBaseUrl] = useState("http://localhost:11434");
+  const [baseUrlTouched, setBaseUrlTouched] = useState(false);
+  const [modelName, setModelName] = useState("");
+  const [detectedServer, setDetectedServer] = useState<LocalModelServer | null>(null);
+  const [detecting, setDetecting] = useState(false);
+  const [localModels, setLocalModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<{ ok: boolean; version?: string } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -99,6 +110,46 @@ export function ProviderSetupForm({
     fetchProviderKeys().then((keys) => setExistingKeyCount(keys.length)).catch(() => {});
   }, []);
 
+  // Auto-detect local servers when switching to local tab
+  useEffect(() => {
+    if (tab !== "local") return;
+    setDetecting(true);
+    detectLocalModels()
+      .then((servers) => {
+        const ollama = servers.find((s) => s.type === "ollama" && s.status === "detected");
+        if (ollama) {
+          setDetectedServer(ollama);
+          setBaseUrl(ollama.baseUrl.replace(/\/v1\/?$/, ""));
+          setBaseUrlTouched(true);
+          setHealthStatus({ ok: true, version: ollama.version });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDetecting(false));
+  }, [tab]);
+
+  // Fetch models when baseUrl changes (debounced).
+  // Skip on initial tab switch — only run after user edits the URL or
+  // auto-detection successfully fills it (which sets baseUrlTouched).
+  useEffect(() => {
+    if (tab !== "local" || !baseUrl.trim() || !baseUrlTouched) return;
+    setLocalModels([]);
+    setLoadingModels(true);
+    const timer = setTimeout(() => {
+      const url = baseUrl.trim().replace(/\/+$/, "");
+      checkLocalModelHealth(url)
+        .then((h) => {
+          setHealthStatus(h);
+          if (h.ok) {
+            return fetchLocalModels(url).then(setLocalModels);
+          }
+        })
+        .catch(() => setHealthStatus({ ok: false }))
+        .finally(() => setLoadingModels(false));
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [tab, baseUrl, baseUrlTouched]);
+
   function handleProviderChange(p: string) {
     setProvider(p);
     setModel(getDefaultModelForProvider(p as LLMProvider)?.modelId ?? "");
@@ -112,12 +163,53 @@ export function ProviderSetupForm({
     setOauthCallbackUrl("");
   }
 
-  function handleTabChange(newTab: "subscription" | "api") {
+  function handleTabChange(newTab: "subscription" | "api" | "local") {
     setTab(newTab);
-    const prov = newTab === "subscription"
-      ? (i18n.language === "zh" ? "zhipu-coding" : "gemini")
-      : (i18n.language === "zh" ? "zhipu" : "openai");
+    const prov = newTab === "local"
+      ? "ollama"
+      : newTab === "subscription"
+        ? (i18n.language === "zh" ? "zhipu-coding" : "gemini")
+        : (i18n.language === "zh" ? "zhipu" : "openai");
     handleProviderChange(prov);
+    if (newTab === "local") {
+      setBaseUrl("http://localhost:11434");
+      setBaseUrlTouched(false);
+      setModelName("");
+      setHealthStatus(null);
+    }
+  }
+
+  async function handleAddLocalKey() {
+    if (!modelName.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const url = baseUrl.trim().replace(/\/+$/, "");
+      await createProviderKey({
+        provider: "ollama",
+        label: label.trim() || "Ollama",
+        model: modelName.trim(),
+        apiKey: apiKey.trim() || undefined,
+        authType: "local",
+        baseUrl: url,
+      });
+
+      if (existingKeyCount === 0) {
+        await updateSettings({ "llm-provider": "ollama" });
+      }
+
+      setBaseUrl("http://localhost:11434");
+      setModelName("");
+      setApiKey("");
+      setLabel("");
+      setShowAdvanced(false);
+      setExistingKeyCount((c) => (c ?? 0) + 1);
+      onSave("ollama");
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleAddKey() {
@@ -261,8 +353,105 @@ export function ProviderSetupForm({
           >
             {t("providers.tabApi")}
           </button>
+          <button
+            className={`tab-btn${tab === "local" ? " tab-btn-active" : ""}`}
+            onClick={() => handleTabChange("local")}
+          >
+            {t("providers.tabLocal")}
+          </button>
         </div>
 
+        {tab === "local" ? (
+        <>
+          {/* Local LLM form */}
+          <div className="mb-sm">
+            <div className="form-label text-secondary">{t("providers.baseUrlLabel")}</div>
+            <div className="form-row form-row-vcenter">
+              <input
+                type="text"
+                value={baseUrl}
+                onChange={(e) => { setBaseUrl(e.target.value); setBaseUrlTouched(true); }}
+                placeholder={t("providers.baseUrlPlaceholder")}
+                className="flex-1 input-mono"
+              />
+              {healthStatus && (
+                <span className={`badge ${healthStatus.ok ? "badge-success" : "badge-danger"}`}>
+                  {healthStatus.ok
+                    ? `${t("providers.connectionSuccess")}${healthStatus.version ? ` (v${healthStatus.version})` : ""}`
+                    : t("providers.connectionFailed")}
+                </span>
+              )}
+              {detecting && <span className="badge badge-muted">...</span>}
+            </div>
+            <small className="form-help-sm">{t("providers.baseUrlHelp")}</small>
+          </div>
+
+          <div className="form-row mb-sm">
+            <div className="form-col-4">
+              <div className="form-label text-secondary">{t("providers.keyLabel")}</div>
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder={t("providers.labelPlaceholder")}
+                className="input-full"
+              />
+            </div>
+            <div className="form-col-6">
+              <div className="form-label text-secondary">{t("providers.modelNameLabel")}</div>
+              <select
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                className="input-full input-mono"
+              >
+                {localModels.length === 0 && <option value="">—</option>}
+                {localModels.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                ))}
+              </select>
+              <small className="form-help-sm">
+                {loadingModels ? "..." : t("providers.modelNameHelp")}
+              </small>
+            </div>
+          </div>
+
+          <div className="mb-sm">
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="advanced-toggle"
+            >
+              <span style={{ transform: showAdvanced ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>&#9654;</span>
+              {t("providers.advancedSettings")}
+            </button>
+            {showAdvanced && (
+              <div className="advanced-content">
+                <div className="form-label text-secondary">{t("providers.apiKeyLabel")}</div>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  data-1p-ignore
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="input-full input-mono"
+                />
+                <small className="form-help-sm">{t("providers.localApiKeyHelp")}</small>
+              </div>
+            )}
+          </div>
+
+          <div className="form-actions">
+            <button
+              className="btn btn-primary"
+              onClick={handleAddLocalKey}
+              disabled={saving || !modelName.trim()}
+            >
+              {saving ? (savingLabel || "...") : (saveButtonLabel || t("common.save"))}
+            </button>
+          </div>
+        </>
+        ) : (
+        <>
         <div className="mb-sm">
           <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
           <ProviderSelect value={provider} onChange={handleProviderChange} providers={providerFilter} />
@@ -525,11 +714,20 @@ export function ProviderSetupForm({
         </div>
         </>
         )}
+        </>
+        )}
       </div>
 
-      {/* Right: Pricing table */}
+      {/* Right: Pricing table / Local info */}
       <div className="page-col-side" style={{ height: leftHeight }}>
-        {tab === "subscription" ? (
+        {tab === "local" ? (
+          <div className="info-box info-box-blue">
+            <strong>{t("providers.localInfoTitle")}</strong>
+            <p className="form-help-sm" style={{ whiteSpace: "pre-line", margin: "8px 0 0" }}>
+              {t("providers.localInfoBody")}
+            </p>
+          </div>
+        ) : tab === "subscription" ? (
           <SubscriptionPricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
         ) : (
           <PricingTable provider={provider} pricingList={pricingList} loading={pricingLoading} />
