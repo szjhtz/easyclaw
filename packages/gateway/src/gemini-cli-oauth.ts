@@ -526,7 +526,10 @@ async function waitForLocalCallback(params: {
     });
 
     timeout = setTimeout(() => {
-      finish(new Error("OAuth callback timeout"));
+      finish(new Error(
+        "OAuth login timed out. The browser did not redirect back. " +
+        "Check if a VPN/proxy (TUN mode) or firewall is blocking localhost:8085.",
+      ));
     }, params.timeoutMs);
   });
 }
@@ -682,9 +685,10 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
   const tier = hasExistingTierButNoProject ? { id: TIER_FREE } : getDefaultTier(data.allowedTiers);
   const tierId = tier?.id || TIER_FREE;
   if (tierId !== TIER_FREE && !envProject) {
+    log.warn("Tier requires user-defined project", { tierId, allowedTiers: data.allowedTiers });
     throw new Error(
-      `This account's default tier is "${tierId}" which requires GOOGLE_CLOUD_PROJECT. ` +
-      `allowedTiers=${JSON.stringify(data.allowedTiers)}`,
+      "Your Google account requires a Cloud project. " +
+      "Please create one at console.cloud.google.com and set GOOGLE_CLOUD_PROJECT.",
     );
   }
 
