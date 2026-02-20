@@ -13,6 +13,9 @@ import { execFile, execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { enrichedPath, findInPath } from "./cli-utils.js";
+import { createLogger } from "@easyclaw/logger";
+
+const log = createLogger("gateway:gemini-oauth");
 
 const CLIENT_ID_KEYS = ["OPENCLAW_GEMINI_OAUTH_CLIENT_ID", "GEMINI_CLI_OAUTH_CLIENT_ID"];
 const CLIENT_SECRET_KEYS = [
@@ -645,6 +648,13 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     }
     throw new Error("loadCodeAssist failed", { cause: err });
   }
+
+  log.info("loadCodeAssist response", {
+    currentTier: data.currentTier ?? null,
+    allowedTiers: data.allowedTiers?.map((t: { id?: string; userDefinedCloudaicompanionProject?: boolean }) =>
+      ({ id: t.id, userDefined: t.userDefinedCloudaicompanionProject })),
+    cloudaicompanionProject: data.cloudaicompanionProject ?? null,
+  });
 
   if (data.currentTier) {
     const project = data.cloudaicompanionProject;
