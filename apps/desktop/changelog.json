@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.4.8",
+    "date": "2026-02-20",
+    "en": [
+      "Refactored release pipeline: parallel CI build + local testing",
+      "Improved E2E test reliability: shorter timeouts with automatic retry",
+      "Fixed local models E2E test: wait for specific card removal"
+    ],
+    "zh": [
+      "重构发布流程：CI 构建与本地测试并行执行",
+      "提升 E2E 测试稳定性：缩短超时时间并自动重试",
+      "修复本地模型 E2E 测试：等待特定卡片移除"
+    ]
+  },
+  {
     "version": "1.4.7",
     "date": "2026-02-20",
     "en": [
