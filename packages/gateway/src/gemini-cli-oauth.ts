@@ -646,13 +646,6 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     throw new Error("loadCodeAssist failed", { cause: err });
   }
 
-  // TODO: remove after debugging customer tier issue
-  console.log("[discoverProject] loadCodeAssist response:", JSON.stringify({
-    currentTier: data.currentTier,
-    allowedTiers: data.allowedTiers,
-    cloudaicompanionProject: data.cloudaicompanionProject,
-  }));
-
   if (data.currentTier) {
     const project = data.cloudaicompanionProject;
     if (typeof project === "string" && project) {
@@ -669,11 +662,16 @@ async function discoverProject(accessToken: string, proxyUrl?: string): Promise<
     // project hasn't been provisioned yet.
   }
 
-  const tier = getDefaultTier(data.allowedTiers);
+  // When the user already has a subscription (currentTier is set) but no project
+  // was returned, use free-tier onboarding to auto-provision one.  Google's backend
+  // respects the user's actual subscription tier regardless of the onboarding tier.
+  // This covers consumer Gemini Pro/Advanced users whose project hasn't been
+  // provisioned yet, and enterprise "standard-tier" users without a pre-assigned
+  // cloudaicompanionProject.
+  const hasExistingTierButNoProject = !!data.currentTier;
+  const tier = hasExistingTierButNoProject ? { id: TIER_FREE } : getDefaultTier(data.allowedTiers);
   const tierId = tier?.id || TIER_FREE;
   if (tierId !== TIER_FREE && !envProject) {
-    // TODO: once we understand what loadCodeAssist returns for consumer Gemini Pro
-    // users, replace this with the correct fallback logic.
     throw new Error(
       `This account's default tier is "${tierId}" which requires GOOGLE_CLOUD_PROJECT. ` +
       `allowedTiers=${JSON.stringify(data.allowedTiers)}`,
