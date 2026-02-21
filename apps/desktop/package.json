@@ -4,6 +4,7 @@
   "private": true,
   "main": "dist/main.cjs",
   "author": "EasyClaw",
+  "homepage": "https://www.easy-claw.com",
   "description": "Desktop runtime manager for OpenClaw",
   "scripts": {
     "build": "tsdown",
