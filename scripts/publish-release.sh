@@ -54,9 +54,11 @@ echo "$ASSET_NAMES" | while read -r name; do
   [ -n "$name" ] && echo "  - $name"
 done
 
-# Expect 8 artifacts: DMG + ZIP + ZIP.blockmap + latest-mac.yml (macOS)
-#                   + NSIS EXE + portable EXE + EXE.blockmap + latest.yml (Windows)
-EXPECTED_ARTIFACTS=8
+# Expect 11 artifacts:
+#   macOS:   DMG + ZIP + ZIP.blockmap + latest-mac.yml (4)
+#   Windows: NSIS EXE + portable EXE + EXE.blockmap + latest.yml (4)
+#   Linux:   AppImage + deb + latest-linux.yml (3)
+EXPECTED_ARTIFACTS=11
 if [ "$ASSET_COUNT" -lt "$EXPECTED_ARTIFACTS" ]; then
   error "Expected at least $EXPECTED_ARTIFACTS artifacts, but found $ASSET_COUNT. CI build may be incomplete."
 fi

@@ -1,0 +1,31 @@
+# Linux-specific electron-builder configuration
+# Extends the base electron-builder.yml
+# Usage: electron-builder --linux --config electron-builder.linux.yml
+
+extends: electron-builder.yml
+
+linux:
+  icon: build/icon.png
+  category: Utility
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+
+appImage:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+
+deb:
+  artifactName: "${productName}_${version}_${arch}.${ext}"
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1

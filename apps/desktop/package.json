@@ -16,7 +16,8 @@
     "pack": "electron-builder --dir",
     "dist:mac": "node scripts/prune-vendor-deps.cjs && electron-builder --mac",
     "dist:mac:arm64": "node scripts/prune-vendor-deps.cjs && electron-builder --mac dmg --arm64 && node scripts/sign-arm64.cjs",
-    "dist:win": "node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml"
+    "dist:win": "node scripts/prune-vendor-deps.cjs && electron-builder --win --config electron-builder.win.yml",
+    "dist:linux": "node scripts/prune-vendor-deps.cjs && electron-builder --linux --config electron-builder.linux.yml"
   },
   "dependencies": {
     "@easyclaw/core": "workspace:*",

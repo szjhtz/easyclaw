@@ -126,8 +126,47 @@ jobs:
             apps/desktop/release/latest-mac.yml
           retention-days: 30
 
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup OpenClaw vendor
+        run: ./scripts/setup-vendor.sh --prod
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm run build
+
+      - name: Build Linux app
+        run: |
+          cd apps/desktop
+          pnpm run dist:linux
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/latest-linux.yml
+          retention-days: 30
+
   create-release:
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -159,6 +198,12 @@ jobs:
           name: macos-installers
           path: artifacts/macos
 
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-installers
+          path: artifacts/linux
+
       - name: Create draft GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -178,6 +223,7 @@ jobs:
             --notes-file .github/RELEASE_BODY.md \
             --draft \
             artifacts/windows/* \
-            artifacts/macos/*
+            artifacts/macos/* \
+            artifacts/linux/*
 
           echo "Draft release $TAG created with all artifacts."
