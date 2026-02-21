@@ -161,6 +161,7 @@ jobs:
           name: linux-installers
           path: |
             apps/desktop/release/*.AppImage
+            apps/desktop/release/*.AppImage.blockmap
             apps/desktop/release/*.deb
             apps/desktop/release/latest-linux.yml
           retention-days: 30
