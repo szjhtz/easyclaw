@@ -51,6 +51,8 @@ STEP_STATUSES=()
 STEP_DURATIONS=()
 STEP_E2E_COUNTS=()
 STEP_FAILED_TESTS=()
+STEP_E2E_DETAILS_FILES=()
+STEP_E2E_STATS_LINES=()
 PIPELINE_FAILED=false
 PIPELINE_START=$SECONDS
 SUMMARY_TMPDIR=$(mktemp -d)
@@ -66,6 +68,7 @@ format_duration() {
 
 record_step() {
   local name="$1" rc="$2" duration="$3" e2e_counts="${4:-}" failed_tests="${5:-}"
+  local details_file="${6:-}" stats_line="${7:-}"
   STEP_NAMES+=("$name")
   if [ "$rc" -eq 0 ]; then
     STEP_STATUSES+=("pass")
@@ -76,6 +79,8 @@ record_step() {
   STEP_DURATIONS+=("$duration")
   STEP_E2E_COUNTS+=("$e2e_counts")
   STEP_FAILED_TESTS+=("$failed_tests")
+  STEP_E2E_DETAILS_FILES+=("$details_file")
+  STEP_E2E_STATS_LINES+=("$stats_line")
 }
 
 parse_e2e_output() {
@@ -101,6 +106,27 @@ parse_e2e_output() {
     fi
   else
     E2E_COUNTS=""
+  fi
+
+  # Extract individual test result lines for detailed summary
+  E2E_DETAILS_FILE="${log_file}.details"
+  grep -E '^\s*(✓|✗|✘|×|ok|x)\s+[0-9]+' "$clean_file" \
+    | sed -E 's/^(\s*)ok(\s)/\1✓\2/' \
+    | sed -E 's/^(\s*)(x|×|✘)(\s)/\1✗\3/' \
+    > "$E2E_DETAILS_FILE" 2>/dev/null || true
+
+  # Build stats summary line (e.g. "1 failed, 41 passed")
+  E2E_STATS_LINE=""
+  if [ "$failed" -gt 0 ]; then
+    E2E_STATS_LINE="$failed failed"
+  fi
+  if [ "$flaky" -gt 0 ]; then
+    [ -n "$E2E_STATS_LINE" ] && E2E_STATS_LINE="$E2E_STATS_LINE, "
+    E2E_STATS_LINE="${E2E_STATS_LINE}$flaky flaky"
+  fi
+  if [ "$passed" -gt 0 ]; then
+    [ -n "$E2E_STATS_LINE" ] && E2E_STATS_LINE="$E2E_STATS_LINE, "
+    E2E_STATS_LINE="${E2E_STATS_LINE}$passed passed"
   fi
 
   E2E_FAILURES=""
@@ -162,6 +188,23 @@ print_summary() {
 
   echo "============================="
   printf "Total: %s | Result: %s\n" "$(format_duration "$total_duration")" "$result"
+
+  # Print detailed E2E test results
+  for i in "${!STEP_NAMES[@]}"; do
+    local details_file="${STEP_E2E_DETAILS_FILES[$i]}"
+    if [ -n "$details_file" ] && [ -s "$details_file" ]; then
+      local e2e_name e2e_counts_detail e2e_duration_detail e2e_stats_detail
+      e2e_name=$(echo "${STEP_NAMES[$i]}" | tr '[:lower:]' '[:upper:]')
+      e2e_counts_detail="${STEP_E2E_COUNTS[$i]}"
+      e2e_duration_detail=$(format_duration "${STEP_DURATIONS[$i]}")
+      e2e_stats_detail="${STEP_E2E_STATS_LINES[$i]}"
+
+      echo ""
+      printf "========== %s (%s, %s) ==========\n" "$e2e_name" "$e2e_counts_detail" "$e2e_duration_detail"
+      cat "$details_file"
+      [ -n "$e2e_stats_detail" ] && echo "$e2e_stats_detail"
+    fi
+  done
 }
 
 cleanup() {
@@ -284,7 +327,7 @@ if [ "$PIPELINE_FAILED" = false ] && [ "$SKIP_TESTS" = false ]; then
   step_duration=$((SECONDS - step_start))
 
   parse_e2e_output "$E2E_DEV_LOG"
-  record_step "e2e dev" "$e2e_rc" "$step_duration" "$E2E_COUNTS" "$E2E_FAILURES"
+  record_step "e2e dev" "$e2e_rc" "$step_duration" "$E2E_COUNTS" "$E2E_FAILURES" "$E2E_DETAILS_FILE" "$E2E_STATS_LINE"
   [ "$e2e_rc" -eq 0 ] && info "E2E dev tests passed."
 fi
 
@@ -380,7 +423,7 @@ if [ "$PIPELINE_FAILED" = false ] && [ "$SKIP_TESTS" = false ]; then
     step_duration=$((SECONDS - step_start))
 
     parse_e2e_output "$E2E_PROD_LOG"
-    record_step "e2e prod" "$e2e_rc" "$step_duration" "$E2E_COUNTS" "$E2E_FAILURES"
+    record_step "e2e prod" "$e2e_rc" "$step_duration" "$E2E_COUNTS" "$E2E_FAILURES" "$E2E_DETAILS_FILE" "$E2E_STATS_LINE"
     [ "$e2e_rc" -eq 0 ] && info "E2E prod tests passed."
   fi
 fi
