@@ -37,9 +37,11 @@ import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, unlinkSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
+import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
 import { createTrayIcon } from "./tray-icon.js";
 import { buildTrayMenu } from "./tray-menu.js";
 import { startPanelServer } from "./panel-server.js";
@@ -57,6 +59,26 @@ const PROXY_ROUTER_PORT = 9999;
 const sttCliPath = app.isPackaged
   ? join(process.resourcesPath, "volcengine-stt-cli.mjs")
   : resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/gateway/dist/volcengine-stt-cli.mjs");
+
+/**
+ * Remove stale device-pairing data so the node-host re-pairs with full operator
+ * scopes on next gateway start.  Only runs once (tracks a settings flag).
+ *
+ * The node-host re-pairs automatically on every gateway start (local connection
+ * = auto-approved), so this is safe and ensures scopes stay in sync if the
+ * upstream scope list ever changes.
+ */
+function resetDevicePairing(stateDir: string): void {
+  const pairedPath = join(stateDir, "devices", "paired.json");
+  const pendingPath = join(stateDir, "devices", "pending.json");
+
+  for (const p of [pairedPath, pendingPath]) {
+    if (existsSync(p)) {
+      unlinkSync(p);
+      log.info(`Cleared device pairing data: ${p}`);
+    }
+  }
+}
 
 /**
  * Migrate old-style `{provider}-api-key` secrets to the new provider_keys table.
@@ -572,6 +594,7 @@ app.whenReady().then(async () => {
 
   // Initialize gateway launcher
   const stateDir = resolveOpenClawStateDir();
+  resetDevicePairing(stateDir);
   const configPath = ensureGatewayConfig();
 
   // Resolve current default model from DB and sync to gateway config on every startup.
@@ -686,6 +709,52 @@ app.whenReady().then(async () => {
     }
   } else {
     log.info("No existing openclaw process on port, skipping cleanup");
+  }
+
+  // Clean up stale gateway lock file and its owning process.
+  // When the desktop app is force-killed (e.g. Task Manager on Windows), the
+  // detached gateway child process survives. It may no longer listen on the port
+  // (so the TCP probe above passes), but the lock file still references the alive
+  // PID. Without this cleanup the new gateway can never acquire the lock.
+  try {
+    const lockHash = createHash("sha1").update(configPath).digest("hex").slice(0, 8);
+    const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
+    const lockDir = join(tmpdir(), uid != null ? `openclaw-${uid}` : "openclaw");
+    const lockPath = join(lockDir, `gateway.${lockHash}.lock`);
+
+    if (existsSync(lockPath)) {
+      const raw = readFileSync(lockPath, "utf-8");
+      const lockData = JSON.parse(raw) as { pid?: number };
+      const ownerPid = lockData?.pid;
+      if (typeof ownerPid === "number" && ownerPid > 0 && ownerPid !== process.pid) {
+        // Check if the lock owner is still alive
+        let alive = false;
+        try { process.kill(ownerPid, 0); alive = true; } catch {}
+
+        if (alive) {
+          log.info(`Stale gateway lock found (PID ${ownerPid}), killing process`);
+          try {
+            if (process.platform === "win32") {
+              execSync(`taskkill /T /F /PID ${ownerPid}`, { stdio: "ignore", shell: "cmd.exe" });
+            } else {
+              process.kill(ownerPid, "SIGKILL");
+            }
+          } catch (killErr) {
+            log.warn(`Failed to kill stale gateway PID ${ownerPid}:`, killErr);
+          }
+        } else {
+          log.info(`Stale gateway lock found (PID ${ownerPid} is dead), removing lock file`);
+        }
+
+        // Remove the stale lock file regardless
+        rmSync(lockPath, { force: true });
+        log.info("Cleaned up stale gateway lock");
+      }
+    }
+  } catch (lockErr) {
+    // Lock file doesn't exist, can't be read, or isn't valid JSON — that's fine,
+    // the gateway will create a new one on startup.
+    log.debug("Gateway lock cleanup skipped:", lockErr);
   }
 
   // In packaged app, vendor lives in Resources/vendor/openclaw (extraResources).
