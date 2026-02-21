@@ -30,24 +30,6 @@ export interface PlatformDownload {
   zipSize?: number;
 }
 
-/** Download progress event data */
-export interface DownloadProgress {
-  /** Bytes downloaded so far */
-  downloaded: number;
-  /** Total file size in bytes */
-  total: number;
-  /** Progress percentage (0-100) */
-  percent: number;
-}
-
-/** Result of a download + verify operation */
-export interface DownloadResult {
-  /** Path to the downloaded file */
-  filePath: string;
-  /** Whether checksum verification passed */
-  verified: boolean;
-}
-
 /** State of the update download/install process */
 export type UpdateDownloadState =
   | { status: "idle" }

@@ -32,11 +32,12 @@ import { ProxyRouter } from "@easyclaw/proxy-router";
 import type { ProxyRouterConfig } from "@easyclaw/proxy-router";
 import { RemoteTelemetryClient } from "@easyclaw/telemetry";
 import { getDeviceId } from "@easyclaw/device-id";
-import { checkForUpdate, downloadAndVerify, getPlatformKey, installWindows, installMacOS, resolveAppBundlePath, isNewerVersion } from "@easyclaw/updater";
-import type { UpdateCheckResult, UpdateDownloadState, DownloadProgress } from "@easyclaw/updater";
+import type { UpdateDownloadState } from "@easyclaw/updater";
+import { autoUpdater } from "electron-updater";
+import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
 import { createTrayIcon } from "./tray-icon.js";
@@ -406,40 +407,82 @@ app.whenReady().then(async () => {
     log.info("Telemetry disabled (user preference)");
   }
 
-  // --- Update checker ---
+  // --- Auto-updater (electron-updater with blockmap differential downloads) ---
   let currentState: GatewayState = "stopped";
-  let latestUpdateResult: UpdateCheckResult | null = null;
+  let latestUpdateInfo: UpdateInfo | null = null;
+  let updateDownloadState: UpdateDownloadState = { status: "idle" };
+
+  // Configure region-aware feed URL
+  const updateRegion = locale === "zh" ? "cn" : "us";
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: updateRegion === "cn"
+      ? "https://cn.easy-claw.com/releases"
+      : "https://www.easy-claw.com/releases",
+  });
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.logger = log;
+
+  // Wire electron-updater events into our state machine
+  autoUpdater.on("update-available", (info: UpdateInfo) => {
+    latestUpdateInfo = info;
+    log.info(`Update available: v${info.version}`);
+    telemetryClient?.track("app.update_available", {
+      currentVersion: app.getVersion(),
+      latestVersion: info.version,
+    });
+    const isZh = systemLocale === "zh";
+    const notification = new Notification({
+      title: isZh ? "EasyClaw 有新版本" : "EasyClaw Update Available",
+      body: isZh
+        ? `新版本 v${info.version} 已发布，点击查看详情。`
+        : `A new version v${info.version} is available. Click to download.`,
+    });
+    notification.on("click", () => {
+      showMainWindow();
+    });
+    notification.show();
+    updateTray(currentState);
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    log.info(`Already up to date (${app.getVersion()})`);
+  });
+
+  autoUpdater.on("download-progress", (progress: ProgressInfo) => {
+    updateDownloadState = {
+      status: "downloading",
+      percent: Math.round(progress.percent),
+      downloadedBytes: progress.transferred,
+      totalBytes: progress.total,
+    };
+    mainWindow?.setProgressBar(progress.percent / 100);
+  });
+
+  autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+    updateDownloadState = { status: "ready", filePath: "" };
+    mainWindow?.setProgressBar(-1);
+    log.info(`Update v${info.version} downloaded and verified`);
+    telemetryClient?.track("app.update_downloaded", { version: info.version });
+  });
+
+  autoUpdater.on("error", (error: Error) => {
+    updateDownloadState = { status: "error", message: error.message };
+    mainWindow?.setProgressBar(-1);
+    log.error(`Auto-update error: ${error.message}`);
+  });
 
   async function performUpdateCheck(): Promise<void> {
-    const region = locale === "zh" ? "cn" : "us";
-    const result = await checkForUpdate(app.getVersion(), { region });
-    latestUpdateResult = result;
-    if (result.updateAvailable) {
-      log.info(`Update available: v${result.latestVersion}`);
-      // Invalidate stale ready download if a newer version supersedes it
-      const rv = readyCache.version;
-      if (rv && rv !== result.latestVersion) {
-        log.info(`Clearing stale ready download v${rv} (latest is v${result.latestVersion})`);
-        readyCache.clear();
-        updateDownloadState = { status: "idle" };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      if (result?.updateInfo) {
+        latestUpdateInfo = result.updateInfo;
       }
-      telemetryClient?.track("app.update_available", {
-        currentVersion: app.getVersion(),
-        latestVersion: result.latestVersion,
-      });
-      const isZh = systemLocale === "zh";
-      const notification = new Notification({
-        title: isZh ? "EasyClaw 有新版本" : "EasyClaw Update Available",
-        body: isZh
-          ? `新版本 v${result.latestVersion} 已发布，点击查看详情。`
-          : `A new version v${result.latestVersion} is available. Click to download.`,
-      });
-      notification.on("click", () => {
-        showMainWindow();
-      });
-      notification.show();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      log.warn(`Update check failed: ${message}`);
     }
-    // Refresh tray to show/hide update item
     updateTray(currentState);
   }
 
@@ -447,132 +490,27 @@ app.whenReady().then(async () => {
   // initialized. The fire-and-forget call is deferred to after tray creation
   // (search for "Deferred: startup update check" below).
 
-  // --- In-app update download/install ---
-  let updateDownloadState: UpdateDownloadState = { status: "idle" };
-  let downloadAbortController: AbortController | null = null;
-
-  /** Persists which version has been downloaded and is ready to install. */
-  class ReadyUpdateCache {
-    private readonly versionFile: string;
-    readonly filePath: string;
-
-    constructor(tempDir: string) {
-      this.versionFile = join(tempDir, "easyclaw-ready-version");
-      const ext = process.platform === "darwin" ? "zip" : "exe";
-      this.filePath = join(tempDir, `easyclaw-update.${ext}`);
-    }
-
-    /** The version that is downloaded and ready, or null if nothing is ready. */
-    get version(): string | null {
-      try {
-        const v = readFileSync(this.versionFile, "utf-8").trim();
-        if (v && existsSync(this.filePath)) return v;
-      } catch {}
-      return null;
-    }
-
-    save(version: string): void {
-      try { writeFileSync(this.versionFile, version, "utf-8"); } catch {}
-    }
-
-    clear(): void {
-      try { unlinkSync(this.versionFile); } catch {}
-      try { unlinkSync(this.filePath); } catch {}
-    }
-  }
-
-  const readyCache = new ReadyUpdateCache(app.getPath("temp"));
-
-  // Restore ready state from previous session
-  const restoredVersion = readyCache.version;
-  if (restoredVersion && isNewerVersion(app.getVersion(), restoredVersion)) {
-    updateDownloadState = { status: "ready", filePath: readyCache.filePath };
-    log.info(`Restored ready update: v${restoredVersion} at ${readyCache.filePath}`);
-  } else if (restoredVersion) {
-    // Same or older than current version — already installed, clean up
-    log.info(`Clearing stale ready update v${restoredVersion} (current is v${app.getVersion()})`);
-    readyCache.clear();
-  }
-
   async function performUpdateDownload(): Promise<void> {
-    if (!latestUpdateResult?.updateAvailable || !latestUpdateResult.download) {
+    if (!latestUpdateInfo) {
       throw new Error("No update available");
     }
     if (updateDownloadState.status === "downloading" || updateDownloadState.status === "verifying") {
       log.info(`Update download already ${updateDownloadState.status}, ignoring duplicate request`);
       return;
     }
-    // If already ready, check if it's for the same version being requested
     if (updateDownloadState.status === "ready") {
-      const rv = readyCache.version;
-      if (rv === latestUpdateResult.latestVersion) {
-        log.info(`Update v${rv} already downloaded, ignoring duplicate request`);
-        return;
-      }
-      // Ready version is stale (newer version available), clear and re-download
-      log.info(`Clearing stale download v${rv} to download v${latestUpdateResult.latestVersion}`);
-      readyCache.clear();
+      log.info("Update already downloaded, ignoring duplicate request");
+      return;
     }
 
-    const platform = getPlatformKey();
-    const download = latestUpdateResult.download;
-
-    let downloadUrl: string;
-    let expectedSha256: string;
-    let expectedSize: number;
-
-    if (platform === "mac") {
-      // Use zip for in-app update on macOS
-      if (!download.zipUrl || !download.zipSha256) {
-        // Fallback: open browser for DMG
-        shell.openExternal(download.url);
-        return;
-      }
-      downloadUrl = download.zipUrl;
-      expectedSha256 = download.zipSha256;
-      expectedSize = download.zipSize ?? download.size;
-    } else {
-      downloadUrl = download.url;
-      expectedSha256 = download.sha256;
-      expectedSize = download.size;
-    }
-
-    downloadAbortController = new AbortController();
-    updateDownloadState = { status: "downloading", percent: 0, downloadedBytes: 0, totalBytes: expectedSize };
+    updateDownloadState = { status: "downloading", percent: 0, downloadedBytes: 0, totalBytes: 0 };
     mainWindow?.setProgressBar(0);
 
     try {
-      const result = await downloadAndVerify(
-        downloadUrl,
-        readyCache.filePath,
-        expectedSha256,
-        expectedSize,
-        (progress: DownloadProgress) => {
-          updateDownloadState = {
-            status: "downloading",
-            percent: progress.percent,
-            downloadedBytes: progress.downloaded,
-            totalBytes: progress.total,
-          };
-          mainWindow?.setProgressBar(progress.percent / 100);
-        },
-        downloadAbortController.signal,
-      );
-
-      readyCache.save(latestUpdateResult.latestVersion!);
-      updateDownloadState = { status: "ready", filePath: result.filePath };
-      mainWindow?.setProgressBar(-1);
-      log.info(`Update v${latestUpdateResult.latestVersion} downloaded and verified: ${result.filePath}`);
-      telemetryClient?.track("app.update_downloaded", {
-        version: latestUpdateResult.latestVersion,
-      });
+      await autoUpdater.downloadUpdate();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      updateDownloadState = { status: "error", message };
-      mainWindow?.setProgressBar(-1);
-      log.error(`Update download failed: ${message}`);
-    } finally {
-      downloadAbortController = null;
+      // The error event handler will set the error state
+      log.error("Update download failed:", err);
     }
   }
 
@@ -581,23 +519,14 @@ app.whenReady().then(async () => {
       throw new Error("No downloaded update ready to install");
     }
 
-    const filePath = updateDownloadState.filePath;
-    const platform = getPlatformKey();
     updateDownloadState = { status: "installing" };
-    // Don't call readyCache.clear() here — the installer needs the file.
-    // Cleanup happens on next startup: new version sees readyVersion == currentVersion → clear.
 
     telemetryClient?.track("app.update_installing", {
-      version: latestUpdateResult?.latestVersion,
+      version: latestUpdateInfo?.version,
     });
 
     isQuitting = true; // prevent close-to-tray
-    if (platform === "win") {
-      await installWindows(filePath, () => app.quit());
-    } else {
-      const appBundlePath = resolveAppBundlePath();
-      await installMacOS(filePath, appBundlePath, () => app.quit());
-    }
+    autoUpdater.quitAndInstall(false, true);
   }
 
   // Detect system proxy and write proxy router config BEFORE starting the router.
@@ -1031,13 +960,13 @@ app.whenReady().then(async () => {
           try {
             await performUpdateCheck();
             const isZh = systemLocale === "zh";
-            if (latestUpdateResult?.updateAvailable && latestUpdateResult.download) {
+            if (latestUpdateInfo) {
               const { response } = await dialog.showMessageBox({
                 type: "info",
                 title: isZh ? "发现新版本" : "Update Available",
                 message: isZh
-                  ? `新版本 v${latestUpdateResult.latestVersion} 已发布，当前版本为 v${app.getVersion()}。`
-                  : `A new version v${latestUpdateResult.latestVersion} is available. You are currently on v${app.getVersion()}.`,
+                  ? `新版本 v${latestUpdateInfo.version} 已发布，当前版本为 v${app.getVersion()}。`
+                  : `A new version v${latestUpdateInfo.version} is available. You are currently on v${app.getVersion()}.`,
                 buttons: isZh ? ["下载", "稍后"] : ["Download", "Later"],
               });
               if (response === 0) {
@@ -1068,9 +997,9 @@ app.whenReady().then(async () => {
         onQuit: () => {
           app.quit();
         },
-        updateInfo: latestUpdateResult?.updateAvailable && latestUpdateResult.download
+        updateInfo: latestUpdateInfo
           ? {
-              latestVersion: latestUpdateResult.latestVersion!,
+              latestVersion: latestUpdateInfo.version,
               onDownload: () => {
                 showMainWindow();
                 performUpdateDownload().catch((e) => log.error("Update download failed:", e));
@@ -1238,10 +1167,19 @@ app.whenReady().then(async () => {
     secretStore,
     deviceId,
     getRpcClient: () => rpcClient,
-    getUpdateResult: () => latestUpdateResult,
+    getUpdateResult: () => {
+      if (!latestUpdateInfo) return null;
+      return {
+        updateAvailable: true,
+        currentVersion: app.getVersion(),
+        latestVersion: latestUpdateInfo.version,
+        releaseNotes: typeof latestUpdateInfo.releaseNotes === "string"
+          ? latestUpdateInfo.releaseNotes
+          : undefined,
+      };
+    },
     onUpdateDownload: () => performUpdateDownload(),
     onUpdateCancel: () => {
-      downloadAbortController?.abort();
       updateDownloadState = { status: "idle" };
       mainWindow?.setProgressBar(-1);
     },

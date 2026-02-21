@@ -12,7 +12,7 @@ Update version in `apps/desktop/package.json`, commit, push to `main`.
 
 **CI (triggered manually):**
 Trigger the "Build & Release" workflow via GitHub Actions `workflow_dispatch`.
-This builds Mac DMG/ZIP + Windows EXE and creates a **draft** GitHub Release with all artifacts attached.
+This builds Mac DMG/ZIP + Windows EXE along with blockmap files and electron-updater manifests (`latest.yml`, `latest-mac.yml`), then creates a **draft** GitHub Release with all artifacts attached.
 
 **Local (on developer machine):**
 ```bash
@@ -29,7 +29,9 @@ After both CI build and local tests complete successfully:
 ./scripts/publish-release.sh 1.2.8    # or specify explicitly
 ```
 
-This validates the draft has all 3 artifacts (DMG + ZIP + EXE), pushes the git tag `v{version}`, and promotes the draft release to public.
+This validates the draft has at least 7 artifacts (DMG, ZIP, ZIP.blockmap, latest-mac.yml, EXE, EXE.blockmap, latest.yml), pushes the git tag `v{version}`, and promotes the draft release to public.
+
+**Incremental updates:** The build generates `.blockmap` files and `latest.yml`/`latest-mac.yml` manifests that enable `electron-updater` differential downloads. Users only download changed ~64KB blocks instead of the full installer.
 
 If local tests fail, delete the draft release on GitHub and fix the issues.
 

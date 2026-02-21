@@ -56,7 +56,13 @@ exports.default = async function copyVendorDeps(context) {
   //    causing the universal merge tool to see them as unique files.
   //    Not needed at runtime (just CLI convenience links).
   // 3. Symlinks — resolve to different absolute paths in each arch build.
+  // 4. Build-only packages (esbuild, rolldown, etc.) — contain arch-specific
+  //    Mach-O binaries with no file extension, causing universal merge errors.
+  //    These are bundler/compiler tools not needed at runtime.
   const SKIP_EXTS = new Set([".node", ".dylib"]);
+  const SKIP_PACKAGE_PATTERNS = [
+    /[\\/]\.pnpm[\\/](@esbuild|esbuild|@rolldown|rolldown)[+@]/,
+  ];
   // Native binaries that ARE required at runtime and must not be skipped.
   // sharp is needed by the gateway for image sanitization (resize/metadata).
   // This includes both the .node addon (@img/sharp-darwin-*) and the libvips
@@ -74,6 +80,11 @@ exports.default = async function copyVendorDeps(context) {
       const basename = path.basename(src);
       // Skip ALL .bin directories at any depth
       if (basename === ".bin") {
+        skippedCount++;
+        return false;
+      }
+      // Skip build-only packages (esbuild, rolldown) — not needed at runtime
+      if (SKIP_PACKAGE_PATTERNS.some((re) => re.test(src))) {
         skippedCount++;
         return false;
       }
