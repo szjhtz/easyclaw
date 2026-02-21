@@ -489,6 +489,37 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
+  // Agent exec host — EasyClaw is a desktop app, agent runs locally.
+  // Allow exec on the gateway host (not sandboxed).
+  {
+    const existingAgents =
+      typeof config.agents === "object" && config.agents !== null
+        ? (config.agents as Record<string, unknown>)
+        : {};
+    const existingDefaults =
+      typeof existingAgents.defaults === "object" && existingAgents.defaults !== null
+        ? (existingAgents.defaults as Record<string, unknown>)
+        : {};
+    const existingTools =
+      typeof existingDefaults.tools === "object" && existingDefaults.tools !== null
+        ? (existingDefaults.tools as Record<string, unknown>)
+        : {};
+    const existingExec =
+      typeof existingTools.exec === "object" && existingTools.exec !== null
+        ? (existingTools.exec as Record<string, unknown>)
+        : {};
+    config.agents = {
+      ...existingAgents,
+      defaults: {
+        ...existingDefaults,
+        tools: {
+          ...existingTools,
+          exec: { ...existingExec, host: "gateway" },
+        },
+      },
+    };
+  }
+
   // Plugins configuration
   if (options.plugins !== undefined || options.enableFilePermissions !== undefined || options.extensionsDir !== undefined || options.enableGeminiCliAuth !== undefined) {
     const existingPlugins =

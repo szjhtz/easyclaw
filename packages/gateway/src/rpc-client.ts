@@ -239,7 +239,13 @@ export class GatewayRpcClient {
   }
 
   private async sendConnect(): Promise<void> {
-    const scopes = ["operator.admin"];
+    const scopes = [
+      "operator.admin",
+      "operator.read",
+      "operator.write",
+      "operator.approvals",
+      "operator.pairing",
+    ];
     const clientId = "node-host";
     const clientMode = "ui";
     const role = "operator";
