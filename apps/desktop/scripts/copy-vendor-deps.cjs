@@ -55,7 +55,9 @@ exports.default = async function copyVendorDeps(context) {
   //    relative targets that resolve differently in x64 vs arm64 temp dirs,
   //    causing the universal merge tool to see them as unique files.
   //    Not needed at runtime (just CLI convenience links).
-  // 3. Symlinks — resolve to different absolute paths in each arch build.
+  // 3. Absolute symlinks — resolve to different absolute paths in each arch
+  //    build. Relative symlinks (pnpm's .pnpm/ links) are safe and must be
+  //    preserved so Node.js can resolve vendor runtime dependencies.
   // 4. Build-only packages (esbuild, rolldown, etc.) — contain arch-specific
   //    Mach-O binaries with no file extension, causing universal merge errors.
   //    These are bundler/compiler tools not needed at runtime.
@@ -74,6 +76,14 @@ exports.default = async function copyVendorDeps(context) {
   ];
   let skippedCount = 0;
 
+  // Collect relative symlinks encountered during cpSync so we can recreate
+  // them in the destination after the copy. cpSync's filter runs before the
+  // copy, so we cannot create the symlink inside the filter callback (the
+  // parent directory may not exist yet). Instead we record { dest, target }
+  // pairs and replay them in a second pass.
+  /** @type {Array<{dest: string, target: string}>} */
+  const deferredSymlinks = [];
+
   fs.cpSync(vendorSrc, vendorDest, {
     recursive: true,
     filter: (src) => {
@@ -88,11 +98,21 @@ exports.default = async function copyVendorDeps(context) {
         skippedCount++;
         return false;
       }
-      // Skip symlinks (they resolve differently per-arch build dir)
+      // Handle symlinks: preserve relative ones (pnpm), skip absolute ones
       try {
         const stat = fs.lstatSync(src);
         if (stat.isSymbolicLink()) {
-          skippedCount++;
+          const target = fs.readlinkSync(src);
+          if (path.isAbsolute(target)) {
+            // Absolute symlink — breaks across build dirs, skip
+            skippedCount++;
+            return false;
+          }
+          // Relative symlink (pnpm node_modules → .pnpm/) — defer recreation
+          const rel = path.relative(vendorSrc, src);
+          deferredSymlinks.push({ dest: path.join(vendorDest, rel), target });
+          // Return false so cpSync doesn't try to copy (it can't copy symlinks
+          // correctly across dirs). We'll recreate them after the copy.
           return false;
         }
       } catch {
@@ -113,7 +133,20 @@ exports.default = async function copyVendorDeps(context) {
     },
   });
 
+  // Second pass: recreate relative symlinks (pnpm's node_modules structure)
+  let symlinkCount = 0;
+  for (const { dest, target } of deferredSymlinks) {
+    try {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.symlinkSync(target, dest);
+      symlinkCount++;
+    } catch (err) {
+      // Symlink target may have been pruned (e.g. esbuild) — not critical
+      console.log(`[copy-vendor-deps] Warning: failed to create symlink ${path.relative(vendorDest, dest)} -> ${target}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
   // Count top-level entries to report
   const entries = fs.readdirSync(vendorDest).filter((e) => !e.startsWith("."));
-  console.log(`[copy-vendor-deps] Done — ${entries.length} top-level packages copied, ${skippedCount} native binaries skipped.`);
+  console.log(`[copy-vendor-deps] Done — ${entries.length} top-level packages copied, ${symlinkCount} symlinks recreated, ${skippedCount} native binaries skipped.`);
 };

@@ -81,6 +81,60 @@ function resetDevicePairing(stateDir: string): void {
 }
 
 /**
+ * Remove a stale gateway lock file and kill its owning process.
+ *
+ * The vendor gateway uses an exclusive lock file in the OS temp directory
+ * (`{tmpdir}/openclaw[-{uid}]/gateway.{hash}.lock`) to prevent duplicate
+ * instances.  When the desktop app is force-killed the detached gateway child
+ * can survive, leaving a live PID in the lock.  This helper resolves the lock
+ * path (mirroring vendor/openclaw/src/infra/gateway-lock.ts), kills the owner
+ * if still alive, and removes the file so the next gateway start succeeds.
+ *
+ * Safe to call at any point — silently does nothing if no lock exists.
+ */
+function cleanupGatewayLock(gatewayConfigPath: string): void {
+  try {
+    const lockHash = createHash("sha1").update(gatewayConfigPath).digest("hex").slice(0, 8);
+    const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
+    const lockDir = join(tmpdir(), uid != null ? `openclaw-${uid}` : "openclaw");
+    const lockPath = join(lockDir, `gateway.${lockHash}.lock`);
+
+    if (!existsSync(lockPath)) return;
+
+    const raw = readFileSync(lockPath, "utf-8");
+    const lockData = JSON.parse(raw) as { pid?: number };
+    const ownerPid = lockData?.pid;
+    if (typeof ownerPid !== "number" || ownerPid <= 0 || ownerPid === process.pid) return;
+
+    // Check if the lock owner is still alive
+    let alive = false;
+    try { process.kill(ownerPid, 0); alive = true; } catch {}
+
+    if (alive) {
+      log.info(`Stale gateway lock found (PID ${ownerPid}), killing process`);
+      try {
+        if (process.platform === "win32") {
+          execSync(`taskkill /T /F /PID ${ownerPid}`, { stdio: "ignore", shell: "cmd.exe" });
+        } else {
+          process.kill(ownerPid, "SIGKILL");
+        }
+      } catch (killErr) {
+        log.warn(`Failed to kill stale gateway PID ${ownerPid}:`, killErr);
+      }
+    } else {
+      log.info(`Stale gateway lock found (PID ${ownerPid} is dead), removing lock file`);
+    }
+
+    rmSync(lockPath, { force: true });
+    log.info("Cleaned up stale gateway lock");
+  } catch (lockErr) {
+    // Lock file doesn't exist, can't be read, or isn't valid JSON — that's fine,
+    // the gateway will create a new one on startup.
+    log.debug("Gateway lock cleanup skipped:", lockErr);
+  }
+}
+
+/**
  * Migrate old-style `{provider}-api-key` secrets to the new provider_keys table.
  * Only runs if the provider_keys table is empty (first upgrade).
  */
@@ -547,6 +601,13 @@ app.whenReady().then(async () => {
       version: latestUpdateInfo?.version,
     });
 
+    // Kill the gateway and remove its lock file *before* quitting so the
+    // installer (NSIS on Windows) and the newly installed version don't
+    // encounter a stale process or lock.  The before-quit handler also calls
+    // launcher.stop(), but quitAndInstall() may not await async cleanup fully.
+    try { await launcher.stop(); } catch {}
+    cleanupGatewayLock(configPath);
+
     isQuitting = true; // prevent close-to-tray
     autoUpdater.quitAndInstall(false, true);
   }
@@ -711,51 +772,8 @@ app.whenReady().then(async () => {
     log.info("No existing openclaw process on port, skipping cleanup");
   }
 
-  // Clean up stale gateway lock file and its owning process.
-  // When the desktop app is force-killed (e.g. Task Manager on Windows), the
-  // detached gateway child process survives. It may no longer listen on the port
-  // (so the TCP probe above passes), but the lock file still references the alive
-  // PID. Without this cleanup the new gateway can never acquire the lock.
-  try {
-    const lockHash = createHash("sha1").update(configPath).digest("hex").slice(0, 8);
-    const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
-    const lockDir = join(tmpdir(), uid != null ? `openclaw-${uid}` : "openclaw");
-    const lockPath = join(lockDir, `gateway.${lockHash}.lock`);
-
-    if (existsSync(lockPath)) {
-      const raw = readFileSync(lockPath, "utf-8");
-      const lockData = JSON.parse(raw) as { pid?: number };
-      const ownerPid = lockData?.pid;
-      if (typeof ownerPid === "number" && ownerPid > 0 && ownerPid !== process.pid) {
-        // Check if the lock owner is still alive
-        let alive = false;
-        try { process.kill(ownerPid, 0); alive = true; } catch {}
-
-        if (alive) {
-          log.info(`Stale gateway lock found (PID ${ownerPid}), killing process`);
-          try {
-            if (process.platform === "win32") {
-              execSync(`taskkill /T /F /PID ${ownerPid}`, { stdio: "ignore", shell: "cmd.exe" });
-            } else {
-              process.kill(ownerPid, "SIGKILL");
-            }
-          } catch (killErr) {
-            log.warn(`Failed to kill stale gateway PID ${ownerPid}:`, killErr);
-          }
-        } else {
-          log.info(`Stale gateway lock found (PID ${ownerPid} is dead), removing lock file`);
-        }
-
-        // Remove the stale lock file regardless
-        rmSync(lockPath, { force: true });
-        log.info("Cleaned up stale gateway lock");
-      }
-    }
-  } catch (lockErr) {
-    // Lock file doesn't exist, can't be read, or isn't valid JSON — that's fine,
-    // the gateway will create a new one on startup.
-    log.debug("Gateway lock cleanup skipped:", lockErr);
-  }
+  // Clean up stale gateway lock file (and kill owner) before starting.
+  cleanupGatewayLock(configPath);
 
   // In packaged app, vendor lives in Resources/vendor/openclaw (extraResources).
   // In dev, resolveVendorEntryPath() resolves relative to source via import.meta.url.

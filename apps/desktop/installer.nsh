@@ -18,6 +18,10 @@
   Pop $0
   nsExec::ExecToLog 'taskkill /f /im openclaw.exe'
   Pop $0
+  ; Remove gateway lock files from the temp directory so the newly installed
+  ; version doesn't hit "gateway already running" on first start.
+  ; The lock dir is %TEMP%\openclaw\ (no uid suffix on Windows).
+  RMDir /r "$TEMP\openclaw"
   ; Wait for file handles to be released
   Sleep 2000
 !macroend
@@ -30,5 +34,6 @@
   Pop $0
   nsExec::ExecToLog 'taskkill /f /im openclaw.exe'
   Pop $0
+  RMDir /r "$TEMP\openclaw"
   Sleep 2000
 !macroend
