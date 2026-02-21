@@ -8,32 +8,39 @@
 ; default CHECK_APP_RUNNING logic runs.
 
 !macro customInit
-  ; Kill all EasyClaw.exe processes (main app + orphaned gateway children).
-  ; At this point the installer is starting, so any running EasyClaw.exe
-  ; instances should be terminated to release file locks.
-  nsExec::ExecToLog 'taskkill /f /im EasyClaw.exe'
+  ; Kill all EasyClaw.exe processes AND their entire process trees (/t).
+  ; /f = force, /t = tree (kills child processes too — node workers, gateway).
+  nsExec::ExecToLog 'taskkill /f /t /im EasyClaw.exe'
   Pop $0 ; discard exit code (fails silently if no process found)
   ; Also kill openclaw binaries in case they were spawned as separate executables
-  nsExec::ExecToLog 'taskkill /f /im openclaw-gateway.exe'
+  nsExec::ExecToLog 'taskkill /f /t /im openclaw-gateway.exe'
   Pop $0
-  nsExec::ExecToLog 'taskkill /f /im openclaw.exe'
+  nsExec::ExecToLog 'taskkill /f /t /im openclaw.exe'
+  Pop $0
+  ; Kill any stray node.exe that might hold locks on vendor .node files
+  ; (e.g. better-sqlite3). Only targets node.exe with "easyclaw" in the
+  ; command line to avoid killing unrelated Node processes.
+  nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%easyclaw%'"'"'" call terminate'
   Pop $0
   ; Remove gateway lock files from the temp directory so the newly installed
   ; version doesn't hit "gateway already running" on first start.
   ; The lock dir is %TEMP%\openclaw\ (no uid suffix on Windows).
   RMDir /r "$TEMP\openclaw"
-  ; Wait for file handles to be released
-  Sleep 2000
+  ; Wait for Windows to fully release file handles on native modules (.node,
+  ; .dll). 2 seconds was insufficient for some users upgrading from v1.4.8.
+  Sleep 5000
 !macroend
 
 !macro customUnInit
   ; Same cleanup for the uninstaller
-  nsExec::ExecToLog 'taskkill /f /im EasyClaw.exe'
+  nsExec::ExecToLog 'taskkill /f /t /im EasyClaw.exe'
   Pop $0
-  nsExec::ExecToLog 'taskkill /f /im openclaw-gateway.exe'
+  nsExec::ExecToLog 'taskkill /f /t /im openclaw-gateway.exe'
   Pop $0
-  nsExec::ExecToLog 'taskkill /f /im openclaw.exe'
+  nsExec::ExecToLog 'taskkill /f /t /im openclaw.exe'
+  Pop $0
+  nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%easyclaw%'"'"'" call terminate'
   Pop $0
   RMDir /r "$TEMP\openclaw"
-  Sleep 2000
+  Sleep 5000
 !macroend
