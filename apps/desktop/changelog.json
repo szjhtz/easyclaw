@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.5.2",
+    "date": "2026-02-21",
+    "en": [
+      "Added customer service app module for intelligent customer support",
+      "Added real-time chat experience with run tracking and stop/reset controls",
+      "Added Doubao Seed 2.0 models (Pro-128k and Lite-128k) to Volcengine provider",
+      "Reorganized panel navigation with Apps section for modular features",
+      "Added i18n support for WeCom configuration error messages",
+      "Fixed update banner showing for newer client versions than server",
+      "Fixed model catalog synchronization to use extraModels as authoritative source"
+    ],
+    "zh": [
+      "新增智能客服应用模块，支持客服场景智能回复",
+      "新增实时聊天体验，支持运行追踪和停止/重置控制",
+      "新增豆包 Seed 2.0 模型（Pro-128k 和 Lite-128k）",
+      "重新组织面板导航，新增应用分区用于模块化功能",
+      "为企业微信配置错误信息添加国际化支持",
+      "修复客户端版本比服务器更新时仍显示更新横幅的问题",
+      "修复模型目录同步使用 extraModels 作为权威源的问题"
+    ]
+  },
+  {
     "version": "1.5.1",
     "date": "2026-02-21",
     "en": [
