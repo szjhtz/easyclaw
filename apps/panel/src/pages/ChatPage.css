@@ -455,23 +455,6 @@
   background-color: var(--color-danger);
 }
 
-/* Non-image file preview label */
-.chat-file-preview-name {
-  display: inline-block;
-  max-width: 160px;
-  height: 60px;
-  line-height: 60px;
-  padding: 0 12px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Attach button */
 .chat-attach-btn {
   display: flex;
