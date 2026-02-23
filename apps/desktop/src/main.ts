@@ -998,16 +998,54 @@ app.whenReady().then(async () => {
    */
   function prepareCdpUserDataDir(realUserDataDir: string, profileDir: string): string {
     const cdpDataDir = join(homedir(), ".easyclaw", "chrome-cdp");
+    log.info(`[CDP-prep] realUserDataDir=${realUserDataDir}, profileDir=${profileDir}, cdpDataDir=${cdpDataDir}`);
 
     // Clean up previous wrapper to avoid stale symlinks.
-    rmSync(cdpDataDir, { recursive: true, force: true });
+    if (existsSync(cdpDataDir)) {
+      // Explicitly remove any junctions/symlinks before recursive delete
+      // to be extra safe (even though rmSync handles junctions correctly).
+      try {
+        const entries = readdirSync(cdpDataDir);
+        for (const entry of entries) {
+          const entryPath = join(cdpDataDir, entry);
+          try {
+            const st = lstatSync(entryPath);
+            if (st.isSymbolicLink()) {
+              log.info(`[CDP-prep] Removing old symlink/junction: ${entryPath}`);
+              unlinkSync(entryPath);
+            }
+          } catch {}
+        }
+      } catch {}
+      rmSync(cdpDataDir, { recursive: true, force: true });
+    }
     mkdirSync(cdpDataDir, { recursive: true });
 
     // Symlink the profile directory (e.g. Default → user's actual profile).
     const realProfilePath = join(realUserDataDir, profileDir);
     const cdpProfilePath = join(cdpDataDir, profileDir);
+    log.info(`[CDP-prep] realProfilePath=${realProfilePath}, exists=${existsSync(realProfilePath)}`);
+
     if (existsSync(realProfilePath)) {
-      symlinkSync(realProfilePath, cdpProfilePath, process.platform === "win32" ? "junction" : "dir");
+      const linkType = process.platform === "win32" ? "junction" : "dir";
+      symlinkSync(realProfilePath, cdpProfilePath, linkType);
+      log.info(`[CDP-prep] Created ${linkType}: ${cdpProfilePath} -> ${realProfilePath}`);
+
+      // Verify the junction/symlink is working by listing a few files through it.
+      try {
+        const st = lstatSync(cdpProfilePath);
+        log.info(`[CDP-prep] Junction lstat: isSymbolicLink=${st.isSymbolicLink()}, isDirectory=${st.isDirectory()}`);
+        const filesThrough = readdirSync(cdpProfilePath).slice(0, 10);
+        log.info(`[CDP-prep] Files visible through junction (first 10): ${JSON.stringify(filesThrough)}`);
+
+        // Compare with files in the real directory.
+        const filesReal = readdirSync(realProfilePath).slice(0, 10);
+        log.info(`[CDP-prep] Files in real profile (first 10): ${JSON.stringify(filesReal)}`);
+      } catch (err) {
+        log.warn(`[CDP-prep] Junction verification FAILED: ${err}`);
+      }
+    } else {
+      log.warn(`[CDP-prep] Real profile path does not exist: ${realProfilePath}`);
     }
 
     // Copy Local State (Chrome reads/writes it; don't symlink to avoid
@@ -1015,7 +1053,14 @@ app.whenReady().then(async () => {
     const localStateSrc = join(realUserDataDir, "Local State");
     if (existsSync(localStateSrc)) {
       copyFileSync(localStateSrc, join(cdpDataDir, "Local State"));
+      log.info(`[CDP-prep] Copied Local State`);
     }
+
+    // Log the final contents of the wrapper directory.
+    try {
+      const finalEntries = readdirSync(cdpDataDir);
+      log.info(`[CDP-prep] cdpDataDir contents: ${JSON.stringify(finalEntries)}`);
+    } catch {}
 
     return cdpDataDir;
   }
