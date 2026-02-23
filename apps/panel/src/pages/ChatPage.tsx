@@ -567,44 +567,15 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   // Stall detection: periodically check if events have stopped arriving.
   // Unlike a one-shot timeout, this catches stalls that happen mid-run
   // (e.g. after a memory compaction delta, the LLM request fails silently).
+  // Reset activity tracking refs when a new run starts.
+  // Stall detection removed — the real-time agent phase indicator
+  // (tool events, "waiting for LLM", etc.) gives users enough feedback.
+  // The old 30s timeout would wrongly abort long-running tool calls
+  // and blame slow LLM providers, which isn't actionable.
   useEffect(() => {
     if (!runId) return;
     lastActivityRef.current = Date.now();
     lastAgentStreamRef.current = null;
-    const STALL_THRESHOLD_MS = 30_000;
-    const CHECK_INTERVAL_MS = 5_000;
-    const interval = setInterval(() => {
-      if (!runIdRef.current) return;
-      const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed < STALL_THRESHOLD_MS) return;
-      const lastStream = lastAgentStreamRef.current;
-      let errorKey: string;
-      if (!lastStream) {
-        errorKey = "chat.timeoutNoEvents";
-      } else if (lastStream === "tool") {
-        errorKey = "chat.timeoutToolRunning";
-      } else if (lastStream === "lifecycle" || lastStream === "assistant") {
-        errorKey = "chat.timeoutWaitingForLLM";
-      } else {
-        errorKey = "chat.timeoutError";
-      }
-      const staleRunId = runIdRef.current!;
-      console.error("[chat] stall detected — no activity for", elapsed, "ms, runId:", staleRunId, "lastStream:", lastStream);
-      // Transition the stalled run to error state BEFORE cleanup,
-      // otherwise cleanup() skips active-phase runs and the thinking
-      // bubble persists indefinitely.
-      trackerRef.current.dispatch({ type: "CHAT_ERROR", runId: staleRunId });
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        text: `⚠ ${t(errorKey)}`,
-        timestamp: Date.now(),
-      }]);
-      setStreaming(null);
-      setRunId(null);
-      trackerRef.current.cleanup();
-      lastAgentStreamRef.current = null;
-    }, CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
   }, [runId]);
 
   // Re-fetch chat display settings when changed in SettingsPage.
