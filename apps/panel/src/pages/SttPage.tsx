@@ -138,7 +138,7 @@ export function SttPage() {
         <div className="error-alert">{error}</div>
       )}
 
-      <div className="section-card" style={{ maxWidth: 680 }}>
+      <div className="section-card stt-section">
         {/* Enable toggle */}
         <div className="form-group">
           <label className="stt-checkbox-label">
@@ -149,7 +149,7 @@ export function SttPage() {
             />
             <span className="stt-enable-text">{t("stt.enableStt")}</span>
           </label>
-          <p className="form-help" style={{ margin: "6px 0 0 24px" }}>{t("stt.enableHelp")}</p>
+          <p className="form-help stt-enable-help">{t("stt.enableHelp")}</p>
         </div>
 
         {enabled && (
@@ -171,7 +171,7 @@ export function SttPage() {
             {/* Groq credentials */}
             {provider === "groq" && (
               <div className="form-group">
-                <div className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="form-label stt-label-with-badge">
                   {t("stt.groqApiKey")}
                   {hasGroqKey && !groqApiKey && (
                     <span className="badge-saved">
@@ -203,7 +203,7 @@ export function SttPage() {
             {provider === "volcengine" && (
               <>
                 <div className="info-box info-box-blue">
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <div className="stt-free-tier-content">
                     <span>{t("stt.volcengineFreeTier")}</span>
                     <a
                       href="https://console.volcengine.com/speech/app"
@@ -213,14 +213,14 @@ export function SttPage() {
                     >
                       {t("stt.volcentineFreeLink")}
                     </a>
-                    <span style={{ position: "relative", display: "inline-block" }}>
+                    <span className="stt-tooltip-wrapper">
                       <span
                         className="volcengine-help-trigger stt-help-icon"
                       >
                         ?
                       </span>
                       <div className="volcengine-help-tooltip">
-                        <div style={{ fontWeight: 600, marginBottom: 6 }}>{t("stt.volcengineStepsTitle")}</div>
+                        <div className="stt-tooltip-title">{t("stt.volcengineStepsTitle")}</div>
                         <div>{t("stt.volcengineStep1")}</div>
                         <div>{t("stt.volcengineStep2")}</div>
                         <div>{t("stt.volcengineStep3")}</div>
@@ -229,8 +229,8 @@ export function SttPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 12 }}>
-                  <div className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="form-group">
+                  <div className="form-label stt-label-with-badge">
                     {t("stt.volcengineAppKey")}
                     {hasVolcengineKeys && !volcengineAppKey && (
                       <span className="badge-saved">
@@ -258,7 +258,7 @@ export function SttPage() {
                   />
                 </div>
 
-                <p className="form-help" style={{ margin: "0 0 16px" }}>
+                <p className="form-help stt-volcengine-help">
                   {t("stt.volcengineHelp")}{" "}
                   <a
                     href="https://console.volcengine.com/speech/app"
@@ -291,10 +291,10 @@ export function SttPage() {
       </div>
 
       {/* Info section */}
-      <div className="section-card" style={{ maxWidth: 680 }}>
+      <div className="section-card stt-section">
         <h3>{t("stt.whatIsStt")}</h3>
-        <p className="text-secondary" style={{ fontSize: 13, marginBottom: 12 }}>{t("stt.sttExplanation")}</p>
-        <ul className="text-secondary" style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.8 }}>
+        <p className="text-secondary stt-explanation">{t("stt.sttExplanation")}</p>
+        <ul className="text-secondary stt-feature-list">
           <li>{t("stt.feature1")}</li>
           <li>{t("stt.feature2")}</li>
           <li>{t("stt.feature3")}</li>

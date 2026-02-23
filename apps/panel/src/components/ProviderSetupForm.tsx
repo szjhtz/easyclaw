@@ -464,40 +464,6 @@ export function ProviderSetupForm({
         <div className="mb-sm">
           <div className="form-label text-secondary">{t("onboarding.providerLabel")}</div>
           <ProviderSelect value={provider} onChange={handleProviderChange} providers={providerFilter} />
-          {tab === "subscription" ? (
-            getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getSubscription")} &rarr;
-              </a>
-            </div>
-            )
-          ) : (
-            !isOAuth && (
-            <div className="form-help-sm provider-links">
-              <a
-                href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t("providers.getApiKey")} &rarr;
-              </a>
-              {getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
-                <a
-                  href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("providers.subscribeForValue")} &rarr;
-                </a>
-              )}
-            </div>
-            )
-          )}
         </div>
 
         {isOAuth ? (
@@ -523,6 +489,18 @@ export function ProviderSetupForm({
                 />
               </div>
             </div>
+
+            {getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
+            <div className="form-help-sm provider-links">
+              <a
+                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("providers.getSubscription")} &rarr;
+              </a>
+            </div>
+            )}
 
             {oauthManualMode ? (
               <div className="mb-sm">
@@ -682,9 +660,31 @@ export function ProviderSetupForm({
             placeholder={isAnthropicSub ? t("providers.anthropicTokenPlaceholder") : t("providers.apiKeyPlaceholder")}
             className="input-full input-mono"
           />
-          <small className="form-help-sm">
-            {t("providers.apiKeyHelp")}
-          </small>
+          {tab === "subscription" ? (
+            getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
+            <div className="form-help-sm provider-links">
+              <a
+                href={getProviderMeta(provider as LLMProvider)?.subscriptionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("providers.getSubscription")} &rarr;
+              </a>
+            </div>
+            )
+          ) : (
+            getProviderMeta(provider as LLMProvider)?.apiKeyUrl && (
+            <div className="form-help-sm provider-links">
+              <a
+                href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t("providers.getApiKey")} &rarr;
+              </a>
+            </div>
+            )
+          )}
         </div>
 
         <div className="mb-sm">
