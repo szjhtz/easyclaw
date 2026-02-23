@@ -209,7 +209,14 @@ function parseRawMessages(
   const parsed: ChatMessage[] = [];
   for (const msg of raw) {
     if (msg.role === "user" || msg.role === "assistant") {
-      // Always extract tool call names from assistant content blocks
+      // Extract text + images first, then tool call names.
+      // Text is generated BEFORE tool calls in the LLM turn,
+      // so the text bubble should appear above tool-event markers.
+      const text = extractText(msg.content);
+      const images = extractImages(msg.content);
+      if (text.trim() || images.length > 0) {
+        parsed.push({ role: msg.role, text, timestamp: msg.timestamp ?? 0, images: images.length > 0 ? images : undefined });
+      }
       if (msg.role === "assistant" && Array.isArray(msg.content)) {
         for (const block of msg.content) {
           const b = block as Record<string, unknown>;
@@ -218,10 +225,6 @@ function parseRawMessages(
           }
         }
       }
-      const text = extractText(msg.content);
-      const images = extractImages(msg.content);
-      if (!text.trim() && images.length === 0) continue;
-      parsed.push({ role: msg.role, text, timestamp: msg.timestamp ?? 0, images: images.length > 0 ? images : undefined });
     }
   }
   return parsed;
@@ -231,7 +234,21 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
-  const [streaming, setStreaming] = useState<string | null>(null);
+  const [streaming, _setStreaming] = useState<string | null>(null);
+  const streamingRef = useRef<string | null>(null);
+  /** Update both the streaming state (for UI) and the ref (for synchronous reads). */
+  const setStreaming = useCallback((v: string | null | ((prev: string | null) => string | null)) => {
+    if (typeof v === "function") {
+      _setStreaming((prev) => {
+        const next = v(prev);
+        streamingRef.current = next;
+        return next;
+      });
+    } else {
+      streamingRef.current = v;
+      _setStreaming(v);
+    }
+  }, []);
   const [runId, setRunId] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [agentName, setAgentName] = useState<string | null>(null);
@@ -287,7 +304,13 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
       shouldInstantScrollRef.current = false;
     } else {
-      scrollToBottom();
+      // Only auto-scroll if the user is already near the bottom.
+      // If they scrolled up to read earlier messages, don't yank them back.
+      const el = messagesContainerRef.current;
+      if (el) {
+        const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (distFromBottom < 150) scrollToBottom();
+      }
     }
   }, [messages, streaming, runId, scrollToBottom]);
 
@@ -418,14 +441,17 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         const phase = agentPayload.data?.phase;
         const name = agentPayload.data?.name as string | undefined;
         if (phase === "start" && name) {
-          // Clear streaming text from previous LLM turn so it doesn't
-          // overlap with the tool-use thinking bubble (Bug: streaming
-          // state and RunTracker phase were independent, causing both
-          // the streaming cursor and thinking bubble to render).
-          if (runIdRef.current && agentRunId === runIdRef.current) {
-            setStreaming(null);
+          // Flush current streaming text into a committed assistant bubble
+          // before adding the tool event.  Read from ref (synchronous) to
+          // avoid React StrictMode double-invocation of state updaters.
+          const flushedText = streamingRef.current;
+          setStreaming(null);
+          const toolEvt: ChatMessage = { role: "tool-event", text: name, toolName: name, timestamp: Date.now() };
+          if (flushedText) {
+            setMessages((prev) => [...prev, { role: "assistant", text: flushedText, timestamp: Date.now() }, toolEvt]);
+          } else {
+            setMessages((prev) => [...prev, toolEvt]);
           }
-          setMessages((prev) => [...prev, { role: "tool-event", text: name, toolName: name, timestamp: Date.now() }]);
           tracker.dispatch({ type: "TOOL_START", runId: agentRunId, toolName: name });
         } else if (phase === "result") {
           tracker.dispatch({ type: "TOOL_RESULT", runId: agentRunId });
@@ -509,9 +535,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           break;
         }
         case "final": {
-          const text = extractText(payload.message?.content);
-          if (text) {
-            setMessages((prev) => [...prev, { role: "assistant", text, timestamp: Date.now() }]);
+          const finalText = extractText(payload.message?.content);
+          if (finalText) {
+            setMessages((prev) => [...prev, { role: "assistant", text: finalText, timestamp: Date.now() }]);
           }
           if (sendTimeRef.current > 0) {
             trackEvent("chat.response_received", { durationMs: Date.now() - sendTimeRef.current });
@@ -535,13 +561,12 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           break;
         }
         case "aborted": {
-          // If there was partial streaming text, keep it as a message
-          setStreaming((current) => {
-            if (current) {
-              setMessages((prev) => [...prev, { role: "assistant", text: current, timestamp: Date.now() }]);
-            }
-            return null;
-          });
+          // If there was partial streaming text, keep it as a message.
+          const abortedText = streamingRef.current;
+          setStreaming(null);
+          if (abortedText) {
+            setMessages((prev) => [...prev, { role: "assistant", text: abortedText, timestamp: Date.now() }]);
+          }
           setRunId(null);
           lastAgentStreamRef.current = null;
           tracker.cleanup();
@@ -669,13 +694,12 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
             if (cancelled) return;
             setConnectionState("connecting");
             const wasWaiting = !!runIdRef.current;
-            // If streaming was in progress, save partial text
-            setStreaming((current) => {
-              if (current) {
-                setMessages((prev) => [...prev, { role: "assistant", text: current, timestamp: Date.now() }]);
-              }
-              return null;
-            });
+            // If streaming was in progress, save partial text.
+            const disconnectText = streamingRef.current;
+            setStreaming(null);
+            if (disconnectText) {
+              setMessages((prev) => [...prev, { role: "assistant", text: disconnectText, timestamp: Date.now() }]);
+            }
             setRunId(null);
             trackerRef.current.reset();
             lastAgentStreamRef.current = null;
