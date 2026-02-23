@@ -1071,29 +1071,28 @@ app.whenReady().then(async () => {
     log.info(`Chrome profile directory: ${profileDir} (from ${userDataDir ?? "fallback"})`);
 
     // 4. Kill existing Chrome processes so we can relaunch with debug port.
-    try {
-      if (process.platform === "win32") {
-        execSync("taskkill /f /im chrome.exe 2>nul & exit /b 0", { stdio: "ignore", shell: "cmd.exe" });
-      } else {
-        const name = chromePath.includes("Chromium") ? "Chromium" :
-                     chromePath.includes("Edge") ? "Microsoft Edge" : "Google Chrome";
-        execSync(`pkill -x '${name}' 2>/dev/null || true`, { stdio: "ignore" });
-      }
-      // Wait for process cleanup — Chrome with many tabs needs more time
-      await new Promise((r) => setTimeout(r, 3000));
-    } catch {
-      // Ignore kill errors — Chrome might not be running
-    }
+    const killChrome = () => {
+      try {
+        if (process.platform === "win32") {
+          const exeName = chromePath!.toLowerCase().includes("edge") ? "msedge.exe" : "chrome.exe";
+          execSync(`taskkill /f /im ${exeName} 2>nul & exit /b 0`, { stdio: "ignore", shell: "cmd.exe" });
+        } else {
+          const name = chromePath!.includes("Chromium") ? "Chromium" :
+                       chromePath!.includes("Edge") ? "Microsoft Edge" : "Google Chrome";
+          execSync(`pkill -x '${name}' 2>/dev/null || true`, { stdio: "ignore" });
+        }
+      } catch { /* ignore */ }
+    };
+    killChrome();
+    // Wait for process cleanup — Chrome with many tabs needs more time
+    await new Promise((r) => setTimeout(r, 3000));
 
-    // 5. Create wrapper user-data-dir with symlinks to the user's profile.
-    //    Chrome requires a non-default --user-data-dir for remote debugging.
-    const cdpDataDir = userDataDir ? prepareCdpUserDataDir(userDataDir, profileDir) : null;
-    if (!cdpDataDir) {
+    if (!userDataDir) {
       log.warn("Could not resolve Chrome user data directory for CDP mode");
       return;
     }
 
-    // 6. Find a free port starting from preferredPort.
+    // 5. Find a free port starting from preferredPort.
     let actualPort = preferredPort;
     for (let p = preferredPort; p < preferredPort + 100; p++) {
       if (!(await isPortInUse(p))) {
@@ -1102,34 +1101,51 @@ app.whenReady().then(async () => {
       }
     }
 
-    // 7. Relaunch Chrome with --remote-debugging-port and the symlinked
-    //    --user-data-dir to preserve the user's profile (cookies, extensions, logins).
-    const chromeArgs = [
-      `--remote-debugging-port=${actualPort}`,
-      `--user-data-dir=${cdpDataDir}`,
-      `--profile-directory=${profileDir}`,
-    ];
-    log.info(`Launching Chrome: ${chromePath} ${chromeArgs.join(" ")}`);
-    const child = spawn(chromePath, chromeArgs, {
-      detached: true,
-      stdio: "ignore",
-    });
-    child.unref();
+    // 6. Launch Chrome with --remote-debugging-port.
+    //    Strategy: try the real user-data-dir first (preserves cookies, taskbar
+    //    identity, and SingletonLock prevents duplicate instances).  If Chrome
+    //    refuses remote debugging on its default data dir (macOS Chrome 145+),
+    //    fall back to a symlinked wrapper directory.
+    const launchWithDataDir = async (dataDir: string): Promise<boolean> => {
+      const chromeArgs = [
+        `--remote-debugging-port=${actualPort}`,
+        `--user-data-dir=${dataDir}`,
+        `--profile-directory=${profileDir}`,
+      ];
+      log.info(`Launching Chrome: ${chromePath} ${chromeArgs.join(" ")}`);
+      const child = spawn(chromePath!, chromeArgs, { detached: true, stdio: "ignore" });
+      child.unref();
 
-    // 8. Wait for CDP port to become accessible (poll with timeout).
-    const deadline = Date.now() + 15_000;
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 500));
-      if (await probeCdp(actualPort)) {
-        log.info(`Chrome CDP ready on port ${actualPort} (profile: ${profileDir})`);
-        // 9. Save actual port to storage so next launch probes the right port.
-        storage.settings.set("browser-cdp-port", String(actualPort));
-        // Rewrite gateway config with the actual port.
-        writeGatewayConfig(buildFullGatewayConfig());
-        return;
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500));
+        if (await probeCdp(actualPort)) {
+          log.info(`Chrome CDP ready on port ${actualPort} (dataDir: ${dataDir}, profile: ${profileDir})`);
+          storage.settings.set("browser-cdp-port", String(actualPort));
+          writeGatewayConfig(buildFullGatewayConfig());
+          return true;
+        }
       }
+      return false;
+    };
+
+    // Try 1: real user-data-dir (best: same cookies, same taskbar icon, SingletonLock).
+    if (await launchWithDataDir(userDataDir)) {
+      return;
     }
-    log.warn(`Chrome CDP not reachable on port ${actualPort} after 15s`);
+    log.warn(`CDP not reachable with real user-data-dir — falling back to symlinked wrapper`);
+
+    // Kill the Chrome from Try 1 before retrying with a different data dir.
+    killChrome();
+    await new Promise((r) => setTimeout(r, 3000));
+
+    // Try 2: symlinked wrapper (needed on macOS Chrome 145+ which blocks
+    // remote debugging on the default data directory).
+    const cdpDataDir = prepareCdpUserDataDir(userDataDir, profileDir);
+    if (await launchWithDataDir(cdpDataDir)) {
+      return;
+    }
+    log.warn(`Chrome CDP not reachable on port ${actualPort} after both attempts`);
   }
 
   /**
