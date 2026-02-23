@@ -59,6 +59,44 @@ function invalidateSkillsSnapshot(): void {
   }
 }
 
+/** Audio formats natively supported by STT providers (Groq Whisper). */
+const STT_SUPPORTED_FORMATS = new Set(["flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm"]);
+
+/**
+ * Convert audio to MP3 using ffmpeg (piped via stdin/stdout).
+ * Throws if ffmpeg is unavailable — callers should surface the error.
+ */
+function convertAudioToMp3(input: Buffer, inputFormat: string): Promise<{ data: Buffer; format: string }> {
+  return new Promise((resolve, reject) => {
+    const proc = execFile(
+      "ffmpeg",
+      ["-i", "pipe:0", "-f", inputFormat, "-f", "mp3", "-ac", "1", "-ar", "16000", "pipe:1"],
+      { encoding: "buffer", maxBuffer: 10 * 1024 * 1024, timeout: 15_000 },
+      (err, stdout) => {
+        if (err) {
+          const isNotFound = (err as NodeJS.ErrnoException).code === "ENOENT";
+          if (isNotFound) {
+            reject(new Error(
+              "ffmpeg not found. Voice messages in AMR format require ffmpeg for conversion.\n" +
+              "  macOS:   brew install ffmpeg\n" +
+              "  Windows: winget install ffmpeg   (or download from https://ffmpeg.org/download.html)\n" +
+              "  Linux:   sudo apt install ffmpeg",
+            ));
+            return;
+          }
+          reject(new Error(`ffmpeg conversion failed: ${err.message}`));
+          return;
+        }
+        if (!stdout || stdout.length === 0) {
+          reject(new Error("ffmpeg produced empty output"));
+          return;
+        }
+        resolve({ data: stdout as unknown as Buffer, format: "mp3" });
+      },
+    );
+    proc.stdin?.end(input);
+  });
+}
 
 /**
  * Fetch through local proxy router so GFW-blocked APIs (Telegram, LINE, etc.)
@@ -351,13 +389,18 @@ async function handleWeComInbound(frame: {
   if (frame.msg_type === "voice" && frame.media_data) {
     if (wecomSttManager?.isEnabled()) {
       try {
-        const audioBuffer: Buffer = Buffer.from(frame.media_data, "base64");
+        let audioBuffer: Buffer = Buffer.from(frame.media_data, "base64");
         // WeCom voice is AMR format; extract format hint from MIME or default to "amr"
-        const format = frame.media_mime?.split("/").pop()?.split(";")[0] ?? "amr";
+        let format = frame.media_mime?.split("/").pop()?.split(";")[0] ?? "amr";
 
-        // STT providers handle format conversion internally:
-        // - Groq: auto-converts AMR → WAV via pure-JS decoder
-        // - Volcengine: accepts AMR natively
+        // Convert unsupported formats (e.g. AMR) to MP3 via ffmpeg
+        if (!STT_SUPPORTED_FORMATS.has(format.toLowerCase())) {
+          log.info(`WeCom: converting ${format} → mp3 via ffmpeg`);
+          const converted = await convertAudioToMp3(audioBuffer, format);
+          audioBuffer = converted.data;
+          format = converted.format;
+        }
+
         log.info(`WeCom: transcribing voice (${audioBuffer.length} bytes, format=${format})`);
         const transcribed = await wecomSttManager.transcribe(audioBuffer, format);
         if (transcribed) {
@@ -369,7 +412,8 @@ async function handleWeComInbound(frame: {
         }
       } catch (err) {
         log.error("WeCom: voice transcription error:", err);
-        message = "[语音消息 - 转写失败]";
+        const errMsg = err instanceof Error ? err.message : String(err);
+        message = `[语音消息 - 转写失败] ${errMsg}`;
       }
     } else {
       log.warn("WeCom: STT not enabled, cannot transcribe voice message");
