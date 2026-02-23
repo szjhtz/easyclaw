@@ -355,23 +355,19 @@ test.describe("Chat Agent Events & Settings", () => {
     const sectionCards = window.locator(".section-card:visible");
     await expect(sectionCards.first()).toBeVisible({ timeout: 10_000 });
     const count = await sectionCards.count();
-    expect(count).toBeGreaterThanOrEqual(4);
+    expect(count).toBeGreaterThanOrEqual(3);
 
-    // First section: Agent Settings
+    // First section: Agent Settings (includes browser mode)
     const firstSection = sectionCards.nth(0);
     await expect(firstSection).toContainText(/Agent Settings|智能体设置/);
 
-    // Second section: Browser Settings
+    // Second section: Chat Settings
     const secondSection = sectionCards.nth(1);
-    await expect(secondSection).toContainText(/Browser Settings|浏览器设置/);
+    await expect(secondSection).toContainText(/Chat Settings|聊天设置/);
 
-    // Third section: Chat Settings
+    // Third section: Telemetry & Privacy
     const thirdSection = sectionCards.nth(2);
-    await expect(thirdSection).toContainText(/Chat Settings|聊天设置/);
-
-    // Fourth section: Telemetry & Privacy
-    const fourthSection = sectionCards.nth(3);
-    await expect(fourthSection).toContainText(/Telemetry|遥测/);
+    await expect(thirdSection).toContainText(/Telemetry|遥测/);
   });
 
   // ──────────────────────────────────────────────────────────────────

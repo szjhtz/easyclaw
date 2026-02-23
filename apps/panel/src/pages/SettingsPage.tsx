@@ -197,11 +197,6 @@ export function SettingsPage() {
             {t("settings.agent.dmScopeHint")}
           </div>
         </div>
-      </div>
-
-      {/* Browser Settings Section */}
-      <div className="section-card">
-        <h3>{t("settings.browser.title")}</h3>
 
         <div>
           <label className="form-label-block">
@@ -263,24 +258,16 @@ export function SettingsPage() {
 
         <hr className="section-divider" />
 
-        {/* What We Collect */}
-        <div className="mb-md">
-          <h3>
-            {t("settings.telemetry.whatWeCollect")}
-          </h3>
+        <div className="telemetry-details">
+          <h4>{t("settings.telemetry.whatWeCollect")}</h4>
           <ul className="settings-list">
             <li>{t("settings.telemetry.collect.appLifecycle")}</li>
             <li>{t("settings.telemetry.collect.featureUsage")}</li>
             <li>{t("settings.telemetry.collect.errors")}</li>
             <li>{t("settings.telemetry.collect.runtime")}</li>
           </ul>
-        </div>
 
-        {/* What We DON'T Collect */}
-        <div className="mb-md">
-          <h3>
-            {t("settings.telemetry.whatWeDontCollect")}
-          </h3>
+          <h4>{t("settings.telemetry.whatWeDontCollect")}</h4>
           <ul className="settings-list">
             <li>{t("settings.telemetry.dontCollect.conversations")}</li>
             <li>{t("settings.telemetry.dontCollect.apiKeys")}</li>

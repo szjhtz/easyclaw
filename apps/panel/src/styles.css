@@ -635,8 +635,12 @@ tbody td {
   box-shadow: var(--shadow-lg), var(--shadow-glow);
 }
 
+.section-card > * + * {
+  margin-top: 16px;
+}
+
 .section-card h3 {
-  margin: 0 0 16px;
+  margin: 0 0 4px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border-light);
 }
@@ -644,7 +648,7 @@ tbody td {
 .section-divider {
   border: none;
   border-top: 1px solid var(--color-border-light);
-  margin: 20px 0;
+  margin: 8px 0;
 }
 
 .section-divider ~ * h3 {
@@ -1970,6 +1974,15 @@ tbody td {
   padding-left: 24px;
   line-height: 1.8;
   color: var(--color-text-secondary);
+}
+
+.telemetry-details h4 {
+  margin: 16px 0 4px;
+  font-size: 14px;
+}
+
+.telemetry-details h4:first-child {
+  margin-top: 0;
 }
 
 /* ===== 33. STT Page ===== */
