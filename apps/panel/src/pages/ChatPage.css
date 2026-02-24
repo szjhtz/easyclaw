@@ -204,6 +204,31 @@
   margin-left: 2px;
 }
 
+.chat-model-select {
+  flex-shrink: 0;
+}
+
+.chat-model-select .custom-select-trigger {
+  padding: 2px 6px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  min-height: auto;
+  height: auto;
+  box-shadow: none;
+}
+
+.chat-model-select .custom-select-trigger:hover:not(:disabled) {
+  background: var(--color-bg-alt);
+  border-radius: 4px;
+}
+
+.chat-model-select .custom-select-chevron {
+  font-size: 8px;
+  margin-left: 4px;
+}
+
 .chat-status-spacer {
   flex: 1;
 }

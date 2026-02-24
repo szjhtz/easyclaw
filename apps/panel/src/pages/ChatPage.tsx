@@ -4,7 +4,9 @@ import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import { stripReasoningTagsFromText } from "@openclaw/reasoning-tags";
 // Gateway attachment limit is 5 MB (image-only for webchat)
 const MAX_IMAGE_ATTACHMENT_BYTES = 5 * 1000 * 1000;
-import { fetchGatewayInfo, fetchProviderKeys, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchActiveKeyUsage } from "../api.js";
+import { fetchGatewayInfo, fetchProviderKeys, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents } from "../api.js";
+import { configManager } from "../lib/config-manager.js";
+import { Select } from "../components/Select.js";
 import { GatewayChatClient } from "../lib/gateway-client.js";
 import type { GatewayEvent, GatewayHelloOk } from "../lib/gateway-client.js";
 import { RunTracker } from "../lib/run-tracker.js";
@@ -252,7 +254,8 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   const [runId, setRunId] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const [agentName, setAgentName] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<{ provider: string; model: string } | null>(null);
+  const [activeModel, setActiveModel] = useState<{ keyId: string; provider: string; model: string } | null>(null);
+  const [modelOptions, setModelOptions] = useState<{ value: string; label: string }[]>([]);
   const [allFetched, setAllFetched] = useState(false);
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
   const trackerRef = useRef(new RunTracker(forceUpdate));
@@ -623,19 +626,27 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   }, []);
 
   function refreshModelLabel() {
-    fetchActiveKeyUsage().then((info) => {
+    configManager.getActiveKey().then(async (info) => {
       if (info) {
-        setActiveModel({ provider: info.provider, model: info.model });
+        setActiveModel({ keyId: info.keyId, provider: info.provider, model: info.model });
+        const models = await configManager.getModelsForProvider(info.provider);
+        setModelOptions(models.map((m) => ({ value: m.id, label: m.name })));
       } else {
         setActiveModel(null);
+        setModelOptions([]);
       }
-    }).catch(() => setActiveModel(null));
+    }).catch(() => { setActiveModel(null); setModelOptions([]); });
   }
 
   // Fetch active model info when connection state changes to connected
   useEffect(() => {
     if (connectionState === "connected") refreshModelLabel();
   }, [connectionState]);
+
+  // Refresh model label when config changes (e.g. model switched from ProvidersPage)
+  useEffect(() => {
+    return configManager.onChange(() => refreshModelLabel());
+  }, []);
 
   function refreshAgentName(client: GatewayChatClient, cancelled?: boolean) {
     client.request<{ name?: string }>("agent.identity.get", {
@@ -838,6 +849,16 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
   function handleReset() {
     if (!clientRef.current || connectionState !== "connected") return;
     setShowResetConfirm(true);
+  }
+
+  function handleModelChange(newModel: string) {
+    if (!activeModel || newModel === activeModel.model) return;
+    configManager.switchModel(activeModel.keyId, newModel)
+      .then(() => setActiveModel((prev) => prev ? { ...prev, model: newModel } : null))
+      .catch((err) => {
+        const errText = (err as Error).message || t("chat.unknownError");
+        setMessages((prev) => [...prev, { role: "assistant", text: `⚠ ${errText}`, timestamp: Date.now() }]);
+      });
   }
 
   function confirmReset() {
@@ -1168,7 +1189,15 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         <span className={`chat-status-dot chat-status-dot-${connectionState}`} />
         <span>{agentName ? `${agentName} · ${t(statusKey)}` : t(statusKey)}</span>
         {connectionState === "connected" && activeModel && (
-          <span className="chat-status-model">{t(`providers.label_${activeModel.provider}`, { defaultValue: activeModel.provider })} · {activeModel.model}</span>
+          <>
+            <span className="chat-status-model">{t(`providers.label_${activeModel.provider}`, { defaultValue: activeModel.provider })}</span>
+            <Select
+              className="chat-model-select"
+              value={activeModel.model}
+              onChange={handleModelChange}
+              options={modelOptions}
+            />
+          </>
         )}
         <span className="chat-status-spacer" />
         <button

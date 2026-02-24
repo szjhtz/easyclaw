@@ -11,6 +11,7 @@ import {
   activateProviderKey,
   deleteProviderKey,
 } from "../api.js";
+import { configManager } from "../lib/config-manager.js";
 import type { ProviderKeyEntry } from "../api.js";
 import { ModelSelect } from "../components/ModelSelect.js";
 import { ProviderSetupForm } from "../components/ProviderSetupForm.js";
@@ -83,8 +84,7 @@ export function ProvidersPage() {
   async function handleActivate(keyId: string, provider: string) {
     setError(null);
     try {
-      await activateProviderKey(keyId);
-      await updateSettings({ "llm-provider": provider });
+      await configManager.activateProvider(keyId, provider);
       setDefaultProvider(provider);
       await loadData();
     } catch (err) {
@@ -121,7 +121,7 @@ export function ProvidersPage() {
   async function handleModelChange(keyId: string, model: string) {
     setError(null);
     try {
-      await updateProviderKey(keyId, { model });
+      await configManager.switchModel(keyId, model);
       setKeys((prev) => prev.map((k) => (k.id === keyId ? { ...k, model } : k)));
     } catch (err) {
       setError({ key: "providers.failedToSave", detail: String(err) });
