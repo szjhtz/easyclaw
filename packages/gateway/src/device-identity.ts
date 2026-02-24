@@ -102,9 +102,10 @@ export function buildDeviceAuthPayload(params: {
   scopes: string[];
   signedAtMs: number;
   token?: string | null;
+  nonce: string;
 }): string {
   return [
-    "v1",
+    "v2",
     params.deviceId,
     params.clientId,
     params.clientMode,
@@ -112,5 +113,6 @@ export function buildDeviceAuthPayload(params: {
     params.scopes.join(","),
     String(params.signedAtMs),
     params.token ?? "",
+    params.nonce,
   ].join("|");
 }

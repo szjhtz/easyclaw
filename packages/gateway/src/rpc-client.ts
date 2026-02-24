@@ -76,6 +76,7 @@ export class GatewayRpcClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
   private deviceIdentity: DeviceIdentity | null = null;
+  private connectNonce: string | null = null;
 
   constructor(private opts: GatewayRpcClientOptions) {
     if (opts.deviceIdentityPath) {
@@ -176,34 +177,61 @@ export class GatewayRpcClient {
       log.info(`Connecting to gateway at ${this.opts.url}...`);
 
       this.ws = new WebSocket(this.opts.url);
+      this.connectNonce = null;
       let settled = false;
 
-      this.ws.on("open", () => {
-        log.info("Gateway WebSocket opened");
-        void this.sendConnect()
-          .then(() => {
-            this.connected = true;
-            this.reconnectAttempt = 0;
-            this.opts.onConnect?.();
-            settled = true;
-            resolve();
-          })
-          .catch((err) => {
-            settled = true;
-            reject(err);
-          });
-      });
-
       this.ws.on("message", (data) => {
-        this.handleMessage(data.toString());
+        const raw = data.toString();
+
+        // Intercept connect.challenge before the generic handler so we can
+        // complete the handshake.  The gateway sends this event immediately
+        // after WebSocket open; we must reply with `connect` that includes
+        // the nonce.
+        if (!settled) {
+          try {
+            const frame = JSON.parse(raw) as { type?: string; event?: string; payload?: { nonce?: string } };
+            if (frame.type === "event" && frame.event === "connect.challenge") {
+              const nonce = frame.payload?.nonce?.trim() ?? "";
+              if (!nonce) {
+                settled = true;
+                reject(new Error("connect challenge missing nonce"));
+                this.ws?.close(1008, "connect challenge missing nonce");
+                return;
+              }
+              this.connectNonce = nonce;
+              void this.sendConnect()
+                .then(() => {
+                  this.connected = true;
+                  this.reconnectAttempt = 0;
+                  this.opts.onConnect?.();
+                  settled = true;
+                  resolve();
+                })
+                .catch((err) => {
+                  settled = true;
+                  reject(err);
+                });
+              return;
+            }
+          } catch {
+            // not JSON — fall through to generic handler
+          }
+        }
+
+        this.handleMessage(raw);
       });
 
       this.ws.on("close", (code, reason) => {
         log.info(`Gateway WebSocket closed: ${code} ${reason.toString()}`);
         this.ws = null;
         this.connected = false;
+        this.connectNonce = null;
         this.flushPending(new Error(`Gateway closed (${code}): ${reason.toString()}`));
         this.opts.onClose?.();
+        if (!settled) {
+          settled = true;
+          reject(new Error(`Gateway closed before connect (${code}): ${reason.toString()}`));
+        }
         this.scheduleReconnect();
       });
 
@@ -266,6 +294,7 @@ export class GatewayRpcClient {
     };
 
     if (this.deviceIdentity) {
+      const nonce = this.connectNonce ?? "";
       const signedAtMs = Date.now();
       const payload = buildDeviceAuthPayload({
         deviceId: this.deviceIdentity.deviceId,
@@ -275,12 +304,14 @@ export class GatewayRpcClient {
         scopes,
         signedAtMs,
         token: this.opts.token ?? null,
+        nonce,
       });
       params.device = {
         id: this.deviceIdentity.deviceId,
         publicKey: publicKeyToBase64Url(this.deviceIdentity.publicKeyPem),
         signature: signPayload(this.deviceIdentity.privateKeyPem, payload),
         signedAt: signedAtMs,
+        nonce,
       };
     }
 
