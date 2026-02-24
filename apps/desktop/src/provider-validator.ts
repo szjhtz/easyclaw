@@ -1,10 +1,19 @@
 import { createLogger } from "@easyclaw/logger";
-import { getProviderMeta, providerSecretKey } from "@easyclaw/core";
+import { getProviderMeta, getDefaultModelForProvider, providerSecretKey } from "@easyclaw/core";
 import type { LLMProvider } from "@easyclaw/core";
 import type { Storage } from "@easyclaw/storage";
 import type { SecretStore } from "@easyclaw/secrets";
 
 const log = createLogger("provider-validator");
+
+/**
+ * Resolve the lightest available model for a provider.
+ * Prefers extraModels (loaded at startup) → falls back to validationModel from meta.
+ */
+function resolveValidationModel(provider: LLMProvider): string | undefined {
+  return getDefaultModelForProvider(provider)?.modelId
+    ?? getProviderMeta(provider)?.validationModel;
+}
 
 /**
  * Validate an API key by making a lightweight call to the provider's API.
@@ -35,17 +44,24 @@ export async function validateProviderApiKey(
   const timeout = setTimeout(() => controller.abort(), 10_000);
 
   // Priority: per-key proxy > proxy router (system proxy) > direct
-  // Per-key proxy is typically outside GFW and can reach the API directly.
-  // If no per-key proxy, fall back to proxy router which handles system proxy / direct.
   const { ProxyAgent } = await import("undici");
   const dispatcher: any = new ProxyAgent(proxyUrl || "http://127.0.0.1:9999");
 
   try {
     let res: Response;
+    const isAnthropicApi = meta.api === "anthropic-messages";
 
-    if (provider === "anthropic" || provider === "claude") {
-      const isOAuthToken = apiKey.startsWith("sk-ant-oat01-");
-      log.info(`Validating Anthropic ${isOAuthToken ? "OAuth token" : "API key"}...`);
+    if (isAnthropicApi) {
+      // Anthropic Messages API (native Anthropic + third-party providers like Kimi Code)
+      const isNativeAnthropic = provider === "anthropic" || provider === "claude";
+      const isOAuthToken = isNativeAnthropic && apiKey.startsWith("sk-ant-oat01-");
+
+      const model = resolveValidationModel(provider as LLMProvider);
+      if (!model) {
+        return { valid: false, error: "No model available for validation" };
+      }
+
+      log.info(`Validating ${provider} ${isOAuthToken ? "OAuth token" : "API key"} via Messages API (model: ${model})...`);
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -63,7 +79,7 @@ export async function validateProviderApiKey(
       }
 
       const body: Record<string, unknown> = {
-        model: "claude-3-5-haiku-20241022",
+        model,
         max_tokens: 1,
         messages: [{ role: "user", content: "hi" }],
       };
@@ -72,56 +88,47 @@ export async function validateProviderApiKey(
         body.system = "You are Claude Code, Anthropic's official CLI for Claude.";
       }
 
-      res = await fetch("https://api.anthropic.com/v1/messages", {
+      const endpoint = isNativeAnthropic
+        ? "https://api.anthropic.com/v1/messages"
+        : `${baseUrl}/v1/messages`;
+
+      res = await fetch(endpoint, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
         signal: controller.signal,
         ...(dispatcher && { dispatcher }),
       });
-    } else if (provider === "moonshot-coding") {
-      // Kimi Coding uses Anthropic Messages API — validate via POST /v1/messages
-      log.info(`Validating ${provider} API key via ${baseUrl}/v1/messages ...`);
-      res = await fetch(`${baseUrl}/v1/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "kimi-for-coding",
-          max_tokens: 1,
-          messages: [{ role: "user", content: "hi" }],
-        }),
-        signal: controller.signal,
-        ...(dispatcher && { dispatcher }),
-      });
-    } else if (provider === "minimax" || provider === "minimax-cn" || provider === "minimax-coding") {
-      // MiniMax doesn't support GET /models — validate via a minimal chat completion
-      log.info(`Validating ${provider} API key via ${baseUrl}/chat/completions ...`);
-      res = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "MiniMax-M2",
-          messages: [{ role: "user", content: "hi" }],
-          max_tokens: 1,
-        }),
-        signal: controller.signal,
-        ...(dispatcher && { dispatcher }),
-      });
     } else {
-      // OpenAI-compatible providers: GET /models
-      log.info(`Validating ${provider} API key via ${baseUrl}/models ...`);
-      res = await fetch(`${baseUrl}/models`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: controller.signal,
-        ...(dispatcher && { dispatcher }),
-      });
+      // OpenAI-compatible providers
+      const model = resolveValidationModel(provider as LLMProvider);
+
+      if (model) {
+        // Provider has a known model — validate via minimal chat completion
+        log.info(`Validating ${provider} API key via ${baseUrl}/chat/completions (model: ${model})...`);
+        res = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: "hi" }],
+            max_tokens: 1,
+          }),
+          signal: controller.signal,
+          ...(dispatcher && { dispatcher }),
+        });
+      } else {
+        // No model info — validate via GET /models (works for most OpenAI-compatible providers)
+        log.info(`Validating ${provider} API key via ${baseUrl}/models ...`);
+        res = await fetch(`${baseUrl}/models`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: controller.signal,
+          ...(dispatcher && { dispatcher }),
+        });
+      }
     }
 
     log.info(`Validation response: ${res.status} ${res.statusText}`);

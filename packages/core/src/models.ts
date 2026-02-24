@@ -78,6 +78,8 @@ export interface SubscriptionPlan {
   preferredModel?: string;
   /** API format used by this plan's endpoint (defaults to "openai-completions"). */
   api?: string;
+  /** Lightweight model ID for API-key validation when extraModels / catalog aren't loaded yet. */
+  validationModel?: string;
 }
 
 /** Unified metadata for a root LLM provider. */
@@ -107,6 +109,8 @@ export interface ProviderMeta {
   preferredModel?: string;
   /** API format used by this provider's endpoint (defaults to "openai-completions"). */
   api?: string;
+  /** Lightweight model ID for API-key validation when extraModels / catalog aren't loaded yet. */
+  validationModel?: string;
   /** Subscription plans that are logically children of this provider. */
   subscriptionPlans?: SubscriptionPlan[];
 }
@@ -124,6 +128,8 @@ export interface ResolvedProviderMeta {
   preferredModel?: string;
   /** API format used by this provider's endpoint (defaults to "openai-completions"). */
   api?: string;
+  /** Lightweight model ID for API-key validation when extraModels / catalog aren't loaded yet. */
+  validationModel?: string;
 }
 
 // CNY → USD conversion rate used for cost estimates below.
@@ -154,6 +160,8 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://www.anthropic.com/pricing",
     apiKeyUrl: "https://console.anthropic.com/settings/keys",
     envVar: "ANTHROPIC_API_KEY",
+    api: "anthropic-messages",
+    validationModel: "claude-haiku-4-5-20251001",
     subscriptionPlans: [
       {
         id: "claude",
@@ -494,6 +502,7 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://platform.minimaxi.com/document/Price",
     apiKeyUrl: "https://platform.minimaxi.com/user-center/basic-information/interface-key",
     envVar: "MINIMAX_API_KEY",
+    validationModel: "MiniMax-M2",
   },
   "minimax-cn": {
     label: "MiniMax",
@@ -728,6 +737,7 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
     extraModels: meta.extraModels,
     preferredModel: meta.preferredModel,
     api: meta.api,
+    validationModel: meta.validationModel,
   });
   for (const plan of meta.subscriptionPlans ?? []) {
     _allProviders.push(plan.id);
@@ -742,7 +752,8 @@ for (const root of Object.keys(PROVIDERS) as RootProvider[]) {
       oauth: plan.oauth,
       extraModels: plan.extraModels,
       preferredModel: plan.preferredModel,
-      api: plan.api,
+      api: plan.api ?? meta.api, // inherit parent's API format
+      validationModel: plan.validationModel ?? meta.validationModel, // inherit parent's validation model
     });
   }
 }
