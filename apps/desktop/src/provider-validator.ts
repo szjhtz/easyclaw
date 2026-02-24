@@ -10,8 +10,9 @@ const log = createLogger("provider-validator");
  * Resolve the lightest available model for a provider.
  * Prefers extraModels (loaded at startup) → falls back to validationModel from meta.
  */
-function resolveValidationModel(provider: LLMProvider): string | undefined {
-  return getDefaultModelForProvider(provider)?.modelId
+function resolveValidationModel(provider: LLMProvider, userModel?: string): string | undefined {
+  return userModel
+    ?? getDefaultModelForProvider(provider)?.modelId
     ?? getProviderMeta(provider)?.validationModel;
 }
 
@@ -23,6 +24,7 @@ export async function validateProviderApiKey(
   provider: string,
   apiKey: string,
   proxyUrl?: string,
+  userModel?: string,
 ): Promise<{ valid: boolean; error?: string }> {
   const meta = getProviderMeta(provider as LLMProvider);
   if (!meta) {
@@ -56,7 +58,7 @@ export async function validateProviderApiKey(
       const isNativeAnthropic = provider === "anthropic" || provider === "claude";
       const isOAuthToken = isNativeAnthropic && apiKey.startsWith("sk-ant-oat01-");
 
-      const model = resolveValidationModel(provider as LLMProvider);
+      const model = resolveValidationModel(provider as LLMProvider, userModel);
       if (!model) {
         return { valid: false, error: "No model available for validation" };
       }
@@ -101,7 +103,7 @@ export async function validateProviderApiKey(
       });
     } else {
       // OpenAI-compatible providers
-      const model = resolveValidationModel(provider as LLMProvider);
+      const model = resolveValidationModel(provider as LLMProvider, userModel);
 
       if (model) {
         // Provider has a known model — validate via minimal chat completion

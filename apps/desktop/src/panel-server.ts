@@ -1245,7 +1245,7 @@ async function handleApiRoute(
     // For local providers: skip API key validation (key is optional)
     // For cloud providers: validate key before saving
     if (!isLocal) {
-      const validation = await validateProviderApiKey(body.provider, body.apiKey!, body.proxyUrl || undefined);
+      const validation = await validateProviderApiKey(body.provider, body.apiKey!, body.proxyUrl || undefined, body.model || undefined);
       if (!validation.valid) {
         sendJson(res, 422, { error: validation.error || "Invalid API key" });
         return;
