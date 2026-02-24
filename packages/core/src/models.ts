@@ -671,13 +671,6 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://build.nvidia.com",
     apiKeyUrl: "https://build.nvidia.com/settings/api-keys",
     envVar: "NVIDIA_API_KEY",
-    extraModels: [
-      { provider: "nvidia", modelId: "meta/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B Instruct" },
-      { provider: "nvidia", modelId: "meta/llama-3.1-405b-instruct", displayName: "Llama 3.1 405B Instruct" },
-      { provider: "nvidia", modelId: "deepseek-ai/deepseek-r1", displayName: "DeepSeek R1" },
-      { provider: "nvidia", modelId: "qwen/qwen2.5-72b-instruct", displayName: "Qwen 2.5 72B Instruct" },
-      { provider: "nvidia", modelId: "nvidia/llama-3.1-nemotron-70b-instruct", displayName: "Nemotron 70B Instruct" },
-    ],
     subscriptionPlans: [
       {
         id: "nvidia-nim",
@@ -690,11 +683,11 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
           { provider: "nvidia-nim", modelId: "meta/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B Instruct" },
           { provider: "nvidia-nim", modelId: "meta/llama-3.1-405b-instruct", displayName: "Llama 3.1 405B Instruct" },
           { provider: "nvidia-nim", modelId: "meta/llama-3.1-8b-instruct", displayName: "Llama 3.1 8B Instruct" },
-          { provider: "nvidia-nim", modelId: "deepseek-ai/deepseek-r1", displayName: "DeepSeek R1" },
+          { provider: "nvidia-nim", modelId: "deepseek-ai/deepseek-v3.2", displayName: "DeepSeek V3.2" },
           { provider: "nvidia-nim", modelId: "qwen/qwen2.5-72b-instruct", displayName: "Qwen 2.5 72B Instruct" },
           { provider: "nvidia-nim", modelId: "google/gemma-2-27b-it", displayName: "Gemma 2 27B IT" },
-          { provider: "nvidia-nim", modelId: "mistralai/mistral-large-2-instruct", displayName: "Mistral Large 2 Instruct" },
-          { provider: "nvidia-nim", modelId: "nvidia/llama-3.1-nemotron-70b-instruct", displayName: "Nemotron 70B Instruct" },
+          { provider: "nvidia-nim", modelId: "mistralai/mistral-large-3-675b-instruct-2512", displayName: "Mistral Large 3 675B" },
+          { provider: "nvidia-nim", modelId: "nvidia/llama-3.1-nemotron-ultra-253b-v1", displayName: "Nemotron Ultra 253B" },
         ],
       },
     ],
