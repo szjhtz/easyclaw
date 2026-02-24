@@ -52,14 +52,14 @@ test.describe("EasyClaw Smoke Tests", () => {
     const subTab = window.locator(".tab-btn", { hasText: /Subscription/i });
     await expect(subTab).toHaveClass(/tab-btn-active/);
 
-    // Subscription dropdown: 6 subscription plans (claude, gemini, zhipu-coding,
-    // moonshot-coding, minimax-coding, volcengine-coding). ProviderSelect filters
-    // by model catalog — at least 5 are always present.
+    // Subscription dropdown: subscription plans (claude, gemini, zhipu-coding,
+    // moonshot-coding, minimax-coding, volcengine-coding, qwen-coding,
+    // modelscope, nvidia-nim). ProviderSelect filters by model catalog.
     await window.locator(".provider-select-trigger").click();
     const subOptions = window.locator(".provider-select-option");
     const subCount = await subOptions.count();
     expect(subCount).toBeGreaterThanOrEqual(5);
-    expect(subCount).toBeLessThanOrEqual(8);
+    expect(subCount).toBeLessThanOrEqual(12);
     // Close dropdown
     await window.locator(".provider-select-trigger").click();
 

@@ -556,13 +556,24 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://venice.ai/pricing",
     apiKeyUrl: "https://venice.ai/settings/api",
     envVar: "VENICE_API_KEY",
+    extraModels: [
+      { provider: "venice", modelId: "zai-org-glm-4.7", displayName: "GLM 4.7" },
+      { provider: "venice", modelId: "deepseek-v3.2", displayName: "DeepSeek V3.2" },
+      { provider: "venice", modelId: "openai-gpt-52", displayName: "GPT-5.2" },
+      { provider: "venice", modelId: "claude-opus-4-6", displayName: "Claude Opus 4.6" },
+      { provider: "venice", modelId: "grok-41-fast", displayName: "Grok 4.1 Fast" },
+      { provider: "venice", modelId: "gemini-3-1-pro-preview", displayName: "Gemini 3.1 Pro Preview" },
+    ],
   },
   xiaomi: {
-    label: "Xiaomi",
-    baseUrl: "https://api.xiaomi.com/v1",
+    label: "Xiaomi (MiMo)",
+    baseUrl: "https://api.xiaomimimo.com/v1",
     url: "https://mimo.xiaomi.com/",
-    apiKeyUrl: "https://mimo.xiaomi.com/",
+    apiKeyUrl: "https://platform.xiaomimimo.com/",
     envVar: "XIAOMI_API_KEY",
+    extraModels: [
+      { provider: "xiaomi", modelId: "mimo-v2-flash", displayName: "MiMo V2 Flash" },
+    ],
   },
   volcengine: {
     label: "Volcengine (Doubao)",
@@ -651,6 +662,13 @@ export const PROVIDERS: Record<RootProvider, ProviderMeta> = {
     url: "https://build.nvidia.com",
     apiKeyUrl: "https://build.nvidia.com/settings/api-keys",
     envVar: "NVIDIA_API_KEY",
+    extraModels: [
+      { provider: "nvidia", modelId: "meta/llama-3.3-70b-instruct", displayName: "Llama 3.3 70B Instruct" },
+      { provider: "nvidia", modelId: "meta/llama-3.1-405b-instruct", displayName: "Llama 3.1 405B Instruct" },
+      { provider: "nvidia", modelId: "deepseek-ai/deepseek-r1", displayName: "DeepSeek R1" },
+      { provider: "nvidia", modelId: "qwen/qwen2.5-72b-instruct", displayName: "Qwen 2.5 72B Instruct" },
+      { provider: "nvidia", modelId: "nvidia/llama-3.1-nemotron-70b-instruct", displayName: "Nemotron 70B Instruct" },
+    ],
     subscriptionPlans: [
       {
         id: "nvidia-nim",

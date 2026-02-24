@@ -386,8 +386,8 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(agentSection).toContainText(/Agent Settings|智能体设置/);
     await expect(agentSection).toContainText(/DM Session Scope|私信会话隔离/);
 
-    // Should have a Select component
-    const select = agentSection.locator("select, .custom-select-trigger");
+    // Should have at least one Select component (DM scope dropdown)
+    const select = agentSection.locator("select, .custom-select-trigger").first();
     await expect(select).toBeVisible();
   });
 
