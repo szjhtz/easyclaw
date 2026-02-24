@@ -238,6 +238,34 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           const toolEvt: ChatMessage = { role: "tool-event", text: name, toolName: name, timestamp: Date.now() };
           if (flushedText) {
             setMessages((prev) => [...prev, { role: "assistant", text: flushedText, timestamp: Date.now() }, toolEvt]);
+            // The gateway throttles deltas at 150 ms.  The last few characters
+            // before a tool_use may still be in the throttle buffer, never sent.
+            // Fetch stored history (which has the complete text) and patch the
+            // truncated bubble so the user barely notices the gap (~100 ms).
+            const client = clientRef.current;
+            if (client) {
+              const snap = flushedText;
+              client.request<{ messages?: Array<{ role?: string; content?: unknown }> }>(
+                "chat.history", { sessionKey: sessionKeyRef.current, limit: 10 },
+              ).then((res) => {
+                if (!res?.messages) return;
+                for (let i = res.messages.length - 1; i >= 0; i--) {
+                  const m = res.messages[i];
+                  if (m.role !== "assistant") continue;
+                  const full = extractText(m.content);
+                  if (full && full.length > snap.length && full.startsWith(snap)) {
+                    setMessages((prev) => {
+                      const idx = prev.findLastIndex((msg) => msg.role === "assistant" && msg.text === snap);
+                      if (idx === -1) return prev;
+                      const patched = [...prev];
+                      patched[idx] = { ...patched[idx], text: full };
+                      return patched;
+                    });
+                    break;
+                  }
+                }
+              }).catch(() => { /* history fetch failed — truncated text remains */ });
+            }
           } else {
             setMessages((prev) => [...prev, toolEvt]);
           }
@@ -346,6 +374,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           setStreaming(null);
           setRunId(null);
           lastAgentStreamRef.current = null;
+
           tracker.cleanup();
           break;
         }
@@ -358,6 +387,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           }
           setRunId(null);
           lastAgentStreamRef.current = null;
+
           tracker.cleanup();
           break;
         }
@@ -583,9 +613,11 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       ? files.map((img) => ({ data: img.base64, mimeType: img.mimeType }))
       : undefined;
     setMessages((prev) => [...prev, { role: "user", text, timestamp: Date.now(), images: optimisticImages }]);
+    shouldInstantScrollRef.current = true;
     setDraft("");
     setPendingImages([]);
     setRunId(idempotencyKey);
+
     trackerRef.current.dispatch({ type: "LOCAL_SEND", runId: idempotencyKey, sessionKey: sessionKeyRef.current });
     sendTimeRef.current = Date.now();
     trackEvent("chat.message_sent", { hasAttachment: files.length > 0 });
