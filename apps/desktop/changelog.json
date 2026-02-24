@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.5.6",
+    "date": "2026-02-26",
+    "en": [
+      "Chat bubbles now render Markdown with syntax highlighting and copy button",
+      "Improved model validation with dynamic provider resolution"
+    ],
+    "zh": [
+      "聊天气泡支持 Markdown 渲染，含语法高亮和复制按钮",
+      "改进模型验证，支持动态服务商解析"
+    ]
+  },
+  {
     "version": "1.5.5",
     "date": "2026-02-25",
     "en": [
