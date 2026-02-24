@@ -14,3 +14,4 @@ test-results/
 .venv/
 .env
 CLAUDE.md
+tmp/
