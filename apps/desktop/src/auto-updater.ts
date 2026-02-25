@@ -35,7 +35,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   const updateFeedUrl = useStaging
     ? "https://stg.easy-claw.com/releases"
     : updateRegion === "cn"
-      ? "https://cn.easy-claw.com/releases"
+      ? "https://www.zhuazhuaai.cn/releases"
       : "https://www.easy-claw.com/releases";
   if (useStaging) log.info("Using staging update feed: " + updateFeedUrl);
   autoUpdater.setFeedURL({
@@ -109,8 +109,13 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     if (!latestUpdateInfo) {
       throw new Error("No update available");
     }
-    if (updateDownloadState.status === "downloading" || updateDownloadState.status === "verifying") {
-      log.info(`Update download already ${updateDownloadState.status}, ignoring duplicate request`);
+    if (
+      updateDownloadState.status === "downloading" ||
+      updateDownloadState.status === "verifying"
+    ) {
+      log.info(
+        `Update download already ${updateDownloadState.status}, ignoring duplicate request`,
+      );
       return;
     }
     if (updateDownloadState.status === "ready") {
@@ -118,7 +123,12 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       return;
     }
 
-    updateDownloadState = { status: "downloading", percent: 0, downloadedBytes: 0, totalBytes: 0 };
+    updateDownloadState = {
+      status: "downloading",
+      percent: 0,
+      downloadedBytes: 0,
+      totalBytes: 0,
+    };
     deps.getMainWindow()?.setProgressBar(0);
 
     try {
@@ -144,7 +154,9 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     // installer (NSIS on Windows) and the newly installed version don't
     // encounter a stale process or lock.  The before-quit handler also calls
     // launcher.stop(), but quitAndInstall() may not await async cleanup fully.
-    try { await deps.launcher.stop(); } catch {}
+    try {
+      await deps.launcher.stop();
+    } catch {}
     deps.cleanupGatewayLock(deps.configPath);
 
     // Write a marker file so that if the user manually opens the app while
@@ -180,6 +192,8 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     install,
     getLatestInfo: () => latestUpdateInfo,
     getDownloadState: () => updateDownloadState,
-    setDownloadState: (state: UpdateDownloadState) => { updateDownloadState = state; },
+    setDownloadState: (state: UpdateDownloadState) => {
+      updateDownloadState = state;
+    },
   };
 }
