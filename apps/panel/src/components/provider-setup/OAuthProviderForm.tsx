@@ -62,16 +62,7 @@ export function OAuthProviderForm({
         >
           {t("providers.getSubscription")} &rarr;
         </a>
-        {getProviderMeta(provider as LLMProvider)?.apiKeyUrl &&
-         getProviderMeta(provider as LLMProvider)?.apiKeyUrl !== getProviderMeta(provider as LLMProvider)?.subscriptionUrl && (
-        <a
-          href={getProviderMeta(provider as LLMProvider)?.apiKeyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t("providers.getApiKey")} &rarr;
-        </a>
-        )}
+        {/* No "Get API key" link for OAuth providers — they use web login, not API keys. */}
       </div>
       )}
 
