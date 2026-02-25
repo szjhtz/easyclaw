@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { formatError } from "@easyclaw/core";
+import { formatError, getGraphqlUrl } from "@easyclaw/core";
 import { createLogger } from "@easyclaw/logger";
 import WebSocket from "ws";
 import type { RouteHandler } from "./api-context.js";
@@ -34,7 +34,7 @@ export const handleWecomRoutes: RouteHandler = async (req, res, _url, pathname, 
     if (panelToken) {
       await secretStore.set("cs-panel-token", panelToken);
     }
-    const apiUrl = lang === "zh" ? "https://api-cn.easy-claw.com/graphql" : "https://api.easy-claw.com/graphql";
+    const apiUrl = getGraphqlUrl(lang);
     try {
       const gqlRes = await proxiedFetch(apiUrl, {
         method: "POST",
@@ -87,7 +87,7 @@ export const handleWecomRoutes: RouteHandler = async (req, res, _url, pathname, 
     if (panelToken) {
       await secretStore.set("cs-panel-token", panelToken);
     }
-    const apiUrl = lang === "zh" ? "https://api-cn.easy-claw.com/graphql" : "https://api.easy-claw.com/graphql";
+    const apiUrl = getGraphqlUrl(lang);
     try {
       const gqlRes = await proxiedFetch(apiUrl, {
         method: "POST",

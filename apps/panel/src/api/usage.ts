@@ -1,3 +1,4 @@
+import { getGraphqlUrl } from "@easyclaw/core";
 import { fetchJson, cachedFetch } from "./client.js";
 
 // --- Usage ---
@@ -146,9 +147,7 @@ export interface ProviderPricing {
 }
 
 function getPricingApiUrl(language: string): string {
-  return language === "zh"
-    ? "https://api-cn.easy-claw.com/graphql"
-    : "https://api.easy-claw.com/graphql";
+  return getGraphqlUrl(language);
 }
 
 /**

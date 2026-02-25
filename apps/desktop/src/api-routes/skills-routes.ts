@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { promises as fs } from "node:fs";
 import { execFile } from "node:child_process";
 import AdmZip from "adm-zip";
-import { formatError } from "@easyclaw/core";
+import { formatError, getGraphqlUrl, getApiBaseUrl } from "@easyclaw/core";
 import { createLogger } from "@easyclaw/logger";
 import { initCSBridge, startCS, stopCS, getCSStatus, updateCSConfig } from "../customer-service-bridge.js";
 import type { RouteHandler } from "./api-context.js";
@@ -22,7 +22,7 @@ export const handleSkillsRoutes: RouteHandler = async (req, res, url, pathname, 
     const chinaAvailableParam = url.searchParams.get("chinaAvailable");
     const chinaAvailable = chinaAvailableParam === "true" ? true : chinaAvailableParam === "false" ? false : undefined;
     const lang = url.searchParams.get("lang") ?? "en";
-    const apiUrl = lang === "zh" ? "https://api-cn.easy-claw.com/graphql" : "https://api.easy-claw.com/graphql";
+    const apiUrl = getGraphqlUrl(lang);
     try {
       const gqlRes = await proxiedFetch(apiUrl, {
         method: "POST",
@@ -124,9 +124,7 @@ export const handleSkillsRoutes: RouteHandler = async (req, res, url, pathname, 
     }
 
     const lang = body.lang ?? "en";
-    const apiBase = lang === "zh"
-      ? "https://api-cn.easy-claw.com"
-      : "https://api.easy-claw.com";
+    const apiBase = getApiBaseUrl(lang);
     const downloadUrl = `${apiBase}/api/skills/${encodeURIComponent(body.slug)}/download`;
 
     try {

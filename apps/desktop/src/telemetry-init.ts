@@ -1,4 +1,5 @@
 import { app } from "electron";
+import { getTelemetryUrl } from "@easyclaw/core";
 import { createLogger } from "@easyclaw/logger";
 import { RemoteTelemetryClient } from "@easyclaw/telemetry";
 import type { Storage } from "@easyclaw/storage";
@@ -24,8 +25,7 @@ export function initTelemetry(
     ? process.env.DEV_TELEMETRY === "1"
     : storage.settings.get("telemetry_enabled") !== "false";
 
-  const telemetryEndpoint = process.env.TELEMETRY_ENDPOINT
-    || (locale === "zh" ? "https://t-cn.easy-claw.com/" : "https://t.easy-claw.com/");
+  const telemetryEndpoint = process.env.TELEMETRY_ENDPOINT || getTelemetryUrl(locale);
 
   let client: RemoteTelemetryClient | null = null;
 
