@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.5.7",
+    "date": "2026-02-28",
+    "en": [
+      "Auto-launch on login (start on boot) setting",
+      "Smarter auto-updater with install-in-progress guard",
+      "New extensions: providers tool and EasyClaw tools",
+      "Fix truncated chat bubbles and auto-scroll after send",
+      "Upgrade OpenClaw engine to v2026.2.23"
+    ],
+    "zh": [
+      "支持开机自启动设置",
+      "更智能的自动更新，安装过程中防止重复启动",
+      "新增扩展：服务商管理工具和 EasyClaw 工具集",
+      "修复聊天气泡截断和发送后自动滚动问题",
+      "升级 OpenClaw 引擎至 v2026.2.23"
+    ]
+  },
+  {
     "version": "1.5.6",
     "date": "2026-02-26",
     "en": [
