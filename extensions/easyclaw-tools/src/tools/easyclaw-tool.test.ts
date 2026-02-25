@@ -9,6 +9,7 @@ describe("createEasyClawTool", () => {
   it("returns a valid tool definition", () => {
     expect(tool.name).toBe("easyclaw");
     expect(tool.label).toBe("EasyClaw");
+    expect(tool.ownerOnly).toBe(true);
     expect(typeof tool.execute).toBe("function");
   });
 

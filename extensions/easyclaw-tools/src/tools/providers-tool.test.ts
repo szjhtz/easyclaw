@@ -19,6 +19,7 @@ describe("createProvidersTool", () => {
   it("returns a valid tool definition", () => {
     expect(tool.name).toBe("providers");
     expect(tool.label).toBe("Providers");
+    expect(tool.ownerOnly).toBe(true);
     expect(typeof tool.execute).toBe("function");
   });
 

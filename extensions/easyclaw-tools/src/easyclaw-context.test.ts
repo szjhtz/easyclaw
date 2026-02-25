@@ -19,12 +19,16 @@ describe("createEasyClawContext", () => {
 
   it("tells AI not to use openclaw CLI", () => {
     const result = handler({ prompt: "hello" });
-    expect(result.prependContext).toContain("Do NOT attempt to run any `openclaw` commands");
+    expect(result.prependContext).toContain(
+      "Do NOT attempt to run any `openclaw` commands",
+    );
     expect(result.prependContext).toContain("OpenClaw CLI Quick Reference");
   });
 
   it("mentions gateway lifecycle is auto-managed", () => {
     const result = handler({ prompt: "hello" });
-    expect(result.prependContext).toContain("automatically managed by EasyClaw");
+    expect(result.prependContext).toContain(
+      "automatically managed by EasyClaw",
+    );
   });
 });

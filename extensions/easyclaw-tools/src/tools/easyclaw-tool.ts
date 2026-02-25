@@ -17,6 +17,7 @@ type EasyClawToolDef = {
   label: string;
   name: string;
   description: string;
+  ownerOnly?: boolean;
   parameters: ReturnType<typeof Type.Object>;
   execute: (toolCallId: string, args: unknown) => Promise<ToolResult>;
 };
@@ -46,6 +47,7 @@ export function createEasyClawTool(opts?: {
   return {
     label: "EasyClaw",
     name: "easyclaw",
+    ownerOnly: true,
     description:
       "Get EasyClaw system status or help. " +
       "Use `status` to check the current runtime state (provider, model, gateway). " +

@@ -17,6 +17,7 @@ type EasyClawToolDef = {
   label: string;
   name: string;
   description: string;
+  ownerOnly?: boolean;
   parameters: ReturnType<typeof Type.Object>;
   execute: (toolCallId: string, args: unknown) => Promise<ToolResult>;
 };
@@ -51,6 +52,7 @@ export function createProvidersTool(): EasyClawToolDef {
   return {
     label: "Providers",
     name: "providers",
+    ownerOnly: true,
     description:
       "Manage LLM provider API keys. " +
       "Use `list` to see configured keys. " +
