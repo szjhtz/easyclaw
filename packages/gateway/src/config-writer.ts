@@ -437,6 +437,25 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
+  // EasyClaw Desktop is single-user — the webchat sender is always the owner.
+  // Without this, ownerOnly tools (gateway, cron) are filtered out by
+  // applyOwnerOnlyToolPolicy() because senderIsOwner defaults to false.
+  //
+  // Note: "*" does NOT work here — it sets ownerAllowAll=true which empties
+  // the ownerList, so matchedSender is always undefined → senderIsOwner=false.
+  // Must use the literal sender ID that the panel webchat client sends in
+  // its connect handshake (client.id = "openclaw-control-ui").
+  {
+    const existingCommands =
+      typeof config.commands === "object" && config.commands !== null
+        ? (config.commands as Record<string, unknown>)
+        : {};
+    config.commands = {
+      ...existingCommands,
+      ownerAllowFrom: ["openclaw-control-ui"],
+    };
+  }
+
   // Default model selection → agents.defaults.model.primary
   if (options.defaultModel !== undefined) {
     const existingAgents =

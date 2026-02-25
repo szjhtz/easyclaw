@@ -230,6 +230,21 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(yaml@2.8.2)
 
+  extensions/easyclaw-tools:
+    devDependencies:
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.48
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(yaml@2.8.2)
+
   extensions/file-permissions:
     devDependencies:
       '@mariozechner/openclaw':
@@ -1953,7 +1968,6 @@ packages:
   '@rolldown/binding-darwin-arm64@1.0.0-rc.3':
     resolution: {integrity: sha512-JWWLzvcmc/3pe7qdJqPpuPk91SoE/N+f3PcWx/6ZwuyDVyungAEJPvKm/eEldiDdwTmaEzWfIR+HORxYWrCi1A==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.3':
