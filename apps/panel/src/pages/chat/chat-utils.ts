@@ -42,6 +42,13 @@ export function cleanMessageText(text: string): string {
   // to indicate it already sent the reply via the outbound system.
   cleaned = cleaned.replace(/\bNO_REPLY\b/g, "").trim();
 
+  // Strip agent framework tool-result summaries (e.g. "System: [2026-02-24 16:16:41 PST] Exec completed ...")
+  cleaned = cleaned.replace(/^System: \[\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\].*$/gm, "").trim();
+
+  // Strip EasyClaw prependContext blocks (runtime env, policy, guards)
+  // These are injected by plugins for the agent but not meant for the user.
+  cleaned = cleaned.replace(/---\s+EasyClaw[\s\S]*?---\s+End\s+\w[\w\s]*---/g, "").trim();
+
   // Strip inline timestamp — rendered separately above the bubble
   cleaned = cleaned.replace(/^\[[A-Za-z]{3} \d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})? [A-Z]{2,5}\]\s*/, "");
 

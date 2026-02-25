@@ -221,7 +221,16 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       lastActivityRef.current = Date.now();
 
       // Only process events for tracked runs (replaces old runIdRef guard)
-      if (!agentRunId || !tracker.isTracked(agentRunId)) return;
+      if (!agentRunId || !tracker.isTracked(agentRunId)) {
+        // DEBUG: log dropped agent events to diagnose missing tool_start flush
+        if (agentPayload.stream === "tool" || agentPayload.stream === "lifecycle") {
+          console.warn("[chat] agent event dropped: stream=%s phase=%s runId=%s tracked=%s localRunId=%s",
+            agentPayload.stream, agentPayload.data?.phase, agentRunId,
+            agentRunId ? tracker.isTracked(agentRunId) : "no-id",
+            runIdRef.current);
+        }
+        return;
+      }
 
       const stream = agentPayload.stream;
 
@@ -234,6 +243,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           // before adding the tool event.  Read from ref (synchronous) to
           // avoid React StrictMode double-invocation of state updaters.
           const flushedText = streamingRef.current;
+          // DEBUG: log tool_start flush state
+          console.info("[chat] tool_start: tool=%s flushedText=%s runId=%s",
+            name, flushedText ? `"${flushedText.slice(0, 40)}..." (${flushedText.length}ch)` : "null", agentRunId);
           setStreaming(null);
           const toolEvt: ChatMessage = { role: "tool-event", text: name, toolName: name, timestamp: Date.now() };
           if (flushedText) {
@@ -352,6 +364,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
           break;
         }
         case "final": {
+          // DEBUG: log final event state
+          console.info("[chat] final: runId=%s streaming=%s",
+            chatRunId, streamingRef.current ? `"${streamingRef.current.slice(0, 40)}..."` : "null");
           const finalText = extractText(payload.message?.content);
           if (finalText) {
             setMessages((prev) => [...prev, { role: "assistant", text: finalText, timestamp: Date.now() }]);
@@ -398,6 +413,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
         console.error("[chat] external run error:", payload.errorMessage ?? "unknown error", "runId:", chatRunId);
       }
       if (payload.state === "final") {
+        // DEBUG: log external final that triggers history reload
+        console.info("[chat] external final → reloading history: runId=%s localRunId=%s streaming=%s",
+          chatRunId, runIdRef.current, streamingRef.current ? `"${streamingRef.current.slice(0, 40)}..."` : "null");
         // External run finished — reload history to show the full conversation
         const client = clientRef.current;
         if (client) loadHistory(client);
