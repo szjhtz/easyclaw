@@ -465,10 +465,26 @@ test.describe("Chat Agent Events & Settings", () => {
   // ──────────────────────────────────────────────────────────────────
 
   test("Chat message triggers thinking indicator with agent phase", async ({ window }) => {
-    const apiKey = process.env.E2E_VOLCENGINE_API_KEY;
-    test.skip(!apiKey, "E2E_VOLCENGINE_API_KEY required for chat flow test");
+    const apiKey = process.env.E2E_ZHIPU_API_KEY;
+    test.skip(!apiKey, "E2E_ZHIPU_API_KEY required for chat flow test");
 
     await dismissModals(window);
+
+    // Seed GLM provider and activate it
+    await window.evaluate(async ({ base, key }) => {
+      await fetch(`${base}/api/provider-keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
+      });
+      await fetch(`${base}/api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "llm-provider": "zhipu" }),
+      });
+    }, { base: API_BASE, key: apiKey! });
+    // Wait for gateway to settle after provider switch
+    await window.waitForTimeout(3_000);
 
     // Ensure we're on Chat page and connected
     const chatNav = window.locator(".nav-list .nav-btn").first();
@@ -509,10 +525,25 @@ test.describe("Chat Agent Events & Settings", () => {
   });
 
   test("Chat agent phase shows processing status when events enabled", async ({ window }) => {
-    const apiKey = process.env.E2E_VOLCENGINE_API_KEY;
-    test.skip(!apiKey, "E2E_VOLCENGINE_API_KEY required for agent phase test");
+    const apiKey = process.env.E2E_ZHIPU_API_KEY;
+    test.skip(!apiKey, "E2E_ZHIPU_API_KEY required for agent phase test");
 
     await dismissModals(window);
+
+    // Seed GLM provider and activate it
+    await window.evaluate(async ({ base, key }) => {
+      await fetch(`${base}/api/provider-keys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "zhipu", label: "E2E GLM", model: "glm-4-flash", apiKey: key }),
+      });
+      await fetch(`${base}/api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "llm-provider": "zhipu" }),
+      });
+    }, { base: API_BASE, key: apiKey! });
+    await window.waitForTimeout(3_000);
 
     // Navigate to Chat page
     const chatNav = window.locator(".nav-list .nav-btn").first();
