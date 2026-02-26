@@ -18,9 +18,9 @@ test.describe("EasyClaw Onboarding Flow", () => {
     await window.locator(".provider-select-trigger").click();
     await window.locator(".provider-select-option", { hasText: /Zhipu \(GLM\) - China/i }).click();
 
-    // Open model dropdown and select GLM-4.7-Flash
+    // Open model dropdown and select GLM-4 Flash (free & stable)
     await window.locator(".custom-select-trigger").click();
-    await window.locator(".custom-select-option", { hasText: /GLM-4\.7-Flash/i }).click();
+    await window.locator(".custom-select-option", { hasText: /GLM-4 Flash$/i }).click();
 
     // Enter API key
     await window.locator("input[type='password']").fill(apiKey!);
