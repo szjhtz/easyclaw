@@ -102,6 +102,11 @@ test.describe("Dropdown positioning", () => {
       return;
     }
 
+    // Scroll the trigger into view first and wait for scroll to settle,
+    // because Select.tsx closes on scroll events — if Playwright's auto-scroll
+    // happens during click(), the dropdown opens then immediately closes.
+    await trigger.scrollIntoViewIfNeeded();
+    await window.waitForTimeout(500);
     await trigger.click();
 
     const dropdown = window.locator(".custom-select-dropdown");
@@ -120,12 +125,11 @@ test.describe("Dropdown positioning", () => {
       `Dropdown horizontally misaligned by ${horizontalOffset}px (trigger x=${triggerBox!.x}, dropdown x=${dropdownBox!.x})`,
     ).toBeLessThan(20);
 
-    // Width should roughly match
-    const widthDiff = Math.abs(dropdownBox!.width - triggerBox!.width);
+    // Dropdown should be at least as wide as the trigger (may be wider for long model names)
     expect(
-      widthDiff,
-      `Dropdown width (${dropdownBox!.width}) differs from trigger width (${triggerBox!.width}) by ${widthDiff}px`,
-    ).toBeLessThan(50);
+      dropdownBox!.width,
+      `Dropdown width (${dropdownBox!.width}) is narrower than trigger width (${triggerBox!.width})`,
+    ).toBeGreaterThanOrEqual(triggerBox!.width - 10);
 
     // Close dropdown
     await trigger.click();
