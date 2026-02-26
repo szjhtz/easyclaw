@@ -167,7 +167,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       try {
         const markerDir = join(homedir(), ".easyclaw");
         mkdirSync(markerDir, { recursive: true });
-        writeFileSync(join(markerDir, "update-installing"), "", { flag: "w" });
+        writeFileSync(join(markerDir, "update-installing"), latestUpdateInfo?.version ?? "", { flag: "w" });
       } catch {}
     }
 

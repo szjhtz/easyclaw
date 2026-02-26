@@ -32,7 +32,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
 import { createConnection } from "node:net";
-import { existsSync, unlinkSync } from "node:fs";
+import { existsSync, unlinkSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { createTrayIcon } from "./tray-icon.js";
 import { buildTrayMenu } from "./tray-menu.js";
@@ -60,39 +60,22 @@ const sttCliPath = app.isPackaged
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let lastSystemProxy: string | null = null;
-
-// If the NSIS installer is still running (from a previous quitAndInstall),
-// show a message and exit immediately to avoid conflicting with the installer.
-// The marker file is written by auto-updater.ts before calling quitAndInstall().
-// We only run the (slow) wmic check when the marker file exists, so normal
-// startup has zero overhead (~1ms existsSync).
+// The marker file is written by auto-updater.ts before quitAndInstall().
+// It contains the target version (e.g. "1.5.9"). By comparing with app.getVersion()
+// we can determine whether this is the NEW app (install succeeded) or the OLD app
+// (user opened it while the installer is still running).
 const UPDATE_MARKER = join(homedir(), ".easyclaw", "update-installing");
-if (process.platform === "win32" && existsSync(UPDATE_MARKER)) {
-  let installerRunning = false;
+let _updateBlocked = false;
+if (existsSync(UPDATE_MARKER)) {
   try {
-    const out = execSync(
-      String.raw`wmic process where "name like 'EasyClaw.Setup%'" get ProcessId 2>nul`,
-      { encoding: "utf-8", timeout: 5000, shell: "cmd.exe" },
-    );
-    installerRunning = /\d+/.test(out);
-  } catch {}
-
-  if (installerRunning) {
-    // dialog requires app to be ready; at module-load time it usually isn't,
-    // which causes "dialog module can only be used after app is ready" on Windows.
-    if (app.isReady()) {
-      dialog.showMessageBoxSync({
-        type: "info",
-        title: "EasyClaw",
-        message: "EasyClaw 正在更新中，安装完成后将自动启动。",
-        buttons: ["OK"],
-      });
+    const targetVersion = readFileSync(UPDATE_MARKER, "utf-8").trim();
+    if (targetVersion && targetVersion !== app.getVersion()) {
+      // We're the OLD app — installer hasn't finished replacing us yet.
+      _updateBlocked = true;
     }
-    app.exit(0);
-  } else {
-    // Installer finished — clean up the stale marker file
-    try { unlinkSync(UPDATE_MARKER); } catch {}
-  }
+  } catch {}
+  // Clean up marker regardless — the new app doesn't need it.
+  try { unlinkSync(UPDATE_MARKER); } catch {}
 }
 
 // Ensure only one instance of the desktop app runs at a time.
@@ -164,6 +147,22 @@ app.on("activate", () => {
 });
 
 app.whenReady().then(async () => {
+  // Version mismatch: this is the OLD app launched while the installer is updating.
+  // Show an informational dialog and exit — NSIS will launch the new app when done.
+  if (_updateBlocked) {
+    const isZh = app.getLocale().startsWith("zh");
+    dialog.showMessageBoxSync({
+      type: "info",
+      title: "EasyClaw",
+      message: isZh
+        ? "EasyClaw 正在更新中，请等待安装完成后再打开。"
+        : "EasyClaw is being updated. Please wait for the installation to finish.",
+      buttons: ["OK"],
+    });
+    app.exit(0);
+    return;
+  }
+
   Menu.setApplicationMenu(null);
   enableFileLogging();
   log.info(`EasyClaw desktop starting (build: ${__BUILD_TIMESTAMP__})`);
