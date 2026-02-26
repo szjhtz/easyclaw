@@ -632,7 +632,6 @@ tbody td {
 /* ===== 6. Section Cards ===== */
 .section-card {
   position: relative;
-  overflow: hidden;
   background: linear-gradient(180deg, #fdfeff 0%, #f6f8fb 100%);
   border: 1px solid rgba(15, 23, 42, 0.06);
   border-radius: var(--radius-lg);
@@ -643,8 +642,7 @@ tbody td {
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition:
     border-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .section-card::before {
@@ -666,7 +664,6 @@ tbody td {
 .section-card:hover {
   border-color: rgba(91, 127, 255, 0.25);
   box-shadow: var(--shadow-lg), var(--shadow-glow);
-  transform: translateY(-1px);
 }
 
 .section-card > * + * {
