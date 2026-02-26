@@ -78,12 +78,16 @@ if (process.platform === "win32" && existsSync(UPDATE_MARKER)) {
   } catch {}
 
   if (installerRunning) {
-    dialog.showMessageBoxSync({
-      type: "info",
-      title: "EasyClaw",
-      message: "EasyClaw 正在更新中，安装完成后将自动启动。",
-      buttons: ["OK"],
-    });
+    // dialog requires app to be ready; at module-load time it usually isn't,
+    // which causes "dialog module can only be used after app is ready" on Windows.
+    if (app.isReady()) {
+      dialog.showMessageBoxSync({
+        type: "info",
+        title: "EasyClaw",
+        message: "EasyClaw 正在更新中，安装完成后将自动启动。",
+        buttons: ["OK"],
+      });
+    }
     app.exit(0);
   } else {
     // Installer finished — clean up the stale marker file
