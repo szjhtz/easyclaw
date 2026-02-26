@@ -5,12 +5,74 @@ import type { BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { UpdateDownloadState } from "@easyclaw/updater";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
 const log = createLogger("auto-updater");
+
+// ---------------------------------------------------------------------------
+// Differential-update blockmap cache consistency
+//
+// electron-updater keeps {cacheDir}/installer.exe (the old installer) and
+// {cacheDir}/current.blockmap (its block map) for differential downloads.
+// The NSIS installer always copies itself to installer.exe on every install,
+// including manual installs.  But current.blockmap is only written by the
+// auto-update download flow.  A manual install therefore overwrites
+// installer.exe without updating the blockmap → mismatch → sha512 failure.
+//
+// We write a "blockmap-version" marker after each successful download and
+// check it before the next download.  If the marker doesn't match
+// app.getVersion(), we delete the stale blockmap so electron-updater
+// re-downloads the correct one from the server.
+// ---------------------------------------------------------------------------
+
+function getUpdaterCacheDir(): string | null {
+  try {
+    const ymlPath = join(process.resourcesPath, "app-update.yml");
+    if (!existsSync(ymlPath)) return null; // dev mode
+    const yml = readFileSync(ymlPath, "utf-8");
+    const match = yml.match(/^updaterCacheDirName:\s*(.+)$/m);
+    if (!match) return null;
+    const dirName = match[1].trim();
+
+    let basePath: string;
+    if (process.platform === "win32") {
+      basePath = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local");
+    } else if (process.platform === "darwin") {
+      basePath = join(homedir(), "Library", "Caches");
+    } else {
+      basePath = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
+    }
+    return join(basePath, dirName);
+  } catch {
+    return null;
+  }
+}
+
+function ensureBlockmapConsistency(cacheDir: string): void {
+  const markerPath = join(cacheDir, "blockmap-version");
+  const blockmapPath = join(cacheDir, "current.blockmap");
+  try {
+    const markerVersion = readFileSync(markerPath, "utf-8").trim();
+    if (markerVersion === app.getVersion()) return; // consistent
+    log.info(`Blockmap cache stale (marker: ${markerVersion}, running: ${app.getVersion()}), clearing`);
+  } catch {
+    // No marker → blockmap may be stale (e.g. first run after manual install)
+    if (!existsSync(blockmapPath)) return; // nothing to clear
+    log.info(`No blockmap version marker, clearing potentially stale blockmap`);
+  }
+  try { unlinkSync(blockmapPath); } catch {}
+  try { unlinkSync(markerPath); } catch {}
+}
+
+function writeBlockmapVersion(cacheDir: string, version: string): void {
+  try {
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(join(cacheDir, "blockmap-version"), version);
+  } catch {}
+}
 
 export interface AutoUpdaterDeps {
   locale: string;
@@ -89,6 +151,9 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     deps.getMainWindow()?.setProgressBar(-1);
     log.info(`Update v${info.version} downloaded and verified`);
     deps.telemetryTrack?.("app.update_downloaded", { version: info.version });
+    // Save version marker so we can detect stale blockmap after manual installs
+    const cacheDir = getUpdaterCacheDir();
+    if (cacheDir) writeBlockmapVersion(cacheDir, info.version);
   });
 
   autoUpdater.on("error", (error: Error) => {
@@ -132,6 +197,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       totalBytes: 0,
     };
     deps.getMainWindow()?.setProgressBar(0);
+
+    // Ensure blockmap cache matches current app version (may be stale after manual install)
+    const cacheDir = getUpdaterCacheDir();
+    if (cacheDir) ensureBlockmapConsistency(cacheDir);
 
     try {
       await autoUpdater.downloadUpdate();
