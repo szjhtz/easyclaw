@@ -7,6 +7,7 @@ import {
   updateSettings,
   createProviderKey,
   validateApiKey,
+  validateCustomApiKey,
   fetchPricing,
   startOAuthFlow,
   saveOAuthFlow,
@@ -21,8 +22,13 @@ export function useProviderForm(onSave: (provider: string) => void) {
   const { t, i18n } = useTranslation();
 
   const defaultProv = i18n.language === "zh" ? "zhipu-coding" : "gemini";
-  const [tab, setTab] = useState<"subscription" | "api" | "local">("subscription");
+  const [tab, setTab] = useState<"subscription" | "api" | "local" | "custom">("subscription");
   const [provider, setProvider] = useState(defaultProv);
+  // Custom provider state
+  const [customName, setCustomName] = useState("");
+  const [customProtocol, setCustomProtocol] = useState<"openai" | "anthropic">("openai");
+  const [customEndpoint, setCustomEndpoint] = useState("");
+  const [customModels, setCustomModels] = useState<string[]>([]);
   const [model, setModel] = useState(getDefaultModelForProvider(defaultProv as LLMProvider)?.modelId ?? "");
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
@@ -137,8 +143,17 @@ export function useProviderForm(onSave: (provider: string) => void) {
     setOauthCallbackUrl("");
   }
 
-  function handleTabChange(newTab: "subscription" | "api" | "local") {
+  function handleTabChange(newTab: "subscription" | "api" | "local" | "custom") {
     setTab(newTab);
+    setError(null);
+    if (newTab === "custom") {
+      setCustomName("");
+      setCustomProtocol("openai");
+      setCustomEndpoint("");
+      setApiKey("");
+      setCustomModels([]);
+      return;
+    }
     const prov = newTab === "local"
       ? "ollama"
       : newTab === "subscription"
@@ -300,6 +315,51 @@ export function useProviderForm(onSave: (provider: string) => void) {
     }
   }
 
+  async function handleAddCustomProvider() {
+    if (!customEndpoint.trim() || !apiKey.trim() || customModels.length === 0) return;
+    setValidating(true);
+    setError(null);
+    try {
+      const validation = await validateCustomApiKey(
+        customEndpoint.trim(), apiKey.trim(), customProtocol, customModels[0],
+      );
+      if (!validation.valid) {
+        setError({ key: "providers.invalidKey", detail: validation.error });
+        setValidating(false);
+        return;
+      }
+
+      const providerSlug = "custom-" + crypto.randomUUID().slice(0, 8);
+      await createProviderKey({
+        provider: providerSlug,
+        label: customName.trim() || t("providers.customDefault"),
+        model: customModels[0],
+        apiKey: apiKey.trim(),
+        authType: "custom",
+        baseUrl: customEndpoint.trim(),
+        customProtocol,
+        customModelsJson: JSON.stringify(customModels),
+      });
+
+      if (existingKeyCount === 0) {
+        await updateSettings({ "llm-provider": providerSlug });
+      }
+
+      setCustomName("");
+      setCustomProtocol("openai");
+      setCustomEndpoint("");
+      setApiKey("");
+      setCustomModels([]);
+      setExistingKeyCount((c) => (c ?? 0) + 1);
+      onSave(providerSlug);
+    } catch (err) {
+      setError({ key: "providers.failedToSave", detail: String(err) });
+    } finally {
+      setSaving(false);
+      setValidating(false);
+    }
+  }
+
   return {
     t, i18n,
     // Tab state
@@ -312,6 +372,9 @@ export function useProviderForm(onSave: (provider: string) => void) {
     baseUrl, setBaseUrl, baseUrlTouched, setBaseUrlTouched,
     modelName, setModelName, detectedServer,
     detecting, localModels, loadingModels, healthStatus,
+    // Custom provider state
+    customName, setCustomName, customProtocol, setCustomProtocol,
+    customEndpoint, setCustomEndpoint, customModels, setCustomModels,
     // UI state
     showAdvanced, setShowAdvanced, saving, validating, error,
     // OAuth state
@@ -322,7 +385,7 @@ export function useProviderForm(onSave: (provider: string) => void) {
     // Refs
     leftCardRef, leftHeight,
     // Handlers
-    handleAddLocalKey, handleAddKey,
+    handleAddLocalKey, handleAddKey, handleAddCustomProvider,
     handleOAuth, handleManualOAuthComplete, handleOAuthSave,
   };
 }

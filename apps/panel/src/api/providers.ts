@@ -9,8 +9,10 @@ export interface ProviderKeyEntry {
   model: string;
   isDefault: boolean;
   proxyUrl?: string;
-  authType?: "api_key" | "oauth" | "local";
+  authType?: "api_key" | "oauth" | "local" | "custom";
   baseUrl?: string | null;
+  customProtocol?: string | null;
+  customModelsJson?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,8 +30,10 @@ export async function createProviderKey(data: {
   model: string;
   apiKey?: string;
   proxyUrl?: string;
-  authType?: "api_key" | "oauth" | "local";
+  authType?: "api_key" | "oauth" | "local" | "custom";
   baseUrl?: string;
+  customProtocol?: "openai" | "anthropic";
+  customModelsJson?: string;
 }): Promise<ProviderKeyEntry> {
   const result = await fetchJson<ProviderKeyEntry>("/provider-keys", {
     method: "POST",

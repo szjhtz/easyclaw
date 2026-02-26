@@ -73,6 +73,20 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
     return true;
   }
 
+  if (pathname === "/api/settings/validate-custom-key" && req.method === "POST") {
+    const { validateCustomProviderApiKey } = await import("../provider-validator.js");
+    const body = (await parseBody(req)) as { baseUrl?: string; apiKey?: string; protocol?: string; model?: string };
+    if (!body.baseUrl || !body.apiKey || !body.protocol || !body.model) {
+      sendJson(res, 400, { valid: false, error: "Missing required fields" });
+      return true;
+    }
+    const result = await validateCustomProviderApiKey(
+      body.baseUrl, body.apiKey, body.protocol as "openai" | "anthropic", body.model,
+    );
+    sendJson(res, 200, result);
+    return true;
+  }
+
   // --- Telemetry Settings ---
   if (pathname === "/api/settings/telemetry" && req.method === "GET") {
     const enabledStr = storage.settings.get("telemetry_enabled");

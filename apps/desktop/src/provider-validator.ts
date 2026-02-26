@@ -178,6 +178,96 @@ export async function validateProviderApiKey(
 }
 
 /**
+ * Validate an API key for a custom provider (user-defined endpoint).
+ * Uses the user-provided baseUrl instead of looking up from provider metadata.
+ */
+export async function validateCustomProviderApiKey(
+  baseUrl: string,
+  apiKey: string,
+  protocol: "openai" | "anthropic",
+  model: string,
+  proxyUrl?: string,
+): Promise<{ valid: boolean; error?: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  const { ProxyAgent } = await import("undici");
+  const dispatcher: any = new ProxyAgent(proxyUrl || "http://127.0.0.1:9999");
+
+  try {
+    let res: Response;
+
+    if (protocol === "anthropic") {
+      log.info(`Validating custom Anthropic key via ${baseUrl}/v1/messages (model: ${model})...`);
+      res = await fetch(`${baseUrl}/v1/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "anthropic-version": "2023-06-01",
+          "x-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1,
+          messages: [{ role: "user", content: "hi" }],
+        }),
+        signal: controller.signal,
+        ...(dispatcher && { dispatcher }),
+      });
+    } else {
+      log.info(`Validating custom OpenAI key via ${baseUrl}/chat/completions (model: ${model})...`);
+      res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: "hi" }],
+          max_tokens: 1,
+        }),
+        signal: controller.signal,
+        ...(dispatcher && { dispatcher }),
+      });
+    }
+
+    log.info(`Custom validation response: ${res.status} ${res.statusText}`);
+    if (res.status === 401 || res.status === 403) {
+      const body = await res.text().catch(() => "");
+      const isRealAuthError =
+        body.includes("authentication_error") ||
+        body.includes("invalid_api_key") ||
+        body.includes("invalid_x-api-key") ||
+        body.includes("Incorrect API key") ||
+        body.includes('"unauthorized"');
+
+      if (isRealAuthError) {
+        return { valid: false, error: "Invalid API key" };
+      }
+      return { valid: false, error: `Provider returned ${res.status} — this may be a network issue. Response: ${body.slice(0, 200)}` };
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      log.info(`Custom validation non-2xx: ${res.status} body: ${body.slice(0, 300)}`);
+      return { valid: false, error: `Provider returned ${res.status}: ${body.slice(0, 200)}` };
+    }
+
+    return { valid: true };
+  } catch (err) {
+    const msg = formatError(err);
+    log.error("Custom API key validation failed:", msg);
+    if (msg.includes("abort")) {
+      return { valid: false, error: "Validation timed out — check your network connection" };
+    }
+    return { valid: false, error: `Network error: ${msg}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * Sync the active key for a provider to the canonical secret store slot.
  * The gateway reads `{provider}-api-key` — this keeps it in sync with multi-key management.
  */
@@ -187,7 +277,9 @@ export async function syncActiveKey(
   secretStore: SecretStore,
 ): Promise<void> {
   const activeKey = storage.providerKeys.getDefault(provider);
-  const canonicalKey = providerSecretKey(provider as LLMProvider);
+  // Custom providers use their slug directly; built-in providers use providerSecretKey()
+  const isCustom = activeKey?.authType === "custom";
+  const canonicalKey = isCustom ? `${provider}-api-key` : providerSecretKey(provider as LLMProvider);
   if (activeKey) {
     const keyValue = await secretStore.get(`provider-key-${activeKey.id}`);
     if (keyValue) {

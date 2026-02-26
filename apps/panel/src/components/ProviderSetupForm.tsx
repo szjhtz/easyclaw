@@ -6,6 +6,7 @@ import { useProviderForm } from "./provider-setup/use-provider-form.js";
 import { LocalModelForm } from "./provider-setup/LocalModelForm.js";
 import { ApiKeyForm } from "./provider-setup/ApiKeyForm.js";
 import { OAuthProviderForm } from "./provider-setup/OAuthProviderForm.js";
+import { CustomProviderForm } from "./provider-setup/CustomProviderForm.js";
 
 
 export interface ProviderSetupFormProps {
@@ -72,9 +73,17 @@ export function ProviderSetupForm({
           >
             {t("providers.tabLocal")}
           </button>
+          <button
+            className={`tab-btn${tab === "custom" ? " tab-btn-active" : ""}`}
+            onClick={() => handleTabChange("custom")}
+          >
+            {t("providers.tabCustom")}
+          </button>
         </div>
 
-        {tab === "local" ? (
+        {tab === "custom" ? (
+          <CustomProviderForm form={form} saveButtonLabel={saveButtonLabel} validatingLabel={validatingLabel} savingLabel={savingLabel} />
+        ) : tab === "local" ? (
           <LocalModelForm form={form} saveButtonLabel={saveButtonLabel} savingLabel={savingLabel} />
         ) : (
         <>
@@ -92,9 +101,16 @@ export function ProviderSetupForm({
         )}
       </div>
 
-      {/* Right: Pricing table / Local info */}
+      {/* Right: Pricing table / Local info / Custom info */}
       <div className="page-col-side" style={{ height: leftHeight }}>
-        {tab === "local" ? (
+        {tab === "custom" ? (
+          <div className="info-box info-box-blue local-info-box">
+            <strong>{t("providers.customInfoTitle")}</strong>
+            <p className="local-info-body">
+              {t("providers.customInfoBody")}
+            </p>
+          </div>
+        ) : tab === "local" ? (
           <div className="info-box info-box-blue local-info-box">
             <strong>{t("providers.localInfoTitle")}</strong>
             <p className="local-info-body">

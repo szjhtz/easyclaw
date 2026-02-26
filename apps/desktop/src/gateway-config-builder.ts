@@ -54,6 +54,25 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
     return overrides;
   }
 
+  function buildCustomProviderOverrides(): Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string }> }> {
+    const overrides: Record<string, { baseUrl: string; api: string; models: Array<{ id: string; name: string }> }> = {};
+    const allKeys = storage.providerKeys.getAll();
+    const customKeys = allKeys.filter((k) => k.authType === "custom");
+
+    for (const key of customKeys) {
+      if (!key.baseUrl || !key.customModelsJson || !key.customProtocol) continue;
+      let models: string[];
+      try { models = JSON.parse(key.customModelsJson); } catch { continue; }
+      const api = key.customProtocol === "anthropic" ? "anthropic-messages" : "openai-completions";
+      overrides[key.provider] = {
+        baseUrl: key.baseUrl,
+        api,
+        models: models.map((m) => ({ id: m, name: m })),
+      };
+    }
+    return overrides;
+  }
+
   function buildFullGatewayConfig(): Parameters<typeof writeGatewayConfig>[0] {
     const curProvider = storage.settings.get("llm-provider") as LLMProvider | undefined;
     const curRegion = storage.settings.get("region") ?? (locale === "zh" ? "cn" : "us");
@@ -91,7 +110,7 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
         nodeBin: process.execPath,
         sttCliPath,
       },
-      extraProviders: buildExtraProviderConfigs(),
+      extraProviders: { ...buildExtraProviderConfigs(), ...buildCustomProviderOverrides() },
       localProviderOverrides: buildLocalProviderOverrides(),
       browserMode: curBrowserMode,
       browserCdpPort: curBrowserCdpPort,

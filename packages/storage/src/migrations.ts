@@ -149,4 +149,12 @@ export const migrations: Migration[] = [
       ALTER TABLE provider_keys ADD COLUMN base_url TEXT DEFAULT NULL;
     `,
   },
+  {
+    id: 10,
+    name: "add_custom_provider_columns",
+    sql: `
+      ALTER TABLE provider_keys ADD COLUMN custom_protocol TEXT DEFAULT NULL;
+      ALTER TABLE provider_keys ADD COLUMN custom_models_json TEXT DEFAULT NULL;
+    `,
+  },
 ];

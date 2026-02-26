@@ -3,7 +3,7 @@ import type { LLMProvider } from "@easyclaw/core";
 import { getDefaultModelForProvider, parseProxyUrl, reconstructProxyUrl, formatError } from "@easyclaw/core";
 import { readFullModelCatalog } from "@easyclaw/gateway";
 import { createLogger } from "@easyclaw/logger";
-import { validateProviderApiKey, syncActiveKey } from "../provider-validator.js";
+import { validateProviderApiKey, validateCustomProviderApiKey, syncActiveKey } from "../provider-validator.js";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody } from "./route-utils.js";
 
@@ -38,11 +38,14 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       model?: string;
       apiKey?: string;
       proxyUrl?: string;
-      authType?: "api_key" | "oauth" | "local";
+      authType?: "api_key" | "oauth" | "local" | "custom";
       baseUrl?: string;
+      customProtocol?: "openai" | "anthropic";
+      customModelsJson?: string;
     };
 
     const isLocal = body.authType === "local";
+    const isCustom = body.authType === "custom";
 
     if (!body.provider) {
       sendJson(res, 400, { error: "Missing required field: provider" });
@@ -53,7 +56,28 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       return true;
     }
 
-    if (!isLocal) {
+    if (isCustom) {
+      // Custom provider validation
+      if (!body.baseUrl || !body.customProtocol || !body.customModelsJson) {
+        sendJson(res, 400, { error: "Custom providers require baseUrl, customProtocol, and customModelsJson" });
+        return true;
+      }
+      let models: string[];
+      try {
+        models = JSON.parse(body.customModelsJson);
+        if (!Array.isArray(models) || models.length === 0) throw new Error("empty");
+      } catch {
+        sendJson(res, 400, { error: "customModelsJson must be a non-empty JSON array of model IDs" });
+        return true;
+      }
+      const validation = await validateCustomProviderApiKey(
+        body.baseUrl, body.apiKey!, body.customProtocol, models[0], body.proxyUrl || undefined,
+      );
+      if (!validation.valid) {
+        sendJson(res, 422, { error: validation.error || "Invalid API key" });
+        return true;
+      }
+    } else if (!isLocal) {
       const validation = await validateProviderApiKey(body.provider, body.apiKey!, body.proxyUrl || undefined, body.model || undefined);
       if (!validation.valid) {
         sendJson(res, 422, { error: validation.error || "Invalid API key" });
@@ -62,7 +86,7 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
     }
 
     const id = randomUUID();
-    const model = body.model || getDefaultModelForProvider(body.provider as LLMProvider)?.modelId || "";
+    const model = body.model || (isCustom ? "" : getDefaultModelForProvider(body.provider as LLMProvider)?.modelId) || "";
     const label = body.label || "Default";
 
     let proxyBaseUrl: string | null = null;
@@ -90,7 +114,9 @@ export const handleProviderRoutes: RouteHandler = async (req, res, url, pathname
       isDefault: isFirst,
       proxyBaseUrl,
       authType: body.authType ?? "api_key",
-      baseUrl: isLocal ? (body.baseUrl || null) : null,
+      baseUrl: (isLocal || isCustom) ? (body.baseUrl || null) : null,
+      customProtocol: isCustom ? (body.customProtocol || null) : null,
+      customModelsJson: isCustom ? (body.customModelsJson || null) : null,
       createdAt: "",
       updatedAt: "",
     });

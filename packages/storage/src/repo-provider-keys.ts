@@ -10,6 +10,8 @@ interface ProviderKeyRow {
   proxy_base_url: string | null;
   auth_type: string;
   base_url: string | null;
+  custom_protocol: string | null;
+  custom_models_json: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +26,8 @@ function rowToEntry(row: ProviderKeyRow): ProviderKeyEntry {
     proxyBaseUrl: row.proxy_base_url,
     authType: (row.auth_type as ProviderKeyAuthType) ?? "api_key",
     baseUrl: row.base_url,
+    customProtocol: row.custom_protocol,
+    customModelsJson: row.custom_models_json,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -36,7 +40,7 @@ export class ProviderKeysRepository {
     const now = new Date().toISOString();
     this.db
       .prepare(
-        "INSERT INTO provider_keys (id, provider, label, model, is_default, proxy_base_url, auth_type, base_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO provider_keys (id, provider, label, model, is_default, proxy_base_url, auth_type, base_url, custom_protocol, custom_models_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
         entry.id,
@@ -47,6 +51,8 @@ export class ProviderKeysRepository {
         entry.proxyBaseUrl ?? null,
         entry.authType ?? "api_key",
         entry.baseUrl ?? null,
+        entry.customProtocol ?? null,
+        entry.customModelsJson ?? null,
         now,
         now,
       );
@@ -84,7 +90,7 @@ export class ProviderKeysRepository {
 
   update(
     id: string,
-    fields: Partial<Pick<ProviderKeyEntry, "label" | "model" | "isDefault" | "proxyBaseUrl" | "authType" | "baseUrl">>,
+    fields: Partial<Pick<ProviderKeyEntry, "label" | "model" | "isDefault" | "proxyBaseUrl" | "authType" | "baseUrl" | "customProtocol" | "customModelsJson">>,
   ): ProviderKeyEntry | undefined {
     const existing = this.getById(id);
     if (!existing) return undefined;
@@ -97,12 +103,14 @@ export class ProviderKeysRepository {
       proxyBaseUrl: fields.proxyBaseUrl !== undefined ? fields.proxyBaseUrl : existing.proxyBaseUrl,
       authType: fields.authType ?? existing.authType,
       baseUrl: fields.baseUrl !== undefined ? fields.baseUrl : existing.baseUrl,
+      customProtocol: fields.customProtocol !== undefined ? fields.customProtocol : existing.customProtocol,
+      customModelsJson: fields.customModelsJson !== undefined ? fields.customModelsJson : existing.customModelsJson,
       updatedAt: new Date().toISOString(),
     };
 
     this.db
       .prepare(
-        "UPDATE provider_keys SET label = ?, model = ?, is_default = ?, proxy_base_url = ?, auth_type = ?, base_url = ?, updated_at = ? WHERE id = ?",
+        "UPDATE provider_keys SET label = ?, model = ?, is_default = ?, proxy_base_url = ?, auth_type = ?, base_url = ?, custom_protocol = ?, custom_models_json = ?, updated_at = ? WHERE id = ?",
       )
       .run(
         updated.label,
@@ -111,6 +119,8 @@ export class ProviderKeysRepository {
         updated.proxyBaseUrl ?? null,
         updated.authType,
         updated.baseUrl ?? null,
+        updated.customProtocol ?? null,
+        updated.customModelsJson ?? null,
         updated.updatedAt,
         id,
       );

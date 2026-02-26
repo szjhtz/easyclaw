@@ -34,7 +34,7 @@ export const handleWecomRoutes: RouteHandler = async (req, res, _url, pathname, 
     if (panelToken) {
       await secretStore.set("cs-panel-token", panelToken);
     }
-    const apiUrl = getGraphqlUrl(lang);
+    const apiUrl = getGraphqlUrl(lang ?? "en");
     try {
       const gqlRes = await proxiedFetch(apiUrl, {
         method: "POST",
@@ -87,7 +87,7 @@ export const handleWecomRoutes: RouteHandler = async (req, res, _url, pathname, 
     if (panelToken) {
       await secretStore.set("cs-panel-token", panelToken);
     }
-    const apiUrl = getGraphqlUrl(lang);
+    const apiUrl = getGraphqlUrl(lang ?? "en");
     try {
       const gqlRes = await proxiedFetch(apiUrl, {
         method: "POST",

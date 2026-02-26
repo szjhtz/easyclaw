@@ -28,6 +28,18 @@ export async function validateApiKey(
   });
 }
 
+export async function validateCustomApiKey(
+  baseUrl: string,
+  apiKey: string,
+  protocol: string,
+  model: string,
+): Promise<{ valid: boolean; error?: string }> {
+  return fetchJson("/settings/validate-custom-key", {
+    method: "POST",
+    body: JSON.stringify({ baseUrl, apiKey, protocol, model }),
+  });
+}
+
 // --- Permissions ---
 
 export interface Permissions {

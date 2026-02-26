@@ -143,8 +143,11 @@ export async function syncAllAuthProfiles(
   const activeKeys = allKeys.filter((k) => k.isDefault);
 
   for (const key of activeKeys) {
-    // Use the gateway provider name so OpenClaw can match it to the model config.
-    const gwProvider = resolveGatewayProvider(key.provider as LLMProvider);
+    // Custom providers use their slug directly (registered in extraProviders under that slug).
+    // Built-in providers resolve via the gateway provider map.
+    const gwProvider = key.authType === "custom"
+      ? key.provider
+      : resolveGatewayProvider(key.provider as LLMProvider);
 
     if (key.authType === "oauth") {
       // OAuth entry: read credential JSON from Keychain

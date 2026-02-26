@@ -61,6 +61,9 @@ export function ProvidersPage() {
         model: existing?.model || (getDefaultModelForProvider(provider as LLMProvider)?.modelId ?? ""),
         apiKey: updateApiKey.trim(),
         authType: existing?.authType,
+        baseUrl: existing?.authType === "custom" ? (existing.baseUrl || undefined) : undefined,
+        customProtocol: existing?.authType === "custom" ? (existing.customProtocol as "openai" | "anthropic" || undefined) : undefined,
+        customModelsJson: existing?.authType === "custom" ? (existing.customModelsJson || undefined) : undefined,
       });
 
       if (existing?.isDefault) {
@@ -208,13 +211,17 @@ export function ProvidersPage() {
                     {/* Left: provider info */}
                     <div className="key-info">
                       <div className="key-meta">
-                        <strong style={{ fontSize: 13 }}>{t(`providers.label_${k.provider}`)}</strong>
+                        <strong style={{ fontSize: 13 }}>
+                          {k.authType === "custom" ? k.label : t(`providers.label_${k.provider}`)}
+                        </strong>
                         <span className="badge badge-muted">
-                          {k.authType === "local"
-                            ? t("providers.badgeLocal")
-                            : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
-                              ? t("providers.authTypeSubscription")
-                              : t("providers.authTypeApiKey")}
+                          {k.authType === "custom"
+                            ? t("providers.authTypeCustom")
+                            : k.authType === "local"
+                              ? t("providers.badgeLocal")
+                              : k.authType === "oauth" || SUBSCRIPTION_PROVIDER_IDS.includes(k.provider as LLMProvider)
+                                ? t("providers.authTypeSubscription")
+                                : t("providers.authTypeApiKey")}
                         </span>
                         {isActive && (
                           <span className="badge badge-active">
@@ -229,7 +236,7 @@ export function ProvidersPage() {
                             </svg>
                           </span>
                         )}
-                        {k.authType === "local" && k.baseUrl && (
+                        {(k.authType === "local" || k.authType === "custom") && k.baseUrl && (
                           <span className="text-secondary" style={{ fontSize: 12 }}>{k.baseUrl}</span>
                         )}
                         {savedId === k.id && (
@@ -266,11 +273,23 @@ export function ProvidersPage() {
                             </button>
                           </span>
                         )}
-                        <ModelSelect
-                          provider={k.provider}
-                          value={k.model}
-                          onChange={(model) => handleModelChange(k.id, model)}
-                        />
+                        {k.authType === "custom" && k.customModelsJson ? (
+                          <select
+                            value={k.model}
+                            onChange={(e) => handleModelChange(k.id, e.target.value)}
+                            className="input-mono"
+                          >
+                            {(JSON.parse(k.customModelsJson) as string[]).map((m) => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <ModelSelect
+                            provider={k.provider}
+                            value={k.model}
+                            onChange={(model) => handleModelChange(k.id, model)}
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -290,7 +309,7 @@ export function ProvidersPage() {
                           setEditBaseUrl(k.baseUrl || "");
                         }}
                       >
-                        {k.authType === "local" ? t("providers.updateUrl") : t("providers.updateKey")}
+                        {k.authType === "local" ? t("providers.updateUrl") : k.authType === "custom" ? t("providers.updateKey") : t("providers.updateKey")}
                       </button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleRemoveKey(k.id)}>
                         {t("providers.removeKey")}
@@ -320,6 +339,47 @@ export function ProvidersPage() {
                             </button>
                           </div>
                           <small className="form-help-sm">{t("providers.baseUrlHelp")}</small>
+                        </>
+                      ) : k.authType === "custom" ? (
+                        <>
+                          <div className="form-row">
+                            <input
+                              type="password"
+                              autoComplete="off"
+                              data-1p-ignore
+                              value={updateApiKey}
+                              onChange={(e) => setUpdateApiKey(e.target.value)}
+                              placeholder={t("providers.updateKeyPlaceholder")}
+                              className="flex-1 input-mono"
+                            />
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => handleUpdateKey(k.id, k.provider)}
+                              disabled={saving || validating || !updateApiKey.trim()}
+                            >
+                              {validating ? t("providers.validating") : saving ? "..." : t("common.save")}
+                            </button>
+                          </div>
+                          <small className="form-help-sm">{t("providers.apiKeyHelp")}</small>
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid var(--color-border)` }}>
+                            <div className="form-label text-secondary">{t("providers.customEndpointLabel")}</div>
+                            <div className="form-row">
+                              <input
+                                type="text"
+                                value={editBaseUrl}
+                                onChange={(e) => setEditBaseUrl(e.target.value)}
+                                placeholder={t("providers.customEndpointPlaceholder")}
+                                className="flex-1 input-mono"
+                              />
+                              <button
+                                className="btn btn-primary"
+                                onClick={() => handleBaseUrlChange(k.id, editBaseUrl)}
+                                disabled={saving || editBaseUrl === (k.baseUrl || "")}
+                              >
+                                {saving ? "..." : t("common.save")}
+                              </button>
+                            </div>
+                          </div>
                         </>
                       ) : (
                         <>
