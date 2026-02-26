@@ -6,6 +6,7 @@ import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
 import type { UpdateDownloadState } from "@easyclaw/updater";
 import { writeFileSync, mkdirSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
@@ -19,14 +20,12 @@ export interface AutoUpdaterDeps {
   setIsQuitting: (v: boolean) => void;
   updateTray: () => void;
   telemetryTrack?: (event: string, meta?: Record<string, unknown>) => void;
-  launcher: { stop(): Promise<void> };
-  configPath: string;
-  cleanupGatewayLock: (configPath: string) => void;
 }
 
 export function createAutoUpdater(deps: AutoUpdaterDeps) {
   let latestUpdateInfo: UpdateInfo | null = null;
   let updateDownloadState: UpdateDownloadState = { status: "idle" };
+  let runFullCleanup: (() => Promise<void>) | null = null;
 
   // Configure update feed URL.
   // UPDATE_FROM_STAGING=1 → use staging server for testing updates locally.
@@ -83,7 +82,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   });
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
-    updateDownloadState = { status: "ready", filePath: "" };
+    // electron-updater's NsisUpdater exposes the downloaded file path via
+    // a protected getter.  We read it at runtime to spawn the installer ourselves.
+    const installerPath = (autoUpdater as unknown as { installerPath: string | null }).installerPath ?? "";
+    updateDownloadState = { status: "ready", filePath: installerPath };
     deps.getMainWindow()?.setProgressBar(-1);
     log.info(`Update v${info.version} downloaded and verified`);
     deps.telemetryTrack?.("app.update_downloaded", { version: info.version });
@@ -144,20 +146,21 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       throw new Error("No downloaded update ready to install");
     }
 
+    const installerPath = updateDownloadState.filePath;
     updateDownloadState = { status: "installing" };
 
     deps.telemetryTrack?.("app.update_installing", {
       version: latestUpdateInfo?.version,
     });
 
-    // Kill the gateway and remove its lock file *before* quitting so the
-    // installer (NSIS on Windows) and the newly installed version don't
-    // encounter a stale process or lock.  The before-quit handler also calls
-    // launcher.stop(), but quitAndInstall() may not await async cleanup fully.
-    try {
-      await deps.launcher.stop();
-    } catch {}
-    deps.cleanupGatewayLock(deps.configPath);
+    // Run ALL cleanup before launching the installer.
+    if (runFullCleanup) {
+      try {
+        await runFullCleanup();
+      } catch (err) {
+        log.error("Pre-update cleanup failed (proceeding anyway):", err);
+      }
+    }
 
     // Write a marker file so that if the user manually opens the app while
     // the NSIS installer is still running, the new instance can detect it
@@ -171,9 +174,6 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
       } catch {}
     }
 
-    // Show a system notification before quitting so the user knows the
-    // installer is running (the NSIS UI can take 10-30s to appear on Windows
-    // due to process cleanup in customInit / customCheckAppRunning hooks).
     const isZh = deps.systemLocale === "zh";
     new Notification({
       title: isZh ? "EasyClaw 正在更新" : "EasyClaw Updating",
@@ -182,7 +182,28 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
         : "The installer is running. The app will restart automatically.",
     }).show();
 
-    deps.setIsQuitting(true); // prevent close-to-tray
+    deps.setIsQuitting(true);
+
+    // On Windows we bypass quitAndInstall() entirely to eliminate the race
+    // condition between NSIS and the Electron shutdown sequence.  Instead:
+    //   1. Cleanup already completed above (gateway, proxy, db, etc.)
+    //   2. Spawn the NSIS installer as a detached process
+    //   3. app.exit(0) terminates immediately — no before-quit, no async
+    //
+    // By the time NSIS checks for running processes, this process is already
+    // dead.  Deterministic, no timing dependency.
+    if (process.platform === "win32" && installerPath) {
+      log.info(`Spawning installer: ${installerPath} --updated --force-run`);
+      const child = spawn(installerPath, ["--updated", "--force-run"], {
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+      app.exit(0);
+      return;
+    }
+
+    // macOS/Linux: use electron-updater's built-in flow (no NSIS race issue)
     autoUpdater.quitAndInstall(false, true);
   }
 
@@ -194,6 +215,9 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     getDownloadState: () => updateDownloadState,
     setDownloadState: (state: UpdateDownloadState) => {
       updateDownloadState = state;
+    },
+    setRunFullCleanup: (fn: () => Promise<void>) => {
+      runFullCleanup = fn;
     },
   };
 }

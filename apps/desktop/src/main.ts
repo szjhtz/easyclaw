@@ -198,6 +198,9 @@ app.whenReady().then(async () => {
   let currentState: GatewayState = "stopped";
   // updater is initialized after tray creation (search for "createAutoUpdater" below)
   let updater: ReturnType<typeof createAutoUpdater>;
+  // Shared flag: set by runFullCleanup (pre-update) or before-quit handler.
+  // When true, the before-quit handler skips all cleanup and lets the app exit immediately.
+  let cleanupDone = false;
 
   // Detect system proxy and write proxy router config BEFORE starting the router.
   // This ensures the router has a valid config (with systemProxy) from the very first request,
@@ -589,9 +592,6 @@ app.whenReady().then(async () => {
     setIsQuitting: (v) => { isQuitting = v; },
     updateTray: () => updateTray(currentState),
     telemetryTrack: telemetryClient ? (event, meta) => telemetryClient!.track(event, meta) : undefined,
-    launcher,
-    configPath,
-    cleanupGatewayLock,
   });
 
   updateTray("stopped");
@@ -1011,13 +1011,56 @@ app.whenReady().then(async () => {
 
   log.info("EasyClaw desktop ready");
 
+  // Register full cleanup for auto-updater — defined here (after all timers)
+  // so the closure has access to every dependency. The auto-updater calls this
+  // BEFORE quitAndInstall(), eliminating the race condition where NSIS starts
+  // overwriting files while the app is still running async cleanup.
+  updater.setRunFullCleanup(async () => {
+    if (cleanupDone) return;
+
+    isQuitting = true;
+
+    // Stop all periodic timers
+    clearInterval(proxyPollTimer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    clearInterval(updateCheckTimer);
+
+    // Same cleanup sequence as the before-quit handler
+    stopCS();
+
+    await Promise.all([
+      launcher.stop(),
+      proxyRouter.stop(),
+    ]);
+
+    cleanupGatewayLock(configPath);
+    clearAllAuthProfiles(stateDir);
+
+    try {
+      await syncBackOAuthCredentials(stateDir, storage, secretStore);
+    } catch (err) {
+      log.error("Failed to sync back OAuth credentials:", err);
+    }
+
+    if (telemetryClient) {
+      const runtimeMs = telemetryClient.getUptime();
+      telemetryClient.track("app.stopped", { runtimeMs });
+      await telemetryClient.shutdown();
+      log.info("Telemetry client shut down gracefully");
+    }
+
+    storage.close();
+    cleanupDone = true;
+  });
+
   // Cleanup on quit — Electron does NOT await async before-quit callbacks,
   // so we must preventDefault() to pause the quit, run async cleanup, then app.exit().
-  let cleanupDone = false;
+  // NOTE: When auto-updater calls install(), runFullCleanup runs first and sets
+  // cleanupDone=true, so this handler skips and the app exits immediately.
   app.on("before-quit", (event) => {
     isQuitting = true;
 
-    if (cleanupDone) return; // Already cleaned up, let the quit proceed
+    if (cleanupDone) return; // Already cleaned up (e.g. by auto-updater), let the quit proceed
     event.preventDefault();  // Pause quit until async cleanup finishes
 
     // Stop all periodic timers so they don't keep the event loop alive

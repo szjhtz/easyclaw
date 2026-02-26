@@ -24,7 +24,7 @@
   Pop $0
   nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%easyclaw%'"'"'" call terminate'
   Pop $0
-  Sleep 3000
+  Sleep 5000
 !macroend
 
 ; ---------------------------------------------------------------------------

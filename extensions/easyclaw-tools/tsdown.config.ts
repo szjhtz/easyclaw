@@ -5,5 +5,5 @@ export default defineConfig({
   format: "esm",
   dts: true,
   clean: true,
-  external: ["@sinclair/typebox"],
+  inlineOnly: ["@sinclair/typebox"],
 });
