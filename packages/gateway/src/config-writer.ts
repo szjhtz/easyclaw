@@ -205,6 +205,7 @@ export interface OpenClawGatewayConfig {
     };
   };
   plugins?: {
+    allow?: string[];
     load?: {
       paths?: string[];
     };
@@ -270,6 +271,7 @@ export interface WriteGatewayConfigOptions {
   defaultModel?: { provider: string; modelId: string };
   /** Plugin configuration object for OpenClaw. */
   plugins?: {
+    allow?: string[];
     load?: {
       paths?: string[];
     };
@@ -559,6 +561,11 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     // Merge plugin entries
     if (options.plugins?.entries !== undefined) {
       merged.entries = options.plugins.entries;
+    }
+
+    // Merge plugin allowlist
+    if (options.plugins?.allow !== undefined) {
+      merged.allow = options.plugins.allow;
     }
 
     // Add file permissions plugin if enabled

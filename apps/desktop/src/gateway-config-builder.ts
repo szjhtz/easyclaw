@@ -100,6 +100,16 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       commandsRestart: true,
       enableFilePermissions: true,
       extensionsDir,
+      plugins: {
+        allow: [
+          "easyclaw-policy",
+          "easyclaw-tools",
+          "easyclaw-file-permissions",
+          "search-browser-fallback",
+          "wecom",
+          "google-gemini-cli-auth",
+        ],
+      },
       enableGeminiCliAuth: isGeminiOAuthActive(),
       skipBootstrap: false,
       filePermissionsPluginPath,
