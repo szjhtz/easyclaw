@@ -234,12 +234,12 @@ The panel server exposes these endpoints:
 
 ## Building Installers
 
-The `dist:mac` and `dist:win` scripts automatically prune `vendor/openclaw/node_modules` to production-only dependencies before packaging. This reduces the DMG from ~360MB to ~270MB.
+The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces file count from ~58K to ~7K (via esbuild bundling) and the DMG from ~360MB to ~310MB. See `docs/BUNDLE_VENDOR.md` for details.
 
-**After building**, vendor node_modules will be pruned. To restore full deps for development:
+**After building**, vendor will be pruned/bundled. To restore full deps for development:
 
 ```bash
-cd vendor/openclaw && CI=true pnpm install --no-frozen-lockfile && cd ../..
+bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]' < .openclaw-version)
 ```
 
 ### macOS (DMG, universal arm64+x64)
@@ -301,10 +301,12 @@ After CI builds complete and local tests pass:
 
 ## Note: better-sqlite3 native module
 
-`desktop dev` auto-rebuilds better-sqlite3 for Electron's Node ABI. This means **tests may fail afterwards** with a `NODE_MODULE_VERSION` mismatch. Fix with:
+better-sqlite3 runs under two runtimes with incompatible ABIs (Node.js for tests, Electron for the app). `scripts/rebuild-native.sh` compiles it for both and places the binaries in `lib/binding/`. This runs automatically via the root `postinstall` hook.
+
+If tests fail with `NODE_MODULE_VERSION` mismatch after an Electron upgrade:
 
 ```bash
-pnpm install   # restores the system-Node prebuilt binary
+bash scripts/rebuild-native.sh   # rebuild for both ABIs
 ```
 
 ## Testing
