@@ -21,7 +21,7 @@ const distDir = path.join(vendorDir, "dist");
 const nmDir = path.join(vendorDir, "node_modules");
 
 const ENTRY_FILE = path.join(distDir, "entry.js");
-const BUNDLE_FILE = path.join(distDir, "gateway-bundle.mjs");
+const BUNDLE_TEMP = path.join(distDir, "gateway-bundle.tmp.mjs");
 
 // ─── External packages: cannot be bundled by esbuild ───
 // Native modules (.node binaries), complex dynamic loaders, and undici
@@ -69,10 +69,12 @@ const EXTERNAL_PACKAGES = [
 // import of @mariozechner/pi-ai/dist/models.generated.js at runtime.
 const VENDOR_MODELS_JSON = path.join(distDir, "vendor-models.json");
 
-// Files to preserve in dist/ (everything else is a chunk file to delete)
+// Files to preserve in dist/ (everything else is a chunk file to delete).
+// After Phase 2 the bundle IS entry.js (renamed from temp), so only entry.js
+// and auxiliary files need to survive Phase 3.
 const KEEP_DIST_FILES = new Set([
   "entry.js",
-  "gateway-bundle.mjs",
+  ".bundled",
   "vendor-models.json",
   "warning-filter.js",
   "warning-filter.mjs",
@@ -294,7 +296,7 @@ function bundleWithEsbuild() {
   const result = esbuild.buildSync({
     entryPoints: [ENTRY_FILE],
     bundle: true,
-    outfile: BUNDLE_FILE,
+    outfile: BUNDLE_TEMP,
     format: "esm",
     platform: "node",
     target: "node22",
@@ -302,10 +304,17 @@ function bundleWithEsbuild() {
     logLevel: "warning",
     metafile: true,
     sourcemap: false,
+    // Some bundled packages (e.g. @smithy/*) use CJS require() for Node.js
+    // builtins like "buffer". esbuild's ESM output wraps these in a
+    // __require() shim that throws "Dynamic require of X is not supported".
+    // Providing a real require via createRequire fixes this.
+    banner: {
+      js: 'import { createRequire as __cr } from "module"; const require = __cr(import.meta.url);',
+    },
   });
 
   const elapsed = Date.now() - t0;
-  const bundleSize = fs.statSync(BUNDLE_FILE).size;
+  const bundleSize = fs.statSync(BUNDLE_TEMP).size;
   console.log(
     `[bundle-vendor-deps] Bundle created: ${(bundleSize / 1024 / 1024).toFixed(1)}MB in ${elapsed}ms`,
   );
@@ -332,12 +341,18 @@ function bundleWithEsbuild() {
   return usedExternals;
 }
 
-// ─── Phase 2: Replace entry.js with re-export stub ───
+// ─── Phase 2: Replace entry.js with the bundle ───
+// The bundle must be named entry.js (not gateway-bundle.mjs) because the
+// vendor's isMainModule() check compares import.meta.url against the
+// wrapperEntryPairs table which only recognises "entry.js".  Using a
+// re-export stub breaks this: import.meta.url inside the bundle would
+// point at "gateway-bundle.mjs", causing isMainModule() to return false
+// and the gateway to exit immediately with code 0.
 
-function replaceEntryWithStub() {
-  console.log("[bundle-vendor-deps] Phase 2: Replacing entry.js with re-export stub...");
-  const stub = `export * from './gateway-bundle.mjs';\n`;
-  fs.writeFileSync(ENTRY_FILE, stub, "utf-8");
+function replaceEntryWithBundle() {
+  console.log("[bundle-vendor-deps] Phase 2: Replacing entry.js with bundle...");
+  fs.unlinkSync(ENTRY_FILE);
+  fs.renameSync(BUNDLE_TEMP, ENTRY_FILE);
 }
 
 // ─── Phase 3: Delete chunk files from dist/ ───
@@ -501,11 +516,200 @@ function cleanupNodeModules(usedExternals) {
   );
 }
 
+// ─── Phase 5: Smoke test the bundled gateway ───
+//
+// Spawns `node openclaw.mjs gateway` with a temporary state dir and verifies
+// the process stays alive for a few seconds and produces stderr output.
+// This catches three classes of bugs that only manifest after bundling:
+//
+//   1. isMainModule() mismatch — The vendor's entry.ts uses import.meta.url
+//      to decide if it's the main module.  If the bundle file is not named
+//      "entry.js", the check fails and the process exits silently with code 0.
+//      Fix: Phase 2 must rename the bundle to entry.js (not use a re-export stub).
+//
+//   2. CJS require() in ESM bundle — Some bundled packages (e.g. @smithy/*)
+//      use CJS require() for Node.js builtins like "buffer".  esbuild's ESM
+//      output wraps these in __require() which throws "Dynamic require of X
+//      is not supported".  Fix: add a createRequire banner in the esbuild config.
+//
+//   3. Missing runtime dependencies — Plugins loaded at runtime (outside the
+//      bundle) may import packages that Phase 4 cleanup deleted.  Symptom:
+//      "Cannot find module 'X'" in stderr.  Fix: add the package to
+//      EXTERNAL_PACKAGES so it survives both bundling and cleanup.
+//
+// See docs/BUNDLE_VENDOR.md for full design docs and runbook.
+
+function smokeTestGateway() {
+  console.log("[bundle-vendor-deps] Phase 5: Smoke testing bundled gateway...");
+
+  const { execFileSync } = require("child_process");
+  const os = require("os");
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "easyclaw-bundle-smoke-"));
+  const openclawMjs = path.join(vendorDir, "openclaw.mjs");
+
+  // Write a minimal config so the gateway can start.
+  // Use a high ephemeral port to avoid conflicts with running services.
+  // Minimal config: just enough for the gateway to start listening.
+  // Extension auto-discovery is suppressed via OPENCLAW_BUNDLED_PLUGINS_DIR
+  // env var (pointed at tmpDir, which has no extensions/ subdir).
+  // Without this, resolveBundledPluginsDir() walks up from import.meta.url
+  // and finds vendor/openclaw/extensions/ — loading vendor-internal extensions
+  // (feishu, google-gemini-cli-auth, etc.) via jiti, which needs babel.cjs
+  // that was deleted by Phase 3.
+  const minimalConfig = {
+    gateway: { port: 59999, mode: "local" },
+    models: {},
+    agents: { defaults: { skipBootstrap: true } },
+  };
+  fs.writeFileSync(
+    path.join(tmpDir, "openclaw.json"),
+    JSON.stringify(minimalConfig),
+    "utf-8",
+  );
+
+  let allOutput = "";
+  let exitCode = null;
+
+  try {
+    // Run for up to 8 seconds.  A healthy gateway stays alive (listening on
+    // its port); we kill it after the timeout.  An unhealthy gateway exits
+    // immediately (code 0 or 1) within the first second.
+    // The gateway may also exit after ~5s if it tries (and fails) to build
+    // the Control UI assets — this is expected in the smoke test environment.
+    const stdout = execFileSync(process.execPath, [openclawMjs, "gateway"], {
+      cwd: tmpDir,
+      timeout: 8000,
+      env: {
+        ...process.env,
+        OPENCLAW_CONFIG_PATH: path.join(tmpDir, "openclaw.json"),
+        OPENCLAW_STATE_DIR: tmpDir,
+        // Point bundled plugins dir at tmpDir so the gateway doesn't discover
+        // vendor-internal extensions from vendor/openclaw/extensions/.
+        OPENCLAW_BUNDLED_PLUGINS_DIR: tmpDir,
+        // Prevent Electron compile cache conflicts
+        NODE_COMPILE_CACHE: undefined,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+      killSignal: "SIGTERM",
+    });
+    // If execFileSync returns normally, the process exited on its own
+    exitCode = 0;
+    allOutput = (stdout || "").toString();
+  } catch (err) {
+    exitCode = /** @type {any} */ (err).status ?? null;
+    const stderrStr = (/** @type {any} */ (err).stderr || "").toString();
+    const stdoutStr = (/** @type {any} */ (err).stdout || "").toString();
+    allOutput = stdoutStr + "\n" + stderrStr;
+  }
+
+  // Cleanup
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch {}
+
+  // ── Diagnose results ──
+  // The key question: did the gateway code path execute?
+  // If allOutput contains "[gateway]" log lines, the bundle loaded correctly
+  // and isMainModule() passed — the gateway process initialised.
+  // It may still exit (e.g. Control UI build failure) but the bundle is valid.
+
+  const gatewayStarted = allOutput.includes("[gateway]");
+
+  if (gatewayStarted) {
+    // Gateway code path was reached — check for non-fatal warnings
+    if (allOutput.includes("Cannot find module")) {
+      const match = allOutput.match(/Cannot find module '([^']+)'/);
+      const mod = match ? match[1] : "(unknown)";
+      console.error(
+        `\n[bundle-vendor-deps] ⚠ SMOKE TEST WARNING: Gateway started but a plugin failed to load.\n` +
+          `  Missing module: ${mod}\n` +
+          `  This likely means a runtime dependency was removed by Phase 4 cleanup.\n` +
+          `  Fix: add '${mod}' (or its parent package) to EXTERNAL_PACKAGES in this script.\n` +
+          `  See docs/BUNDLE_VENDOR.md § "Adding external packages" for details.\n`,
+      );
+      // Don't fail the build for plugin warnings — the gateway itself started.
+    }
+    console.log("[bundle-vendor-deps] Smoke test passed: gateway started successfully.");
+    return;
+  }
+
+  // Gateway code path was NOT reached — diagnose why.
+  if (exitCode === 0 && !allOutput.trim()) {
+    console.error(
+      `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Gateway exited immediately with code 0 and no output.\n` +
+        `\n` +
+        `  Root cause: The vendor's isMainModule() check failed. This means the\n` +
+        `  bundled entry file's import.meta.url did not match the expected filename.\n` +
+        `\n` +
+        `  The vendor's src/entry.ts has:\n` +
+        `    isMainModule({ currentFile: fileURLToPath(import.meta.url),\n` +
+        `      wrapperEntryPairs: [{ wrapperBasename: "openclaw.mjs", entryBasename: "entry.js" }] })\n` +
+        `\n` +
+        `  If the bundle is NOT named "entry.js", import.meta.url won't match\n` +
+        `  and the gateway silently exits.\n` +
+        `\n` +
+        `  Fix: Ensure Phase 2 renames the bundle to entry.js (not a re-export stub).\n` +
+        `  See docs/BUNDLE_VENDOR.md § "isMainModule check" for full explanation.\n`,
+    );
+    process.exit(1);
+  }
+
+  if (allOutput.includes("Dynamic require of")) {
+    const match = allOutput.match(/Dynamic require of "([^"]+)" is not supported/);
+    const mod = match ? match[1] : "(unknown)";
+    console.error(
+      `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: CJS require() incompatible with ESM bundle.\n` +
+        `\n` +
+        `  Error: Dynamic require of "${mod}" is not supported\n` +
+        `\n` +
+        `  Root cause: A bundled CJS package uses require("${mod}") which esbuild\n` +
+        `  wraps in __require(). In ESM output this shim throws for Node.js builtins.\n` +
+        `\n` +
+        `  Fix: Add a createRequire banner to the esbuild config:\n` +
+        `    banner: { js: 'import { createRequire as __cr } from "module"; const require = __cr(import.meta.url);' }\n` +
+        `  See docs/BUNDLE_VENDOR.md § "CJS/ESM interop" for details.\n`,
+    );
+    process.exit(1);
+  }
+
+  if (allOutput.includes("Cannot find module")) {
+    const match = allOutput.match(/Cannot find module '([^']+)'/);
+    const mod = match ? match[1] : "(unknown)";
+    console.error(
+      `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Missing runtime dependency.\n` +
+        `\n` +
+        `  Error: Cannot find module '${mod}'\n` +
+        `\n` +
+        `  Root cause: The module '${mod}' was removed from node_modules by Phase 4\n` +
+        `  cleanup but is needed at runtime (by a plugin or dynamic import).\n` +
+        `\n` +
+        `  Fix: Add '${mod}' to EXTERNAL_PACKAGES in bundle-vendor-deps.cjs.\n` +
+        `  This tells esbuild to keep it as an external import AND tells Phase 4\n` +
+        `  to preserve it in node_modules.\n` +
+        `  See docs/BUNDLE_VENDOR.md § "Adding external packages" for details.\n`,
+    );
+    process.exit(1);
+  }
+
+  // Generic failure
+  console.error(
+    `\n[bundle-vendor-deps] ✗ SMOKE TEST FAILED: Gateway exited with code ${exitCode}.\n` +
+      `\n` +
+      `  Output (first 1000 chars):\n` +
+      `  ${(allOutput || "(empty)").substring(0, 1000)}\n` +
+      `\n` +
+      `  See docs/BUNDLE_VENDOR.md § "Debugging bundle failures" for guidance.\n`,
+  );
+  process.exit(1);
+}
+
 // ─── Main ───
 
-// Guard: skip if already bundled
-if (fs.existsSync(BUNDLE_FILE)) {
-  console.log("[bundle-vendor-deps] Already bundled (gateway-bundle.mjs exists), skipping.");
+// Guard: skip if already bundled (marker written after successful run)
+const BUNDLED_MARKER = path.join(distDir, ".bundled");
+if (fs.existsSync(BUNDLED_MARKER)) {
+  console.log("[bundle-vendor-deps] Already bundled (.bundled marker exists), skipping.");
   process.exit(0);
 }
 
@@ -525,9 +729,14 @@ if (!fs.existsSync(nmDir)) {
   const t0 = Date.now();
   await extractVendorModelCatalog();
   const usedExternals = bundleWithEsbuild();
-  replaceEntryWithStub();
+  replaceEntryWithBundle();
   deleteChunkFiles();
   cleanupNodeModules(usedExternals);
+  smokeTestGateway();
+
+  // Write marker so re-runs are skipped (idempotency guard).
+  // Placed AFTER smoke test so a failed run can be re-tried.
+  fs.writeFileSync(BUNDLED_MARKER, new Date().toISOString(), "utf-8");
 
   console.log(`[bundle-vendor-deps] Done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 })();
