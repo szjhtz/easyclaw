@@ -3,10 +3,14 @@
     "version": "1.5.11",
     "date": "2026-02-26",
     "en": [
+      "Chat images now persist across sessions",
+      "Fix streaming message bubble width",
       "Fix Windows update race condition that could block upgrades",
       "Upgrade core engine to v2026.2.25"
     ],
     "zh": [
+      "聊天图片现在跨会话持久保存",
+      "修复流式消息气泡宽度问题",
       "修复 Windows 更新竞态条件导致升级阻断的问题",
       "升级核心引擎至 v2026.2.25"
     ]
