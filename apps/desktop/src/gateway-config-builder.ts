@@ -102,7 +102,6 @@ export function createGatewayConfigBuilder(deps: GatewayConfigDeps) {
       extensionsDir,
       plugins: {
         allow: [
-          "easyclaw-policy",
           "easyclaw-tools",
           "easyclaw-file-permissions",
           "search-browser-fallback",
