@@ -74,6 +74,8 @@ export default {
     resetCommand: "New Chat",
     stopCommandFeedback: "Generation stopped.",
     resetCommandFeedback: "Conversation reset.",
+    expandMessage: "Show more",
+    collapseMessage: "Show less",
     resetConfirm: "Start a new conversation? Current history will be archived.",
   },
   rules: {

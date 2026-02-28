@@ -74,6 +74,8 @@ export default {
     resetCommand: "新对话",
     stopCommandFeedback: "已停止生成。",
     resetCommandFeedback: "对话已重置。",
+    expandMessage: "展开全文",
+    collapseMessage: "收起",
     resetConfirm: "开始新对话？当前对话记录将被归档。",
   },
   rules: {

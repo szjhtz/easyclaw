@@ -11,7 +11,7 @@ import { GatewayChatClient } from "../lib/gateway-client.js";
 import type { ChatMessage, ChatImage, PendingImage } from "./chat/chat-utils.js";
 import { IMAGE_TYPES, DEFAULT_SESSION_KEY, INITIAL_VISIBLE, PAGE_SIZE, FETCH_BATCH, cleanMessageText, formatTimestamp, extractText, localizeError, parseRawMessages } from "./chat/chat-utils.js";
 import { readFileAsPending } from "./chat/chat-image-utils.js";
-import { MarkdownMessage, CopyButton } from "./chat/ChatMessage.js";
+import { MarkdownMessage, CopyButton, CollapsibleContent } from "./chat/ChatMessage.js";
 import type { GatewayEvent, GatewayHelloOk } from "../lib/gateway-client.js";
 import { RunTracker } from "../lib/run-tracker.js";
 import { ChatEventBridge } from "../lib/chat-event-bridge.js";
@@ -894,7 +894,9 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
                   ))}
                 </div>
               )}
-              {cleaned && (msg.role === "assistant" ? <MarkdownMessage text={cleaned} /> : cleaned)}
+              {cleaned && (msg.role === "assistant"
+                ? <CollapsibleContent><MarkdownMessage text={cleaned} /></CollapsibleContent>
+                : cleaned)}
               {msg.role === "assistant" && cleaned && <CopyButton text={cleaned} />}
             </div>
             </div>
