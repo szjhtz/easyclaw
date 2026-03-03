@@ -190,12 +190,12 @@ export function cronJobToFormData(job: CronJob): CronJobFormData {
   form.deleteAfterRun = job.deleteAfterRun ?? false;
   form.wakeMode = job.wakeMode;
 
-  // Schedule
-  if (job.schedule.kind === "cron") {
+  // Schedule (may be missing on malformed jobs)
+  if (job.schedule?.kind === "cron") {
     form.scheduleKind = "cron";
     form.cronExpr = job.schedule.expr;
     form.cronTz = job.schedule.tz ?? "";
-  } else if (job.schedule.kind === "every") {
+  } else if (job.schedule?.kind === "every") {
     form.scheduleKind = "every";
     const ms = job.schedule.everyMs;
     if (ms >= 3600000 && ms % 3600000 === 0) {
@@ -208,19 +208,19 @@ export function cronJobToFormData(job: CronJob): CronJobFormData {
       form.everyValue = ms / 1000;
       form.everyUnit = "seconds";
     }
-  } else {
+  } else if (job.schedule?.kind === "at") {
     form.scheduleKind = "at";
     form.atDatetime = isoToDatetimeLocal(job.schedule.at);
   }
 
-  // Payload
-  if (job.payload.kind === "agentTurn") {
+  // Payload (may be missing on malformed jobs)
+  if (job.payload?.kind === "agentTurn") {
     form.payloadKind = "agentTurn";
     form.message = job.payload.message;
     form.model = job.payload.model ?? "";
     form.thinking = job.payload.thinking ?? "";
     form.timeoutSeconds = job.payload.timeoutSeconds != null ? String(job.payload.timeoutSeconds) : "";
-  } else {
+  } else if (job.payload?.kind === "systemEvent") {
     form.payloadKind = "systemEvent";
     form.text = job.payload.text;
   }

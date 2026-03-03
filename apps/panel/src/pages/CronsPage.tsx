@@ -112,10 +112,10 @@ export function CronsPage() {
   }, []);
 
   function getStatusBadge(job: CronJob) {
-    if (job.state.runningAtMs) {
+    if (job.state?.runningAtMs) {
       return <span className="badge badge-info"><span className="crons-running-indicator" />{t("crons.statusRunning")}</span>;
     }
-    const status = job.state.lastRunStatus ?? job.state.lastStatus;
+    const status = job.state?.lastRunStatus ?? job.state?.lastStatus;
     if (!status) return <span className="badge badge-default">{t("crons.neverRun")}</span>;
     const cls = status === "ok" ? "badge-success" : status === "error" ? "badge-danger" : "badge-warning";
     return <span className={`badge ${cls}`}>{t(`crons.status${status.charAt(0).toUpperCase()}${status.slice(1)}`)}</span>;
@@ -206,7 +206,9 @@ export function CronsPage() {
                       {job.description && <div className="crons-job-desc" title={job.description}>{job.description}</div>}
                     </td>
                     <td>
-                      {job.schedule.kind === "cron" ? (
+                      {!job.schedule ? (
+                        <span className="crons-schedule-text text-muted">—</span>
+                      ) : job.schedule.kind === "cron" ? (
                         <>
                           <span className="crons-schedule-text">{job.schedule.expr}</span>
                           {job.schedule.tz && (
@@ -237,7 +239,7 @@ export function CronsPage() {
                     <td>
                       <div className="crons-time-cell">
                         {getStatusBadge(job)}
-                        {job.state.lastRunAtMs && (
+                        {job.state?.lastRunAtMs && (
                           <div className="text-muted" title={new Date(job.state.lastRunAtMs).toLocaleString()}>
                             {formatRelativeTime(job.state.lastRunAtMs, now)}
                           </div>
@@ -246,7 +248,7 @@ export function CronsPage() {
                     </td>
                     <td>
                       <div className="crons-time-cell">
-                        {job.state.nextRunAtMs
+                        {job.state?.nextRunAtMs
                           ? <span title={new Date(job.state.nextRunAtMs).toLocaleString()}>{formatRelativeTime(job.state.nextRunAtMs, now)}</span>
                           : <span className="text-muted">—</span>
                         }

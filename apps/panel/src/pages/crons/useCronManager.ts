@@ -29,11 +29,16 @@ export interface CronManager {
   fetchStatus: () => Promise<CronStatus>;
 }
 
-/** Normalize a job object from the gateway: older configs use `jobId` instead of `id`. */
+/** Normalize a job object from the gateway so the panel can safely render it. */
 function normalizeJob(raw: Record<string, unknown>): CronJob {
   const job = raw as unknown as CronJob & { jobId?: string };
+  // Legacy CLI writes `jobId` instead of `id`
   if (!job.id && job.jobId) {
     job.id = job.jobId;
+  }
+  // Ensure `state` exists (malformed jobs may omit it)
+  if (!job.state) {
+    (job as Record<string, unknown>).state = {};
   }
   return job;
 }
