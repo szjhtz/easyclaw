@@ -11,6 +11,10 @@
 const t0 = performance.now();
 let requireCount = 0;
 let requireTotalMs = 0;
+let compileCount = 0;
+let compileTotalMs = 0;
+let readSyncCount = 0;
+let readSyncTotalMs = 0;
 
 function logPhase(label) {
   const elapsed = (performance.now() - t0).toFixed(0);
@@ -22,7 +26,6 @@ logPhase("preload executing");
 // ── Hook CJS Module._load to time slow requires ──
 const Module = require("module");
 const origLoad = Module._load;
-const slowThresholdMs = 100; // Only log requires slower than 100ms
 
 Module._load = function timedLoad(request, parent, isMain) {
   requireCount++;
@@ -30,8 +33,7 @@ Module._load = function timedLoad(request, parent, isMain) {
   const result = origLoad.call(this, request, parent, isMain);
   const dur = performance.now() - start;
   requireTotalMs += dur;
-  if (dur > slowThresholdMs) {
-    // Shorten paths for readability
+  if (dur > 100) {
     const shortReq =
       request.length > 60 ? "..." + request.slice(-57) : request;
     logPhase(`require("${shortReq}") took ${dur.toFixed(0)}ms`);
@@ -39,22 +41,67 @@ Module._load = function timedLoad(request, parent, isMain) {
   return result;
 };
 
+// ── Hook Module._compile to track jiti's code compilation ──
+const origCompile = Module.prototype._compile;
+Module.prototype._compile = function timedCompile(content, filename) {
+  compileCount++;
+  const start = performance.now();
+  const result = origCompile.call(this, content, filename);
+  const dur = performance.now() - start;
+  compileTotalMs += dur;
+  if (dur > 200) {
+    const shortName =
+      filename.length > 60 ? "..." + filename.slice(-57) : filename;
+    const sizeKB = (content.length / 1024).toFixed(0);
+    logPhase(
+      `compile("${shortName}") took ${dur.toFixed(0)}ms (${sizeKB}KB)`,
+    );
+  }
+  return result;
+};
+
+// ── Hook fs.readFileSync to track jiti's file reads ──
+const fs = require("fs");
+const origReadFileSync = fs.readFileSync;
+fs.readFileSync = function timedReadFileSync(path, options) {
+  readSyncCount++;
+  const start = performance.now();
+  const result = origReadFileSync.call(this, path, options);
+  const dur = performance.now() - start;
+  readSyncTotalMs += dur;
+  if (dur > 50) {
+    const p = String(path);
+    const shortPath = p.length > 60 ? "..." + p.slice(-57) : p;
+    const sizeKB =
+      Buffer.isBuffer(result) || typeof result === "string"
+        ? (result.length / 1024).toFixed(0)
+        : "?";
+    logPhase(`readFileSync("${shortPath}") took ${dur.toFixed(0)}ms (${sizeKB}KB)`);
+  }
+  return result;
+};
+
 // Log when the event loop starts processing (= all top-level ESM code done).
-// The gap between "preload executing" and this line = CJS require + ESM loading.
 setImmediate(() => {
   logPhase(
-    `event loop started (${requireCount} requires, ${requireTotalMs.toFixed(0)}ms in CJS)`,
+    `event loop started (${requireCount} requires/${requireTotalMs.toFixed(0)}ms, ${compileCount} compiles/${compileTotalMs.toFixed(0)}ms, ${readSyncCount} reads/${readSyncTotalMs.toFixed(0)}ms)`,
   );
 
-  // Log periodic heartbeats so we can see what happens between event-loop
-  // start and "listening on" (extension loading, config parsing, etc.)
+  // Log periodic heartbeats with cumulative stats
   let heartbeat = 0;
+  let prevCompiles = compileCount;
+  let prevReads = readSyncCount;
   const iv = setInterval(() => {
     heartbeat++;
-    logPhase(`heartbeat #${heartbeat} (still initializing)`);
-    if (heartbeat >= 30) clearInterval(iv); // Stop after 30s
+    const newCompiles = compileCount - prevCompiles;
+    const newReads = readSyncCount - prevReads;
+    logPhase(
+      `heartbeat #${heartbeat} (compiles: +${newCompiles}=${compileCount}, reads: +${newReads}=${readSyncCount})`,
+    );
+    prevCompiles = compileCount;
+    prevReads = readSyncCount;
+    if (heartbeat >= 60) clearInterval(iv);
   }, 1000);
-  // Don't keep the process alive just for heartbeats
   if (iv.unref) iv.unref();
 });
 
@@ -63,7 +110,9 @@ const origStdoutWrite = process.stdout.write;
 process.stdout.write = function (chunk, ...args) {
   const str = typeof chunk === "string" ? chunk : chunk.toString();
   if (str.includes("listening on")) {
-    logPhase("gateway listening (READY)");
+    logPhase(
+      `gateway listening (READY) — totals: ${compileCount} compiles/${compileTotalMs.toFixed(0)}ms, ${readSyncCount} reads/${readSyncTotalMs.toFixed(0)}ms`,
+    );
   }
   return origStdoutWrite.call(this, chunk, ...args);
 };
