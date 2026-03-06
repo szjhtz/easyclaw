@@ -498,7 +498,7 @@ test.describe("Chat Agent Events & Settings", () => {
     await expect(toggle).toBeChecked();
   });
 
-  test("Settings page sections are in correct order: Agent → Chat → Startup → Data Directory → Telemetry", async ({ window }) => {
+  test("Settings page sections are in correct order: Agent → Chat → App → Startup → Data Directory → Telemetry", async ({ window }) => {
     await dismissModals(window);
 
     const settingsBtn = window.locator(".nav-btn", { hasText: "Settings" });
@@ -509,7 +509,7 @@ test.describe("Chat Agent Events & Settings", () => {
     const sectionCards = window.locator(".section-card:visible");
     await expect(sectionCards.first()).toBeVisible({ timeout: 10_000 });
     const count = await sectionCards.count();
-    expect(count).toBeGreaterThanOrEqual(5);
+    expect(count).toBeGreaterThanOrEqual(6);
 
     // First section: Agent Settings (includes browser mode)
     const firstSection = sectionCards.nth(0);
@@ -519,17 +519,21 @@ test.describe("Chat Agent Events & Settings", () => {
     const secondSection = sectionCards.nth(1);
     await expect(secondSection).toContainText(/Chat Settings|聊天设置/);
 
-    // Third section: Startup (Auto-Launch)
+    // Third section: App Settings
     const thirdSection = sectionCards.nth(2);
-    await expect(thirdSection).toContainText(/Startup|启动/);
+    await expect(thirdSection).toContainText(/App Settings|应用设置/);
 
-    // Fourth section: Data Directory
+    // Fourth section: Startup (Auto-Launch)
     const fourthSection = sectionCards.nth(3);
-    await expect(fourthSection).toContainText(/Data Directory|数据目录/);
+    await expect(fourthSection).toContainText(/Startup|启动/);
 
-    // Fifth section: Telemetry & Privacy
+    // Fifth section: Data Directory
     const fifthSection = sectionCards.nth(4);
-    await expect(fifthSection).toContainText(/Telemetry|遥测/);
+    await expect(fifthSection).toContainText(/Data Directory|数据目录/);
+
+    // Sixth section: Telemetry & Privacy
+    const sixthSection = sectionCards.nth(5);
+    await expect(sixthSection).toContainText(/Telemetry|遥测/);
   });
 
   test("Settings page: Agent section has DM scope dropdown", async ({ window }) => {
@@ -579,9 +583,9 @@ test.describe("Chat Agent Events & Settings", () => {
     const chatSection = window.locator(".section-card", { hasText: /Chat Settings|聊天设置/ });
     await expect(chatSection).toBeVisible();
 
-    // Should have two toggle switches: agent events + preserve tool events
+    // Should have three toggle switches: agent events + preserve tool events + collapse messages
     const toggles = chatSection.locator(".toggle-switch");
-    await expect(toggles).toHaveCount(2);
+    await expect(toggles).toHaveCount(3);
 
     // Verify label text for the second toggle
     await expect(chatSection).toContainText(/Preserve tool call records|保留工具调用记录/);
