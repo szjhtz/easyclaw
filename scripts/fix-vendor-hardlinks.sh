@@ -19,7 +19,7 @@ if [ ! -d "$EXT_DIR" ]; then
 fi
 
 count=0
-for f in "$EXT_DIR"/*/openclaw.plugin.json "$EXT_DIR"/*/index.ts "$EXT_DIR"/*/package.json; do
+for f in "$EXT_DIR"/*/*; do
   [ -f "$f" ] || continue
   # stat -c works on Linux/MSYS2(Git Bash), stat -f on macOS
   if stat -c '%h' "$f" >/dev/null 2>&1; then
