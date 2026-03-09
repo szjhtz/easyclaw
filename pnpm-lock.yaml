@@ -338,10 +338,6 @@ importers:
         version: 5.9.3
 
   extensions/easyclaw-event-bridge:
-    dependencies:
-      '@easyclaw/logger':
-        specifier: workspace:*
-        version: link:../../packages/logger
     devDependencies:
       oxlint:
         specifier: ^1.43.0

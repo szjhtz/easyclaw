@@ -18,9 +18,7 @@
     "build": "tsdown",
     "lint": "oxlint"
   },
-  "dependencies": {
-    "@easyclaw/logger": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "tsdown": "^0.20.3",
     "oxlint": "^1.43.0"

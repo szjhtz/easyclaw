@@ -1,6 +1,4 @@
-import { createLogger } from "@easyclaw/logger";
-
-const log = createLogger("easyclaw:event-bridge");
+const PREFIX = "[easyclaw:event-bridge]";
 
 const CLEANUP_DELAY_MS = 30_000;
 
@@ -47,7 +45,7 @@ const plugin = {
       ({ respond, context }: { respond: (ok: boolean) => void; context: { broadcast: BroadcastFn } }) => {
         if (!gatewayBroadcast) {
           gatewayBroadcast = context.broadcast;
-          log.info("Gateway broadcast captured");
+          console.log(PREFIX,"Gateway broadcast captured");
         }
         respond(true);
       },
@@ -111,7 +109,7 @@ const plugin = {
       gatewayBroadcast = null;
     });
 
-    log.info("EasyClaw Event Bridge plugin activated");
+    console.log(PREFIX,"EasyClaw Event Bridge plugin activated");
   },
 };
 
