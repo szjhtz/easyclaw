@@ -46,6 +46,12 @@ extraResources:
       - "**"
       - "!**/node_modules/**"
       - "!**/.turbo/**"
+  # Volcengine STT CLI bridge script (not natively supported in OpenClaw).
+  # Copied to resources root so main.ts can resolve it via process.resourcesPath.
+  - from: "../../packages/gateway/dist"
+    to: "."
+    filter:
+      - "volcengine-stt-cli.mjs"
   # Panel UI static files
   - from: "../panel/dist"
     to: "panel-dist"
