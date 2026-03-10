@@ -134,6 +134,7 @@ function startPairingNotifier(): { stop: () => void } {
           const message = PAIRING_MESSAGES[getSystemLocale()];
           log.info(`Sending pairing follow-up to ${channelId} user ${req.id}`);
           sendChannelMessage(channelId, req.id, message, proxiedFetch);
+          pushChatSSE("pairing-update", { channelId });
         }
       }
     } catch (err) {

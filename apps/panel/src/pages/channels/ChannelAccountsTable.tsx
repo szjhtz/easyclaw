@@ -114,19 +114,23 @@ export function ChannelAccountsTable({
     }
   }
 
-  // Poll recipient data (pairing requests + allowlist) for expanded non-mobile channels
+  // Listen for SSE pairing-update events to refresh expanded channels in real-time
   useEffect(() => {
     const nonMobileExpanded = Array.from(expandedChannels).filter(ch => ch !== "mobile");
     if (nonMobileExpanded.length === 0) return;
 
-    let cancelled = false;
-    const timer = setInterval(() => {
-      if (cancelled) return;
-      for (const channelId of nonMobileExpanded) {
-        refreshRecipientData(channelId);
-      }
-    }, 5_000);
-    return () => { cancelled = true; clearInterval(timer); };
+    const sse = new EventSource("/api/chat/events");
+
+    sse.addEventListener("pairing-update", (e: MessageEvent) => {
+      try {
+        const { channelId } = JSON.parse(e.data) as { channelId: string };
+        if (nonMobileExpanded.includes(channelId)) {
+          refreshRecipientData(channelId);
+        }
+      } catch { /* ignore malformed events */ }
+    });
+
+    return () => sse.close();
   }, [expandedChannels]);
 
   async function loadRecipientData(channelId: string) {

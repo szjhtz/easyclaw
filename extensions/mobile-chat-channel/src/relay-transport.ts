@@ -126,7 +126,6 @@ export class RelayTransport {
     private rekeyIfNeeded(realPairingId: string, accessToken: string): void {
         for (const [oldKey, token] of this.pairingTokens) {
             if (token === accessToken && oldKey !== realPairingId) {
-                console.log(`[DesktopRelayTransport] Re-keying pairing: ${oldKey} -> ${realPairingId}`);
                 this.pairingTokens.delete(oldKey);
                 this.pairingTokens.set(realPairingId, token);
                 const handler = this.handlers.get(oldKey);
@@ -162,7 +161,6 @@ export class RelayTransport {
             this.ws = new WebSocket(wsUrl);
 
             this.ws.on('open', () => {
-                console.log('[DesktopRelayTransport] Connected to relay.');
                 this.updateStatus('online');
 
                 // Send rejoin for all pairings
@@ -184,7 +182,6 @@ export class RelayTransport {
             });
 
             this.ws.on('close', () => {
-                console.log('[DesktopRelayTransport] Disconnected from relay.');
                 this.ws = null;
                 this.updateStatus('offline');
                 this.scheduleReconnect();
@@ -205,7 +202,6 @@ export class RelayTransport {
         if (this.stopped) return;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
-            console.log('[DesktopRelayTransport] Attempting to reconnect...');
             this.connect();
         }, 3000);
     }

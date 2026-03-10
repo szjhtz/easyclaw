@@ -13,6 +13,7 @@ import {
   resolveOpenClawConfigPath as _resolveOpenClawConfigPath,
 } from "@easyclaw/core/node";
 import { generateAudioConfig, mergeAudioConfig } from "./audio-config-writer.js";
+import { migrateSingleAccountChannels } from "./channel-config-writer.js";
 import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
 import { OpenClawSchema } from "../../../vendor/openclaw/src/config/zod-schema.js";
 
@@ -898,6 +899,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
         docker.binds = sanitized;
       }
     }
+  }
+
+  // Migrate old single-account channel configs (top-level botToken, etc.)
+  // into the multi-account format (channels.<id>.accounts.default) so
+  // OpenClaw's doctor doesn't warn about legacy layout.
+  const migratedChannels = migrateSingleAccountChannels(config);
+  if (migratedChannels.length > 0) {
+    log.info(`Migrated single-account channel configs: ${migratedChannels.join(", ")}`);
   }
 
   // Strip keys unrecognised by the OpenClaw schema (at any nesting level)

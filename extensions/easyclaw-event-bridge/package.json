@@ -1,5 +1,5 @@
 {
-  "name": "@easyclaw/event-bridge",
+  "name": "@easyclaw/easyclaw-event-bridge",
   "version": "0.0.0",
   "private": true,
   "type": "module",

@@ -177,7 +177,6 @@ export class MobileSyncEngine {
         this.ackTimers.set(id, setTimeout(() => {
             this.ackTimers.delete(id);
             if (this.outbox.delete(id)) {
-                console.log(`[MobileSync:${this.pairingId.slice(0, 8)}] ACK timeout for message ${id.slice(0, 8)}, dropping from outbox`);
                 this.scheduleSave();
             }
         }, ACK_TIMEOUT_MS));
@@ -206,7 +205,6 @@ export class MobileSyncEngine {
         const now = Date.now();
         if (now - this.lastFlushTime < 3000) return; // skip if flushed within 3s
         this.lastFlushTime = now;
-        console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Flushing ${this.outbox.size} outbox message(s)`);
         for (const [_id, msg] of this.outbox.entries()) {
             this.transport.send(this.pairingId, msg);
         }
@@ -356,7 +354,6 @@ export class MobileSyncEngine {
                     entry.totalTokens = 0;
                     entry.totalTokensFresh = true;
                     await fs.writeFile(storePath, JSON.stringify(store, null, 2) + "\n", "utf-8");
-                    console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Session store updated: old=${oldSessionId?.slice(0,8)}, new=${entry.sessionId.slice(0,8)}`);
                 }
             } catch (err: any) {
                 console.error(`[MobileSync:${this.pairingId.slice(0,8)}] Failed to update session store:`, err.message);
@@ -371,7 +368,6 @@ export class MobileSyncEngine {
             const archiveFile = sessionFile + archiveSuffix;
             try {
                 await fs.rename(sessionFile, archiveFile);
-                console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Archived transcript: ${oldSessionId.slice(0,8)}.jsonl → …${archiveSuffix}`);
             } catch (err: any) {
                 if (err.code !== "ENOENT") throw err;
             }
@@ -390,7 +386,6 @@ export class MobileSyncEngine {
             this.gatewayBroadcast("mobile.session-reset", { sessionKey: route.sessionKey });
         }
 
-        console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Session reset complete. sessionKey=${route.sessionKey}`);
     }
 
     public get isRelayConnected(): boolean {
@@ -461,7 +456,6 @@ export class MobileSyncEngine {
 
             case "peer_status":
                 this.mobileOnline = msg.status === "online";
-                console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Mobile peer is now ${msg.status}`);
                 if (this.mobileOnline) {
                     this.flushOutbox();
                 }
@@ -473,7 +467,6 @@ export class MobileSyncEngine {
                 break;
 
             case "reaction":
-                console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Received reaction from mobile: ${msg.emoji} on ${msg.targetId?.slice(0,8)}`);
                 if (this.gatewayBroadcast && msg.targetId && msg.emoji) {
                     this.gatewayBroadcast("mobile.reaction", {
                         pairingId: this.pairingId,
@@ -486,7 +479,6 @@ export class MobileSyncEngine {
                 break;
 
             case "reset_req":
-                console.log(`[MobileSync:${this.pairingId.slice(0,8)}] Received reset request from mobile`);
                 try {
                     await this.resetSession();
                     this.transport.send(this.pairingId, {
@@ -722,7 +714,6 @@ export class MobileSyncEngine {
                 }
             }
 
-            console.log("[MobileSync] Message dispatched to agent. sessionKey:", route.sessionKey);
             return repliesDelivered;
     }
 }

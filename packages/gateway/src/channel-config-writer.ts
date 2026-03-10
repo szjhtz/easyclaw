@@ -40,6 +40,9 @@ export function writeChannelAccount(options: WriteChannelAccountOptions): void {
     }
   }
 
+  // Migrate any old single-account channel configs to multi-account format
+  migrateSingleAccountChannels(existingConfig);
+
   // Ensure channels object exists
   if (!existingConfig.channels || typeof existingConfig.channels !== "object") {
     existingConfig.channels = {};
@@ -90,6 +93,9 @@ export function removeChannelAccount(options: RemoveChannelAccountOptions): void
   try {
     const raw = readFileSync(configPath, "utf-8");
     const config = JSON.parse(raw) as Record<string, unknown>;
+
+    // Migrate any old single-account channel configs to multi-account format
+    migrateSingleAccountChannels(config);
 
     if (!config.channels || typeof config.channels !== "object") {
       log.warn("No channels config found");
@@ -211,6 +217,137 @@ function ensureWildcardBinding(config: Record<string, unknown>, channelId: strin
     config.bindings = bindings;
     log.info(`Added wildcard binding for channel "${channelId}"`);
   }
+}
+
+/**
+ * Keys that should be moved from channel top-level into accounts.default
+ * when migrating from single-account to multi-account format.
+ *
+ * This mirrors the COMMON_SINGLE_ACCOUNT_KEYS_TO_MOVE set in OpenClaw's
+ * setup-helpers.ts plus per-channel overrides.
+ */
+const SINGLE_ACCOUNT_KEYS_TO_MOVE = new Set([
+  "name",
+  "token",
+  "tokenFile",
+  "botToken",
+  "appToken",
+  "account",
+  "signalNumber",
+  "authDir",
+  "cliPath",
+  "dbPath",
+  "httpUrl",
+  "httpHost",
+  "httpPort",
+  "webhookPath",
+  "webhookUrl",
+  "webhookSecret",
+  "service",
+  "region",
+  "homeserver",
+  "userId",
+  "accessToken",
+  "password",
+  "deviceName",
+  "url",
+  "code",
+  "dmPolicy",
+  "allowFrom",
+  "groupPolicy",
+  "groupAllowFrom",
+  "defaultTo",
+]);
+
+const PER_CHANNEL_KEYS_TO_MOVE: Record<string, ReadonlySet<string>> = {
+  telegram: new Set(["streaming"]),
+};
+
+function shouldMoveKey(channelId: string, key: string): boolean {
+  if (SINGLE_ACCOUNT_KEYS_TO_MOVE.has(key)) return true;
+  return PER_CHANNEL_KEYS_TO_MOVE[channelId]?.has(key) ?? false;
+}
+
+/**
+ * Migrate old single-account channel config format to multi-account format.
+ *
+ * OpenClaw originally supported a flat channel config where account-specific
+ * keys (botToken, dmPolicy, etc.) lived directly under channels.<channelId>.
+ * The multi-account format nests these under channels.<channelId>.accounts.default.
+ *
+ * This migration handles two scenarios:
+ * 1. Channel has NO accounts object yet — move top-level keys into accounts.default.
+ * 2. Channel has accounts but NO "default" account — move top-level keys into accounts.default
+ *    (this happens when named accounts were added but the original single-account config
+ *    wasn't migrated).
+ *
+ * Mutates the config object in-place. Returns the list of migrated channel IDs for logging.
+ */
+export function migrateSingleAccountChannels(config: Record<string, unknown>): string[] {
+  if (!config.channels || typeof config.channels !== "object") {
+    return [];
+  }
+
+  const channels = config.channels as Record<string, unknown>;
+  const migrated: string[] = [];
+
+  for (const [channelId, rawChannel] of Object.entries(channels)) {
+    if (!rawChannel || typeof rawChannel !== "object" || Array.isArray(rawChannel)) {
+      continue;
+    }
+
+    const channel = rawChannel as Record<string, unknown>;
+
+    // Collect top-level keys that should be under accounts.default
+    const keysToMove = Object.keys(channel).filter(
+      (key) =>
+        key !== "accounts" &&
+        key !== "enabled" &&
+        channel[key] !== undefined &&
+        shouldMoveKey(channelId, key),
+    );
+
+    if (keysToMove.length === 0) {
+      continue;
+    }
+
+    // Check if accounts.default already exists
+    const accounts =
+      channel.accounts && typeof channel.accounts === "object"
+        ? (channel.accounts as Record<string, unknown>)
+        : {};
+
+    const hasDefault = Object.keys(accounts).some(
+      (key) => key.trim().toLowerCase() === "default",
+    );
+
+    if (hasDefault) {
+      // Default account already exists — don't overwrite it
+      continue;
+    }
+
+    // Build the default account from top-level keys
+    const defaultAccount: Record<string, unknown> = {};
+    for (const key of keysToMove) {
+      const value = channel[key];
+      defaultAccount[key] =
+        value && typeof value === "object" ? structuredClone(value) : value;
+    }
+
+    // Remove migrated keys from channel top-level
+    for (const key of keysToMove) {
+      delete channel[key];
+    }
+
+    // Create or merge into accounts object
+    channel.accounts = { ...accounts, default: defaultAccount };
+    migrated.push(channelId);
+    log.info(
+      `Migrated channels.${channelId} single-account config into channels.${channelId}.accounts.default`,
+    );
+  }
+
+  return migrated;
 }
 
 /**

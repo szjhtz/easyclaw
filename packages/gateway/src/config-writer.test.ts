@@ -907,7 +907,8 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.botToken).toBe("123:ABC");
+      // botToken is migrated into accounts.default by single-account migration
+      expect(config.channels.telegram.accounts.default.botToken).toBe("123:ABC");
       expect(config.channels.telegram.retryAttempts).toBeUndefined();
       expect(config.channels.telegram.retryDelayMs).toBeUndefined();
       expect(config.channels.telegram.usePolling).toBeUndefined();
@@ -972,9 +973,10 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.botToken).toBe("123:ABC");
-      expect(config.channels.telegram.dmPolicy).toBe("open");
-      expect(config.channels.discord.token).toBe("discord-tok");
+      // Single-account format is migrated into accounts.default
+      expect(config.channels.telegram.accounts.default.botToken).toBe("123:ABC");
+      expect(config.channels.telegram.accounts.default.dmPolicy).toBe("open");
+      expect(config.channels.discord.accounts.default.token).toBe("discord-tok");
       expect(config.gateway.auth.mode).toBe("none");
     });
   });
@@ -996,7 +998,8 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       // Channel configs are protected — fixSemanticErrors must never delete
       // user channel data, even if it has validation issues.
-      expect(config.channels.telegram.botToken).toBe("123:ABC");
+      // Single-account format is migrated into accounts.default.
+      expect(config.channels.telegram.accounts.default.botToken).toBe("123:ABC");
       expect(config.gateway.port).toBe(18789);
     });
 
@@ -1015,8 +1018,9 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.botToken).toBe("123:ABC");
-      expect(config.channels.discord.token).toBe("discord-tok");
+      // Single-account format is migrated into accounts.default
+      expect(config.channels.telegram.accounts.default.botToken).toBe("123:ABC");
+      expect(config.channels.discord.accounts.default.token).toBe("discord-tok");
     });
 
     it("does not delete EasyClaw-managed keys on semantic errors", () => {
@@ -1043,8 +1047,9 @@ describe("config-writer", () => {
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.channels.telegram.botToken).toBe("123:ABC");
-      expect(config.channels.telegram.dmPolicy).toBe("open");
+      // Single-account format is migrated into accounts.default
+      expect(config.channels.telegram.accounts.default.botToken).toBe("123:ABC");
+      expect(config.channels.telegram.accounts.default.dmPolicy).toBe("open");
     });
   });
 

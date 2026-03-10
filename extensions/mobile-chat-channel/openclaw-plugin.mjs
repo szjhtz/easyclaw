@@ -280,7 +280,7 @@ const plugin = {
 
                 const existing = syncEngines.get(engineKey);
                 if (existing) {
-                    console.log(`[MobileChat Plugin] SyncEngine already exists for ${engineKey}`);
+                    // Engine already running for this pairing — no-op.
                 } else {
                     const engine = new MobileSyncEngine(
                         pluginApi,
@@ -346,7 +346,6 @@ const plugin = {
                         });
                     }
                 }
-                console.log(`[MobileChat Plugin] Registered ${pairings.length} stale pairing(s). Total stale: ${stalePairings.size}`);
             }
             respond(true, { success: true });
         });
