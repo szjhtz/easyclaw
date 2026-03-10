@@ -11,6 +11,13 @@
  */
 "use strict";
 
+// Windows: set console output code page to UTF-8 so child processes
+// (PowerShell, cmd) produce Unicode filenames instead of mojibake.
+// Without this, non-ASCII filenames from exec commands become "???".
+if (process.platform === "win32") {
+  require("child_process").execSync("chcp 65001", { stdio: "ignore" });
+}
+
 const t0 = performance.now();
 let requireCount = 0;
 let requireTotalMs = 0;

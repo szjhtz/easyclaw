@@ -279,6 +279,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
           writeFileSync(
             preloadPath,
             `"use strict";
+if(process.platform==="win32"){require("child_process").execSync("chcp 65001",{stdio:"ignore"})}
 const t0=performance.now(),V=!!process.env.EASYCLAW_STARTUP_DEBUG,path=require("path"),Module=require("module");
 let sdkPath=null,sdkDir=null;
 const origRes=Module._resolveFilename;
