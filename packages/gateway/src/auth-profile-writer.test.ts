@@ -403,15 +403,26 @@ describe("vendor contract: auth profile format", () => {
     expect(typesSrc).toContain("key?: string");
   });
 
-  it("OAuth base fields match pi-ai's OAuthCredentials type", () => {
-    const piaiTypesSrc = readFileSync(
-      join(VENDOR_ROOT, "node_modules/@mariozechner/pi-ai/dist/utils/oauth/types.d.ts"),
+  it("OAuth base fields stay aligned with vendor OAuth credential usage", () => {
+    // The desktop prune step strips vendor .d.ts files, so this contract test
+    // verifies the runtime source shape instead of a generated declaration.
+    const writerSrc = readFileSync(
+      join(import.meta.dirname, "auth-profile-writer.ts"),
       "utf-8",
     );
-    expect(piaiTypesSrc).toContain("refresh: string");
-    expect(piaiTypesSrc).toContain("access: string");
-    expect(piaiTypesSrc).toContain("expires: number");
-    expect(piaiTypesSrc).toContain("[key: string]: unknown");
+    const vendorOauthSrc = readFileSync(
+      join(VENDOR_ROOT, "src/providers/qwen-portal-oauth.ts"),
+      "utf-8",
+    );
+
+    expect(writerSrc).toContain("access: string");
+    expect(writerSrc).toContain("refresh: string");
+    expect(writerSrc).toContain("expires: number");
+
+    expect(vendorOauthSrc).toContain("credentials.refresh");
+    expect(vendorOauthSrc).toContain("access: accessToken");
+    expect(vendorOauthSrc).toContain("refresh: newRefreshToken || refreshToken");
+    expect(vendorOauthSrc).toContain("expires: Date.now() + expiresIn * 1000");
   });
 
   it("google-gemini-cli models exist in vendor's model catalog", () => {
