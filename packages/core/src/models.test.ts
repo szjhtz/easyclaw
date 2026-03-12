@@ -219,6 +219,17 @@ describe("getModelsForProvider", () => {
     expect(models).toEqual(PROVIDERS.volcengine.extraModels);
   });
 
+  it("should return local fallback models for openai-codex", () => {
+    initKnownModels({}); // empty catalog — only extraModels
+
+    const models = getModelsForProvider("openai-codex");
+    const ids = models.map((m) => m.modelId);
+
+    expect(ids).toContain("gpt-5.2-codex");
+    expect(ids).toContain("gpt-5-codex");
+    expect(ids).toContain("gpt-5.1-codex");
+  });
+
   it("should return empty array for providers with no models", () => {
     initKnownModels({}); // empty catalog — only EXTRA_MODELS
 
@@ -326,7 +337,18 @@ describe("resolveGatewayProvider", () => {
   });
 
   it("should keep subscription plans with extraModels as-is", () => {
+    expect(resolveGatewayProvider("openai-codex")).toBe("openai-codex");
     expect(resolveGatewayProvider("zhipu-coding")).toBe("zhipu-coding");
     expect(resolveGatewayProvider("moonshot-coding")).toBe("moonshot-coding");
+  });
+});
+
+describe("openai-codex defaults", () => {
+  it("should prefer gpt-5.2-codex when available", () => {
+    initKnownModels({});
+
+    const model = getDefaultModelForProvider("openai-codex");
+    expect(model).toBeDefined();
+    expect(model!.modelId).toBe("gpt-5.2-codex");
   });
 });

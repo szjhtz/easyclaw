@@ -34,6 +34,12 @@ const BUNDLE_TEMP_DIR = path.join(distDir, "_bundled");
 // (needed by proxy-setup.cjs via createRequire at runtime).
 // Used for BOTH the main entry.js bundle AND per-extension bundles.
 const EXTERNAL_PACKAGES = [
+  // OpenAI Codex OAuth dynamically loads loginOpenAICodex from pi-ai at
+  // runtime in the Electron main process. Even though model catalog data is
+  // extracted statically below, the package itself must remain available in
+  // packaged builds.
+  "@mariozechner/pi-ai",
+
   // Native modules (contain .node or .dylib binaries)
   "sharp",
   "@img/*",
@@ -75,8 +81,15 @@ const EXTERNAL_PACKAGES = [
   "@sinclair/typebox/*",
 ];
 
+// Some packages are loaded via dynamic require() paths that esbuild cannot see
+// from the bundled entrypoints. These still need to survive Phase 4 cleanup.
+const RUNTIME_REQUIRED_PACKAGES = [
+  "@mariozechner/pi-ai",
+];
+
 // Path to the static vendor model catalog JSON that replaces the dynamic
-// import of @mariozechner/pi-ai/dist/models.generated.js at runtime.
+// import of @mariozechner/pi-ai/dist/models.generated.js at runtime for model
+// discovery. Other runtime paths, like Codex OAuth, still load pi-ai itself.
 const VENDOR_MODELS_JSON = path.join(distDir, "vendor-models.json");
 
 // Files to preserve in dist/ (everything else is a chunk file to delete).
@@ -1222,7 +1235,9 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
   let verifiedCount = 0;
   let skippedNeverInstalled = 0;
 
-  for (const pkg of [...allExternals].sort()) {
+  const packagesToVerify = new Set([...allExternals, ...RUNTIME_REQUIRED_PACKAGES]);
+
+  for (const pkg of [...packagesToVerify].sort()) {
     if (isNodeBuiltin(pkg)) continue;
     if (!matchesIntentional(pkg)) continue; // skip incidental externals
     if (!keepSet.has(pkg)) {

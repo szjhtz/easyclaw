@@ -162,7 +162,7 @@ export async function saveCodexOAuthCredentials(
   },
 ): Promise<OAuthFlowResult> {
   const provider = "openai-codex";
-  const model = options?.model || "gpt-5.3-codex";
+  const model = options?.model || "gpt-5.2-codex";
   const id = randomUUID();
 
   // Store credential JSON in Keychain
