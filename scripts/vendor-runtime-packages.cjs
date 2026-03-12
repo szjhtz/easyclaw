@@ -18,7 +18,6 @@ const EXTERNAL_PACKAGES = [
   "@lydell/node-pty",
   "@lydell/node-pty-*",
   "@matrix-org/matrix-sdk-crypto-nodejs",
-  "@vector-im/matrix-bot-sdk",
   "@discordjs/opus",
   "sqlite-vec",
   "sqlite-vec-*",
