@@ -413,7 +413,7 @@ test.describe("Local Models E2E", () => {
     await expect(form.locator(".form-label", { hasText: /Server URL/i })).toBeVisible();
 
     // "Model" label
-    await expect(form.locator(".form-label", { hasText: /Model/i })).toBeVisible();
+    await expect(form.locator(".form-label", { hasText: /^Model$/i })).toBeVisible();
 
     // Save button (should be disabled — no model selected yet)
     const saveBtn = form.locator(".form-actions .btn.btn-primary");

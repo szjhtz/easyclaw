@@ -1,4 +1,5 @@
 import { test, expect } from "./electron-fixture.js";
+import { execFileSync } from "node:child_process";
 
 test.describe("Usage Page", () => {
   test("multi-provider seeded data, active key, today table, and chart", async ({ electronApp, window, apiBase }) => {
@@ -13,97 +14,44 @@ test.describe("Usage Page", () => {
     // --- Seed 2 providers, 3 keys, 5 models across multiple days ---
     const dbPath = await electronApp.evaluate(() => process.env.EASYCLAW_DB_PATH);
     expect(dbPath).toBeTruthy();
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Database = require("better-sqlite3");
-    const db = new Database(dbPath);
     const now = Date.now();
     const isoNow = new Date().toISOString();
     const DAY = 86_400_000;
+    const sql = `
+DELETE FROM provider_keys;
+DELETE FROM key_model_usage_history;
+DELETE FROM settings WHERE key = 'llm-provider';
 
-    // -- Provider keys --
-    // Clear any keys created by onboarding so seeded keys are deterministic
-    db.prepare(`DELETE FROM provider_keys`).run();
+INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
+VALUES ('key-openai-main', 'openai', 'OpenAI Main', 'gpt-4o', 1, 'api_key', '${isoNow}', '${isoNow}');
+INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
+VALUES ('key-openai-mini', 'openai', 'OpenAI Mini', 'gpt-4o-mini', 0, 'api_key', '${isoNow}', '${isoNow}');
+INSERT OR IGNORE INTO provider_keys (id, provider, label, model, is_default, auth_type, created_at, updated_at)
+VALUES ('key-anthropic', 'anthropic', 'Anthropic Key', 'claude-sonnet-4-5-20250929', 0, 'api_key', '${isoNow}', '${isoNow}');
 
-    // Key 1: openai / gpt-4o (active — is_default=1)
-    db.prepare(`
-      INSERT OR IGNORE INTO provider_keys
-        (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run("key-openai-main", "openai", "OpenAI Main", "gpt-4o", 1, "api_key", isoNow, isoNow);
+INSERT OR REPLACE INTO settings (key, value) VALUES ('llm-provider', 'openai');
 
-    // Key 2: openai / gpt-4o-mini (not active)
-    db.prepare(`
-      INSERT OR IGNORE INTO provider_keys
-        (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run("key-openai-mini", "openai", "OpenAI Mini", "gpt-4o-mini", 0, "api_key", isoNow, isoNow);
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-openai-main', 'openai', 'gpt-4o', ${now - 3 * DAY}, ${now - 3 * DAY + 3600000}, 5000, 1200, 300, 100, '0.018000', '${isoNow}');
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-openai-main', 'openai', 'gpt-4o', ${now - DAY}, ${now - DAY + 3600000}, 8000, 2000, 500, 200, '0.030000', '${isoNow}');
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-openai-main', 'openai', 'gpt-4o', ${now - 3600000}, ${now}, 12500, 3200, 800, 400, '0.045000', '${isoNow}');
 
-    // Key 3: anthropic / claude-sonnet-4-5 (not active, different provider)
-    db.prepare(`
-      INSERT OR IGNORE INTO provider_keys
-        (id, provider, label, model, is_default, auth_type, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run("key-anthropic", "anthropic", "Anthropic Key", "claude-sonnet-4-5-20250929", 0, "api_key", isoNow, isoNow);
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-openai-mini', 'openai', 'gpt-4o-mini', ${now - 2 * DAY}, ${now - 2 * DAY + 3600000}, 20000, 5000, 0, 0, '0.005000', '${isoNow}');
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-openai-mini', 'openai', 'gpt-4o-mini', ${now - DAY}, ${now - DAY + 3600000}, 30000, 8000, 0, 0, '0.008000', '${isoNow}');
 
-    // Set openai as active provider
-    db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run("llm-provider", "openai");
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - 4 * DAY}, ${now - 4 * DAY + 3600000}, 3000, 800, 1000, 200, '0.012000', '${isoNow}');
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - 2 * DAY}, ${now - 2 * DAY + 3600000}, 6000, 1500, 2000, 500, '0.025000', '${isoNow}');
+INSERT INTO key_model_usage_history (key_id, provider, model, start_time, end_time, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
+VALUES ('key-anthropic', 'anthropic', 'claude-sonnet-4-5-20250929', ${now - DAY}, ${now - DAY + 3600000}, 9000, 2200, 3000, 700, '0.038000', '${isoNow}');
+`;
 
-    // -- Historical usage records spanning 5 days --
-    const insertHistory = db.prepare(`
-      INSERT INTO key_model_usage_history
-        (key_id, provider, model, start_time, end_time, input_tokens, output_tokens,
-         cache_read_tokens, cache_write_tokens, total_cost_usd, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    // Key 1 (openai/gpt-4o) — 3 days of usage: today, yesterday, 3 days ago
-    insertHistory.run(
-      "key-openai-main", "openai", "gpt-4o",
-      now - 3 * DAY, now - 3 * DAY + 3600_000,
-      5000, 1200, 300, 100, "0.018000", isoNow,
-    );
-    insertHistory.run(
-      "key-openai-main", "openai", "gpt-4o",
-      now - DAY, now - DAY + 3600_000,
-      8000, 2000, 500, 200, "0.030000", isoNow,
-    );
-    insertHistory.run(
-      "key-openai-main", "openai", "gpt-4o",
-      now - 3600_000, now,
-      12500, 3200, 800, 400, "0.045000", isoNow,
-    );
-
-    // Key 2 (openai/gpt-4o-mini) — 2 days of usage: yesterday and 2 days ago
-    insertHistory.run(
-      "key-openai-mini", "openai", "gpt-4o-mini",
-      now - 2 * DAY, now - 2 * DAY + 3600_000,
-      20000, 5000, 0, 0, "0.005000", isoNow,
-    );
-    insertHistory.run(
-      "key-openai-mini", "openai", "gpt-4o-mini",
-      now - DAY, now - DAY + 3600_000,
-      30000, 8000, 0, 0, "0.008000", isoNow,
-    );
-
-    // Key 3 (anthropic/claude-sonnet-4-5) — 3 days of usage
-    insertHistory.run(
-      "key-anthropic", "anthropic", "claude-sonnet-4-5-20250929",
-      now - 4 * DAY, now - 4 * DAY + 3600_000,
-      3000, 800, 1000, 200, "0.012000", isoNow,
-    );
-    insertHistory.run(
-      "key-anthropic", "anthropic", "claude-sonnet-4-5-20250929",
-      now - 2 * DAY, now - 2 * DAY + 3600_000,
-      6000, 1500, 2000, 500, "0.025000", isoNow,
-    );
-    insertHistory.run(
-      "key-anthropic", "anthropic", "claude-sonnet-4-5-20250929",
-      now - DAY, now - DAY + 3600_000,
-      9000, 2200, 3000, 700, "0.038000", isoNow,
-    );
-
-    db.close();
+    execFileSync("sqlite3", [dbPath], { input: sql });
 
     // --- Navigate to Usage page ---
     const usageBtn = window.locator(".nav-btn", { hasText: "Usage" });

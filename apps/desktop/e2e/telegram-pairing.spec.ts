@@ -23,6 +23,11 @@ test.describe("Telegram Pairing Flow", () => {
     const channelTitle = window.locator(".channel-title");
     await expect(channelTitle).toBeVisible({ timeout: 15_000 });
 
+    const telegramRows = window
+      .locator(".channel-table tbody tr.table-hover-row")
+      .filter({ hasText: "Telegram" });
+    const initialTelegramRowCount = await telegramRows.count();
+
     // --- Step 3: Select Telegram from the channel dropdown ---
     const addSection = window.locator(".channel-add-section");
     await expect(addSection).toBeVisible();
@@ -58,9 +63,8 @@ test.describe("Telegram Pairing Flow", () => {
     await expect(modal).toBeHidden({ timeout: 60_000 });
 
     // --- Step 7: Wait for Telegram to appear in the channel table ---
-    const telegramRow = window.locator(".channel-table tbody tr.table-hover-row", {
-      hasText: "Telegram",
-    });
+    await expect(telegramRows).toHaveCount(initialTelegramRowCount + 1, { timeout: 30_000 });
+    const telegramRow = telegramRows.nth(initialTelegramRowCount);
     await expect(telegramRow).toBeVisible({ timeout: 30_000 });
 
     // --- Step 8: Expand the Telegram row FIRST (should show empty allowlist) ---
@@ -69,9 +73,10 @@ test.describe("Telegram Pairing Flow", () => {
     await telegramRow.click();
 
     // Wait for the expanded row to load (allowlist section should appear)
-    const allowlistHeading = window.locator(".recipients-section h4", {
-      hasText: "Allowlist",
-    });
+    const allowlistHeading = window
+      .locator(".recipients-section h4")
+      .filter({ hasText: "Allowlist" })
+      .last();
     await expect(allowlistHeading).toBeVisible({ timeout: 15_000 });
 
     // --- Step 9: NOW simulate a pairing request while the row is already expanded ---
@@ -108,27 +113,31 @@ test.describe("Telegram Pairing Flow", () => {
     );
 
     // Wait for the 5s polling to pick up the new pairing request
-    const pendingSection = window.locator(".recipients-section h4", {
-      hasText: "Pending",
-    });
+    const pendingSection = window
+      .locator(".recipients-section h4")
+      .filter({ hasText: "Pending" })
+      .last();
     await expect(pendingSection).toBeVisible({ timeout: 20_000 });
 
     // Verify the pairing code is displayed
-    const pairingCode = window.locator(".recipients-table .td-code", {
-      hasText: "TESTCODE",
-    });
+    const pairingCode = window
+      .locator(".recipients-table .td-code")
+      .filter({ hasText: "TESTCODE" })
+      .last();
     await expect(pairingCode).toBeVisible();
 
     // Verify the user ID is displayed
-    const userId = window.locator(".recipients-table td", {
-      hasText: "e2e_test_user_12345",
-    });
+    const userId = window
+      .locator(".recipients-table td")
+      .filter({ hasText: "e2e_test_user_12345" })
+      .last();
     await expect(userId).toBeVisible();
 
     // --- Step 10: Approve the pairing request ---
-    const approveBtn = window.locator(".recipients-table .btn.btn-primary.btn-sm", {
-      hasText: "Approve",
-    });
+    const approveBtn = window
+      .locator(".recipients-table .btn.btn-primary.btn-sm")
+      .filter({ hasText: "Approve" })
+      .last();
     await expect(approveBtn).toBeVisible();
     await approveBtn.click();
 
@@ -136,14 +145,15 @@ test.describe("Telegram Pairing Flow", () => {
     await expect(pairingCode).toBeHidden({ timeout: 10_000 });
 
     // --- Step 11: Verify the user appears in the allowlist ---
-    const allowlistSection = window.locator(".recipients-section h4", {
-      hasText: "Allowlist",
-    });
+    const allowlistSection = window
+      .locator(".recipients-section h4")
+      .filter({ hasText: "Allowlist" })
+      .last();
     await expect(allowlistSection).toBeVisible();
 
     // The allowlist renders TruncatedId which shows "...345" (last 3 chars)
     // and puts the full ID in the copy button's title attribute
-    const allowlistCopyBtn = window.locator(".recipients-section .id-copy-btn[title='e2e_test_user_12345']");
+    const allowlistCopyBtn = window.locator(".recipients-section .id-copy-btn[title='e2e_test_user_12345']").last();
     await expect(allowlistCopyBtn).toBeVisible({ timeout: 10_000 });
   });
 });
