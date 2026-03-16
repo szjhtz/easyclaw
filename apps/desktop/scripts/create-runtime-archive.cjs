@@ -793,6 +793,34 @@ function createVendorHealthIntervalPatchPlugin() {
   };
 }
 
+/**
+ * Filter EXTERNAL_PACKAGES to only include packages that actually exist in the
+ * staging node_modules. Packages missing from node_modules (e.g. because
+ * node-linker=hoisted decided not to hoist them) are removed from the external
+ * list so esbuild bundles them inline instead of leaving a dangling runtime import.
+ */
+function resolveAvailableExternals() {
+  const available = [];
+  const bundled = [];
+  for (const pattern of EXTERNAL_PACKAGES) {
+    if (pattern.endsWith("/*") || pattern.endsWith("-*")) {
+      // Glob/wildcard patterns: keep as-is (they match native/special packages)
+      available.push(pattern);
+    } else {
+      const pkgDir = path.join(nmDir, pattern);
+      if (fs.existsSync(pkgDir)) {
+        available.push(pattern);
+      } else {
+        bundled.push(pattern);
+      }
+    }
+  }
+  if (bundled.length > 0) {
+    log(`${bundled.length} EXTERNAL_PACKAGES not in node_modules, will be bundled inline: ${bundled.join(", ")}`);
+  }
+  return available;
+}
+
 async function bundleEntryJs() {
   log("Bundling dist/entry.js with code splitting...");
 
@@ -807,6 +835,11 @@ async function bundleEntryJs() {
   // hoist to the top level, without mutating the staging dir.
   const pnpmNodePaths = collectPnpmNodePaths();
 
+  // Only keep EXTERNAL_PACKAGES that exist in staging node_modules.
+  // Missing packages (e.g. due to node-linker=hoisted dedup conflicts)
+  // get bundled inline instead of left as dangling runtime imports.
+  const effectiveExternals = resolveAvailableExternals();
+
   const t0 = Date.now();
   const result = await esbuild.build({
     entryPoints: [ENTRY_FILE],
@@ -817,7 +850,7 @@ async function bundleEntryJs() {
     format: "esm",
     platform: "node",
     target: "node22",
-    external: EXTERNAL_PACKAGES,
+    external: effectiveExternals,
     nodePaths: pnpmNodePaths,
     logLevel: "warning",
     metafile: true,

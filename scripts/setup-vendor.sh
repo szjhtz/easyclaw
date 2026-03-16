@@ -24,10 +24,7 @@ if $CLONE_ONLY; then
   exit 0
 fi
 
-# Do NOT set node-linker=hoisted — it causes pnpm to skip packages with
-# deduplication conflicts, leading to missing deps in the runtime archive.
-# Use the default isolated linker (same as local dev) which ensures all
-# packages are available via symlinks in node_modules/.pnpm/.
+echo 'node-linker=hoisted' > .npmrc
 pnpm install --no-frozen-lockfile
 pnpm run build
 
