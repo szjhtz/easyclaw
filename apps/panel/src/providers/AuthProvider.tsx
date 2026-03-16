@@ -8,6 +8,7 @@ import {
   setOnTokenRefreshed,
   setOnRefreshFailed,
 } from "../api/apollo-client.js";
+import { trackEvent } from "../api/index.js";
 
 interface AuthState {
   user: GQL.MeResponse | null;
@@ -161,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: null,
       createdAt: new Date().toISOString(),
     });
+    trackEvent("auth.login");
   }, [loginMutation]);
 
   const register = useCallback(async (input: GQL.RegisterInput) => {
@@ -183,11 +185,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: null,
       createdAt: new Date().toISOString(),
     });
+    trackEvent("auth.register");
   }, [registerMutation]);
 
   const logout = useCallback(() => {
     // Desktop handles cloud logout best-effort
     fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    trackEvent("auth.logout");
     setToken(null);
     setUser(null);
   }, []);

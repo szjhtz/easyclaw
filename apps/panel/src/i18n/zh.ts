@@ -39,7 +39,7 @@ export default {
     settings: "设置",
     collapse: "收起侧栏",
     expand: "展开侧栏",
-    browserProfiles: "浏览器",
+    browserProfiles: "多浏览器",
   },
   chat: {
     placeholder: "输入消息...",

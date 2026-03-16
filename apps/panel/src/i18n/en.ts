@@ -39,7 +39,7 @@ export default {
     settings: "Settings",
     collapse: "Collapse sidebar",
     expand: "Expand sidebar",
-    browserProfiles: "Browsers",
+    browserProfiles: "Multi Browser",
   },
   chat: {
     placeholder: "Type a message...",

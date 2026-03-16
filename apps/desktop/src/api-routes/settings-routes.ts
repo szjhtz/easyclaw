@@ -170,6 +170,17 @@ export const handleSettingsRoutes: RouteHandler = async (req, res, url, pathname
       "skills.install",
       "skills.delete",
       "telemetry.toggled",
+      // Browser Profiles Events
+      "browser_profile.created",
+      "browser_profile.updated",
+      "browser_profile.deleted",
+      "browser_profile.archived",
+      "browser_profile.proxy_tested",
+      "browser_profile.data_cleaned",
+      // Auth Events
+      "auth.login",
+      "auth.register",
+      "auth.logout",
     ]);
     const body = (await parseBody(req)) as { eventType?: string; metadata?: Record<string, unknown> };
     if (!body.eventType || !PANEL_EVENT_ALLOWLIST.has(body.eventType)) {

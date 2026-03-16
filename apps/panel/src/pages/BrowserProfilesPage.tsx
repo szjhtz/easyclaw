@@ -10,6 +10,7 @@ import {
   batchDeleteBrowserProfiles,
   testBrowserProfileProxy,
 } from "../api/browser-profiles.js";
+import { trackEvent } from "../api/index.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
 
 interface BrowserProfileFormState {
@@ -206,6 +207,7 @@ export function BrowserProfilesPage() {
           status: form.status,
           sessionStatePolicy,
         });
+        trackEvent("browser_profile.updated");
       } else {
         await createBrowserProfile({
           name: form.name.trim(),
@@ -215,6 +217,7 @@ export function BrowserProfilesPage() {
           notes: form.notes.trim() || null,
           sessionStatePolicy,
         });
+        trackEvent("browser_profile.created");
       }
       closeModal();
       await loadProfiles();
@@ -230,8 +233,10 @@ export function BrowserProfilesPage() {
     setProxyTestResult(null);
     try {
       const result = await testBrowserProfileProxy(id);
+      trackEvent("browser_profile.proxy_tested", { success: result.ok });
       setProxyTestResult({ id, ok: result.ok, message: result.message });
     } catch (err) {
+      trackEvent("browser_profile.proxy_tested", { success: false });
       setProxyTestResult({ id, ok: false, message: String(err) });
     } finally {
       setTestingProxy(null);
@@ -242,6 +247,7 @@ export function BrowserProfilesPage() {
     if (!deletingProfile) return;
     try {
       await deleteBrowserProfile(deletingProfile.id);
+      trackEvent("browser_profile.deleted");
       setDeletingProfile(null);
       await loadProfiles();
     } catch (err) {
@@ -254,6 +260,7 @@ export function BrowserProfilesPage() {
     if (!archivingProfile) return;
     try {
       await updateBrowserProfile(archivingProfile.id, { status: "ARCHIVED" });
+      trackEvent("browser_profile.archived");
       setArchivingProfile(null);
       await loadProfiles();
     } catch (err) {
