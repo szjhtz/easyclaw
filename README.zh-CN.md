@@ -3,19 +3,16 @@
 </p>
 
 <p align="center">
-  <a href="https://www.easy-claw.com">官网</a> · <a href="README.md">English</a> | 中文
+  <a href="README.md">English</a> | 中文
 </p>
 
-> **最新正式版请从 [easy-claw.com](https://www.easy-claw.com) 下载。**
-> GitHub 上的代码可能包含未发布的更改，应视为 Staging / 开发版本。
-
-## 为什么需要 EasyClaw？
+## 为什么需要 RivonClaw？
 
 [OpenClaw](https://github.com/openclaw/openclaw) 是一个强大的 Agent 运行时——但它是为工程师设计的。使用它意味着编辑配置文件、管理进程、在终端中操作 API 密钥。对于非程序员（设计师、运营、财务、小企业主）来说，这个门槛太高了。
 
-EasyClaw 把 OpenClaw 封装成一个**人人都能用的桌面应用**：安装后从系统托盘启动，通过本地 Web 面板管理一切。用自然语言写规则而不是写代码，点几下就能配置 LLM 服务商和消息通道，让 Agent 在交互中逐渐理解你的偏好。无需终端。
+RivonClaw 把 OpenClaw 封装成一个**人人都能用的桌面应用**：安装后从系统托盘启动，通过本地 Web 面板管理一切。用自然语言写规则而不是写代码，点几下就能配置 LLM 服务商和消息通道，让 Agent 在交互中逐渐理解你的偏好。无需终端。
 
-**一句话：** OpenClaw 是引擎，EasyClaw 是驾驶舱。
+**一句话：** OpenClaw 是引擎，RivonClaw 是驾驶舱。
 
 ## 功能特性
 
@@ -36,14 +33,14 @@ EasyClaw 把 OpenClaw 封装成一个**人人都能用的桌面应用**：安装
 
 ### 文件权限的工作原理
 
-EasyClaw 通过 OpenClaw 插件在工具调用*执行前*拦截并验证文件路径。具体保护范围：
+RivonClaw 通过 OpenClaw 插件在工具调用*执行前*拦截并验证文件路径。具体保护范围：
 
 - **文件访问工具**（`read`、`write`、`edit`、`image`、`apply-patch`）：完全受保护——路径会根据你配置的权限进行验证
 - **命令执行工具**（`exec`、`process`）：验证工作目录，但无法检查命令字符串*内部*的路径（如 `cat /etc/passwd`）
 
 **覆盖率**：约 85-90% 的文件访问场景。如需最大安全性，可考虑通过规则限制或禁用 `exec` 工具。
 
-**技术说明**：文件权限插件使用 OpenClaw 的 `before_tool_call` 钩子——无需修改上游源代码，因此 EasyClaw 可以干净地拉取 OpenClaw 更新。
+**技术说明**：文件权限插件使用 OpenClaw 的 `before_tool_call` 钩子——无需修改上游源代码，因此 RivonClaw 可以干净地拉取 OpenClaw 更新。
 
 ## 环境要求
 
@@ -63,15 +60,15 @@ pnpm install
 pnpm build
 
 # 3. 以开发模式启动
-pnpm dev
+pnpm --filter @rivonclaw/desktop dev
 ```
 
-这会同时启动 Electron 托盘应用和面板开发服务器。托盘应用会拉起 OpenClaw 网关并在 `http://localhost:3210` 提供管理面板。
+启动 Electron 托盘应用后，它会拉起 OpenClaw 网关并在 `http://localhost:3210` 提供管理面板。
 
 ## 仓库结构
 
 ```
-easyclaw/
+rivonclaw/
 ├── apps/
 │   ├── desktop/          # Electron 托盘应用（主进程）
 │   └── panel/            # React 管理界面（由 desktop 提供服务）
@@ -89,15 +86,16 @@ easyclaw/
 │   ├── telemetry/        # 隐私优先的匿名分析客户端
 │   └── policy/           # 策略注入器 & 守卫评估器逻辑
 ├── extensions/
-│   ├── easyclaw-policy/      # OpenClaw 策略注入插件壳
-│   ├── easyclaw-tools/       # 仅限所有者的自定义工具插件
+│   ├── rivonclaw-policy/      # OpenClaw 策略注入插件壳
+│   ├── rivonclaw-tools/       # 仅限所有者的自定义工具插件
 │   ├── file-permissions/     # OpenClaw 文件访问控制插件
 │   └── mobile-chat-channel/  # 移动端消息中继插件
 ├── scripts/
 │   ├── test-local.sh             # 本地测试流程（构建 + 单元测试 + E2E 测试）
 │   ├── publish-release.sh        # 发布 GitHub Release 草稿
 │   ├── rebuild-native.sh         # 预编译 better-sqlite3（Node.js + Electron）
-│   └── vendor-runtime-packages.cjs  # 共享的 Vendor 外部包定义
+│   ├── smoke-test-vendor.cjs     # Vendor 网关启动冒烟测试
+│   └── verify-vendor-bundle.cjs  # 干跑 Bundle 验证（发版前检查）
 └── vendor/
     └── openclaw/         # 内置的 OpenClaw（gitignored）
 ```
@@ -110,34 +108,34 @@ Monorepo 使用 pnpm workspaces（`apps/*`、`packages/*`、`extensions/*`），
 
 | 包                       | 说明                                                                                   |
 | ------------------------ | -------------------------------------------------------------------------------------- |
-| `@easyclaw/desktop`      | Electron 35 托盘应用。管理网关生命周期，在端口 3210 托管面板服务，数据存储于 SQLite。   |
-| `@easyclaw/panel`        | React 19 + Vite 6 SPA。包含聊天、规则、服务商、通道、权限、语音转文字、用量、技能市场页面，以及首次启动引导向导。  |
+| `@rivonclaw/desktop`      | Electron 35 托盘应用。管理网关生命周期，在端口 3210 托管面板服务，数据存储于 SQLite。   |
+| `@rivonclaw/panel`        | React 19 + Vite 6 SPA。包含聊天、规则、服务商、通道、权限、语音转文字、用量、技能市场页面，以及首次启动引导向导。  |
 
 ### 扩展
 
 | 包                   | 说明                                                                                         |
 | -------------------- | -------------------------------------------------------------------------------------------- |
-| `@easyclaw/easyclaw-policy`      | 薄 OpenClaw 插件壳，将策略注入接入网关的 `before_agent_start` 钩子。                    |
-| `@easyclaw/easyclaw-tools`       | 仅限所有者的自定义工具插件（如系统控制、桌面集成）。                                    |
-| `@easyclaw/file-permissions`     | OpenClaw 插件，通过在工具调用执行前拦截和验证来强制执行文件访问权限。                    |
-| `@easyclaw/mobile-chat-channel`  | 移动端 PWA 消息中继 — 通过 WebSocket 将移动端聊天客户端桥接到网关。                     |
+| `@rivonclaw/rivonclaw-policy`      | 薄 OpenClaw 插件壳，将策略注入接入网关的 `before_agent_start` 钩子。                    |
+| `@rivonclaw/rivonclaw-tools`       | 仅限所有者的自定义工具插件（如系统控制、桌面集成）。                                    |
+| `@rivonclaw/file-permissions`     | OpenClaw 插件，通过在工具调用执行前拦截和验证来强制执行文件访问权限。                    |
+| `@rivonclaw/mobile-chat-channel`  | 移动端 PWA 消息中继 — 通过 WebSocket 将移动端聊天客户端桥接到网关。                     |
 
 ### 包
 
 | 包                                 | 说明                                                                                                                           |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `@easyclaw/core`                   | Zod 校验类型：`Rule`、`ChannelConfig`、`PermissionConfig`、`ModelConfig`，LLM 服务商定义（20+ 服务商，含订阅/编程计划及 Ollama），区域感知默认值。 |
-| `@easyclaw/gateway`                | `GatewayLauncher`（支持指数退避的启动/停止/重启）、配置写入器、从系统密钥链注入密钥、Gemini CLI OAuth 流程、认证配置同步、Skills 目录监听实现热重载。 |
-| `@easyclaw/logger`                 | 基于 tslog 的日志模块。写入 `~/.easyclaw/logs/`。                                                                              |
-| `@easyclaw/storage`                | 基于 better-sqlite3 的 SQLite 存储。包含规则、产物、通道、权限、设置的 Repository，内置迁移系统。数据库位于 `~/.easyclaw/easyclaw.db`。 |
-| `@easyclaw/rules`                  | 规则编译、Skill 生命周期（激活/停用）、Skill 文件写入器（将规则具象化为 OpenClaw 的 SKILL.md 文件）。                           |
-| `@easyclaw/secrets`                | 平台感知的密钥存储。macOS Keychain、文件回退方案、测试用内存存储。                                                             |
-| `@easyclaw/updater`                | 检查网站上的 `update-manifest.json`，通知用户新版本。                                                                          |
-| `@easyclaw/device-id`              | 设备指纹（硬件 UUID 的 SHA-256 哈希），用于设备标识和配额管理。                                                                 |
-| `@easyclaw/stt`                    | 语音转文字服务商抽象层（国际用 Groq，国内用火山引擎）。                                                                         |
-| `@easyclaw/proxy-router`           | HTTP CONNECT 代理，根据服务商域名配置将请求路由到不同的上游代理。                                                                |
-| `@easyclaw/telemetry`              | 隐私优先的遥测客户端，支持批量上传和重试机制；不收集个人身份信息。                                                                |
-| `@easyclaw/policy`                 | 策略注入器 & 守卫评估器 — 将策略编译为提示词片段，将守卫编译为执行检查。                                                          |
+| `@rivonclaw/core`                   | Zod 校验类型：`Rule`、`ChannelConfig`、`PermissionConfig`、`ModelConfig`，LLM 服务商定义（20+ 服务商，含订阅/编程计划及 Ollama），区域感知默认值。 |
+| `@rivonclaw/gateway`                | `GatewayLauncher`（支持指数退避的启动/停止/重启）、配置写入器、从系统密钥链注入密钥、Gemini CLI OAuth 流程、认证配置同步、Skills 目录监听实现热重载。 |
+| `@rivonclaw/logger`                 | 基于 tslog 的日志模块。写入 `~/.rivonclaw/logs/`。                                                                              |
+| `@rivonclaw/storage`                | 基于 better-sqlite3 的 SQLite 存储。包含规则、产物、通道、权限、设置的 Repository，内置迁移系统。数据库位于 `~/.rivonclaw/rivonclaw.db`。 |
+| `@rivonclaw/rules`                  | 规则编译、Skill 生命周期（激活/停用）、Skill 文件写入器（将规则具象化为 OpenClaw 的 SKILL.md 文件）。                           |
+| `@rivonclaw/secrets`                | 平台感知的密钥存储。macOS Keychain、文件回退方案、测试用内存存储。                                                             |
+| `@rivonclaw/updater`                | 检查网站上的 `update-manifest.json`，通知用户新版本。                                                                          |
+| `@rivonclaw/device-id`              | 设备指纹（硬件 UUID 的 SHA-256 哈希），用于设备标识和配额管理。                                                                 |
+| `@rivonclaw/stt`                    | 语音转文字服务商抽象层（国际用 Groq，国内用火山引擎）。                                                                         |
+| `@rivonclaw/proxy-router`           | HTTP CONNECT 代理，根据服务商域名配置将请求路由到不同的上游代理。                                                                |
+| `@rivonclaw/telemetry`              | 隐私优先的遥测客户端，支持批量上传和重试机制；不收集个人身份信息。                                                                |
+| `@rivonclaw/policy`                 | 策略注入器 & 守卫评估器 — 将策略编译为提示词片段，将守卫编译为执行检查。                                                          |
 
 ## 脚本
 
@@ -158,19 +156,19 @@ pnpm verify:bundle      # 完整干跑 Bundle 验证（约 18 秒，发版前运
 
 ```bash
 # Desktop
-pnpm --filter @easyclaw/desktop dev        # 以开发模式启动 Electron
-pnpm --filter @easyclaw/desktop build      # 打包主进程
-pnpm --filter @easyclaw/desktop test       # 运行 desktop 测试
-pnpm --filter @easyclaw/desktop dist:mac   # 构建 macOS DMG（universal）
-pnpm --filter @easyclaw/desktop dist:win   # 构建 Windows NSIS 安装包
+pnpm --filter @rivonclaw/desktop dev        # 以开发模式启动 Electron
+pnpm --filter @rivonclaw/desktop build      # 打包主进程
+pnpm --filter @rivonclaw/desktop test       # 运行 desktop 测试
+pnpm --filter @rivonclaw/desktop dist:mac   # 构建 macOS DMG（universal）
+pnpm --filter @rivonclaw/desktop dist:win   # 构建 Windows NSIS 安装包
 
 # Panel
-pnpm --filter @easyclaw/panel dev          # Vite 开发服务器
-pnpm --filter @easyclaw/panel build        # 生产构建
+pnpm --filter @rivonclaw/panel dev          # Vite 开发服务器
+pnpm --filter @rivonclaw/panel build        # 生产构建
 
 # 任意包
-pnpm --filter @easyclaw/core test
-pnpm --filter @easyclaw/gateway test
+pnpm --filter @rivonclaw/core test
+pnpm --filter @rivonclaw/gateway test
 ```
 
 ## 架构
@@ -198,9 +196,9 @@ pnpm --filter @easyclaw/gateway test
 
 1. 从 `vendor/openclaw/` 启动 OpenClaw 网关
 2. 在 `localhost:3210` 提供面板 UI 和 REST API
-3. 将网关配置和认证配置写入 `~/.easyclaw/openclaw/`
+3. 将网关配置和认证配置写入 `~/.openclaw/`
 4. 运行时从系统密钥链注入密钥（API 密钥 + OAuth 令牌）
-5. 监听 `~/.easyclaw/openclaw/skills/` 目录以热重载规则生成的 Skill 文件
+5. 监听 `~/.openclaw/skills/` 目录以热重载规则生成的 Skill 文件
 6. 关闭时将刷新后的 OAuth 令牌同步回密钥链
 
 ### REST API
@@ -227,12 +225,12 @@ pnpm --filter @easyclaw/gateway test
 
 | 路径                             | 用途                   |
 | -------------------------------- | ---------------------- |
-| `~/.easyclaw/db.sqlite`                  | SQLite 数据库          |
-| `~/.easyclaw/logs/`                      | 应用日志               |
-| `~/.easyclaw/openclaw/`                  | OpenClaw 状态目录      |
-| `~/.easyclaw/openclaw/openclaw.json`     | 网关配置               |
-| `~/.easyclaw/openclaw/sessions/`         | WhatsApp 会话          |
-| `~/.easyclaw/openclaw/skills/`           | 用户 Skill（市场安装 + 规则生成；作为 `extraSkillDirs` 与 OpenClaw 内置的 `~/.easyclaw/runtime/{hash}/skills/` 一起加载） |
+| `~/.rivonclaw/rivonclaw.db`        | SQLite 数据库          |
+| `~/.rivonclaw/logs/`              | 应用日志               |
+| `~/.openclaw/`                   | OpenClaw 状态目录      |
+| `~/.openclaw/gateway/config.yml` | 网关配置               |
+| `~/.openclaw/sessions/`          | WhatsApp 会话          |
+| `~/.openclaw/skills/`            | 自动生成的 Skill 文件  |
 
 ## 构建安装包
 
@@ -248,8 +246,8 @@ bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]
 
 ```bash
 pnpm build
-pnpm --filter @easyclaw/desktop dist:mac
-# 输出：apps/desktop/release/EasyClaw-<version>-universal.dmg
+pnpm --filter @rivonclaw/desktop dist:mac
+# 输出：apps/desktop/release/RivonClaw-<version>-universal.dmg
 ```
 
 代码签名和公证需设置以下环境变量：
@@ -266,8 +264,8 @@ APPLE_TEAM_ID=<团队 ID>
 
 ```bash
 pnpm build
-pnpm --filter @easyclaw/desktop dist:win
-# 输出：apps/desktop/release/EasyClaw Setup <version>.exe
+pnpm --filter @rivonclaw/desktop dist:win
+# 输出：apps/desktop/release/RivonClaw Setup <version>.exe
 ```
 
 支持从 macOS 交叉编译（NSIS 无需 Wine）。Windows 代码签名需设置：
@@ -322,8 +320,8 @@ pnpm test
 运行指定包的测试：
 
 ```bash
-pnpm --filter @easyclaw/storage test
-pnpm --filter @easyclaw/gateway test
+pnpm --filter @rivonclaw/storage test
+pnpm --filter @rivonclaw/gateway test
 ```
 
 ## 代码风格

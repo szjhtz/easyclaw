@@ -1,8 +1,8 @@
 /**
- * EasyClaw File Permissions Plugin
+ * RivonClaw File Permissions Plugin
  *
  * Enforces file access permissions via OpenClaw's before_tool_call hook.
- * This plugin validates file paths against EASYCLAW_FILE_PERMISSIONS environment variable
+ * This plugin validates file paths against RIVONCLAW_FILE_PERMISSIONS environment variable
  * and blocks unauthorized file operations.
  */
 
@@ -56,7 +56,7 @@ let log: { info: (msg: string) => void; debug?: (msg: string) => void };
 export const plugin: OpenClawPluginDefinition = {
   activate(api: OpenClawPluginApi) {
     log = api.logger;
-    api.logger.info("Activating EasyClaw file permissions plugin");
+    api.logger.info("Activating RivonClaw file permissions plugin");
 
     // Register the before_tool_call hook
     api.on("before_tool_call", handleBeforeToolCall, { priority: 100 });
@@ -86,9 +86,9 @@ async function handleBeforeToolCall(
   }
 
   // Parse permissions from environment variable
-  const permissionsEnv = process.env.EASYCLAW_FILE_PERMISSIONS;
+  const permissionsEnv = process.env.RIVONCLAW_FILE_PERMISSIONS;
   if (!permissionsEnv) {
-    log?.info?.("[file-perms] No EASYCLAW_FILE_PERMISSIONS env var, allowing all");
+    log?.info?.("[file-perms] No RIVONCLAW_FILE_PERMISSIONS env var, allowing all");
     return;
   }
 
@@ -133,7 +133,7 @@ async function handleBeforeToolCall(
 
   // Block if any paths are denied
   if (deniedPaths.length > 0) {
-    const reason = `File access denied by EasyClaw (中文名：爪爪). The following paths are not in the allowed permissions: ${deniedPaths.join(", ")}. Ask the user to update permissions in EasyClaw (中文名：爪爪) panel's Permissions page.`;
+    const reason = `File access denied by RivonClaw (中文名：爪爪). The following paths are not in the allowed permissions: ${deniedPaths.join(", ")}. Ask the user to update permissions in RivonClaw (中文名：爪爪) panel's Permissions page.`;
     log?.info?.(`[file-perms] BLOCKED: ${reason}`);
     return {
       block: true,

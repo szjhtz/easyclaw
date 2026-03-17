@@ -2,16 +2,16 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import {
   ALL_PROVIDERS, getProviderMeta, resolveGatewayProvider,
   DEFAULT_GATEWAY_PORT, CDP_PORT_OFFSET,
   type LLMProvider,
-} from "@easyclaw/core";
+} from "@rivonclaw/core";
 import {
   resolveOpenClawStateDir as _resolveOpenClawStateDir,
   resolveOpenClawConfigPath as _resolveOpenClawConfigPath,
-} from "@easyclaw/core/node";
+} from "@rivonclaw/core/node";
 import { generateAudioConfig, mergeAudioConfig } from "./audio-config-writer.js";
 import { migrateSingleAccountChannels } from "./channel-config-writer.js";
 import { sanitizeWindowsBinds } from "./windows-bind-sanitizer.js";
@@ -66,7 +66,7 @@ function stripUnknownKeys(config: Record<string, unknown>): string[] {
  * config path.  When the leaf key doesn't exist (e.g. a "required" field
  * that is missing), walks upward and deletes the nearest existing ancestor.
  *
- * EasyClaw-managed top-level keys are protected — if the schema rejects
+ * RivonClaw-managed top-level keys are protected — if the schema rejects
  * something we wrote ourselves, that's a bug we should surface, not hide.
  */
 function fixSemanticErrors(config: Record<string, unknown>): string[] {
@@ -146,7 +146,7 @@ function findMonorepoRoot(startDir: string = process.cwd()): string | null {
 
 /**
  * Resolve the absolute path to the file permissions plugin.
- * This plugin is built as part of the EasyClaw monorepo.
+ * This plugin is built as part of the RivonClaw monorepo.
  *
  * Note: The desktop app bundles all dependencies into a single file,
  * so we cannot rely on import.meta.url. Instead, we find the monorepo root.
@@ -155,13 +155,13 @@ function resolveFilePermissionsPluginPath(): string {
   const monorepoRoot = findMonorepoRoot();
   if (!monorepoRoot) {
     // Fallback: assume we're in the monorepo root
-    return resolve(process.cwd(), "extensions", "file-permissions", "dist", "easyclaw-file-permissions.mjs");
+    return resolve(process.cwd(), "extensions", "file-permissions", "dist", "rivonclaw-file-permissions.mjs");
   }
-  return resolve(monorepoRoot, "extensions", "file-permissions", "dist", "easyclaw-file-permissions.mjs");
+  return resolve(monorepoRoot, "extensions", "file-permissions", "dist", "rivonclaw-file-permissions.mjs");
 }
 
 /**
- * Resolve the absolute path to the EasyClaw extensions/ directory.
+ * Resolve the absolute path to the RivonClaw extensions/ directory.
  * Each subdirectory with openclaw.plugin.json is auto-discovered by OpenClaw.
  */
 function resolveExtensionsDir(): string {
@@ -243,7 +243,7 @@ export function buildExtraProviderConfigs(): Record<string, {
   return result;
 }
 
-/** Minimal OpenClaw config structure that EasyClaw manages. */
+/** Minimal OpenClaw config structure that RivonClaw manages. */
 export interface OpenClawGatewayConfig {
   gateway?: {
     port?: number;
@@ -280,9 +280,9 @@ export interface OpenClawGatewayConfig {
   };
 }
 
-// Re-export from @easyclaw/core for backward compatibility.
-export { DEFAULT_GATEWAY_PORT } from "@easyclaw/core";
-export { resolveOpenClawStateDir, resolveOpenClawConfigPath } from "@easyclaw/core/node";
+// Re-export from @rivonclaw/core for backward compatibility.
+export { DEFAULT_GATEWAY_PORT } from "@rivonclaw/core";
+export { resolveOpenClawStateDir, resolveOpenClawConfigPath } from "@rivonclaw/core/node";
 
 // Use the core implementations internally.
 const resolveOpenClawStateDir = _resolveOpenClawStateDir;
@@ -361,7 +361,7 @@ export interface WriteGatewayConfigOptions {
   /** Override path to the file permissions plugin .mjs entry file.
    *  Used in packaged Electron apps where the monorepo root doesn't exist. */
   filePermissionsPluginPath?: string;
-  /** Absolute path to the EasyClaw extensions/ directory.
+  /** Absolute path to the RivonClaw extensions/ directory.
    *  When provided, added to plugins.load.paths for auto-discovery of all
    *  extensions with openclaw.plugin.json manifests.
    *  In packaged Electron apps: set to process.resourcesPath + "extensions".
@@ -372,7 +372,7 @@ export interface WriteGatewayConfigOptions {
   /** Skip OpenClaw bootstrap (prevents creating template files like AGENTS.md on first startup). */
   skipBootstrap?: boolean;
   /** Agent workspace directory. Written as agents.defaults.workspace so OpenClaw stores
-   *  SOUL.md, USER.md, memory/ etc. under the EasyClaw-managed state dir instead of ~/.openclaw/workspace. */
+   *  SOUL.md, USER.md, memory/ etc. under the RivonClaw-managed state dir instead of ~/.openclaw/workspace. */
   agentWorkspace?: string;
   /** Explicit owner allowlist for commands.ownerAllowFrom.
    *  If provided, replaces the default ["openclaw-control-ui"]. */
@@ -415,7 +415,7 @@ export interface WriteGatewayConfigOptions {
 /**
  * Write the OpenClaw gateway config file.
  *
- * Merges EasyClaw-managed fields into any existing config so that
+ * Merges RivonClaw-managed fields into any existing config so that
  * user-added fields are preserved. Only fields explicitly provided
  * in options are written; omitted fields are left untouched.
  *
@@ -573,9 +573,9 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     };
   }
 
-  // Tools profile — EasyClaw is a desktop app with full agent capabilities.
+  // Tools profile — RivonClaw is a desktop app with full agent capabilities.
   // OpenClaw v2026.3.2 defaults new installs to "messaging" (no file/exec tools).
-  // EasyClaw needs "full" so file permissions, rules, and exec all work.
+  // RivonClaw needs "full" so file permissions, rules, and exec all work.
   //
   // Exec host — agent runs locally on the gateway host (not sandboxed).
   {
@@ -650,7 +650,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
         // Replace any stale file-permissions plugin paths with the current resolved one
         const filteredPaths = existingPaths.filter(
-          (p: unknown) => typeof p !== "string" || !p.includes("easyclaw-file-permissions"),
+          (p: unknown) => typeof p !== "string" || !p.includes("rivonclaw-file-permissions"),
         );
         merged.load = {
           ...existingLoad,
@@ -664,14 +664,14 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
             : {};
         merged.entries = {
           ...existingEntries,
-          "easyclaw-file-permissions": { enabled: options.enableFilePermissions },
+          "rivonclaw-file-permissions": { enabled: options.enableFilePermissions },
         };
       } else {
         log.warn(`file-permissions plugin not found at ${pluginPath}, skipping`);
       }
     }
 
-    // Add EasyClaw extensions directory to plugin load paths.
+    // Add RivonClaw extensions directory to plugin load paths.
     // OpenClaw's discoverInDirectory() auto-discovers all subdirectories
     // with openclaw.plugin.json manifests.
     {
@@ -686,7 +686,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
         // Remove stale per-extension paths from previous config versions,
         // old extensionsDir paths from different install locations (e.g.
-        // /Volumes/EasyClaw/... vs /Applications/EasyClaw.app/...),
+        // /Volumes/RivonClaw/... vs /Applications/RivonClaw.app/...),
         // and avoid duplicating the extensions dir itself.
         // Use sep-agnostic checks so this works on both macOS (/) and Windows (\).
         const isStaleExtPath = (p: string): boolean => {
@@ -957,7 +957,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
     }
   }
 
-  // Session reset policy — EasyClaw is a desktop app; users expect chat
+  // Session reset policy — RivonClaw is a desktop app; users expect chat
   // history to persist across days.  Override OpenClaw's default "daily"
   // reset (which clears context at 04:00 local time) with a long idle
   // timeout so sessions only reset after extended inactivity.
@@ -1008,7 +1008,7 @@ export function writeGatewayConfig(options: WriteGatewayConfigOptions): string {
 
   // Fix semantic validation errors (e.g. dmPolicy="allowlist" without allowFrom)
   // by deleting the offending paths, escalating upward when the leaf key
-  // doesn't exist (required-but-missing).  Protects EasyClaw-managed keys.
+  // doesn't exist (required-but-missing).  Protects RivonClaw-managed keys.
   const fixedPaths = fixSemanticErrors(config);
   if (fixedPaths.length > 0) {
     log.warn(`Fixed config validation errors by removing: ${fixedPaths.join(", ")}`);

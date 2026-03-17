@@ -110,12 +110,12 @@ describe("fetchManifest", () => {
     releaseNotes: "Bug fixes and improvements.",
     downloads: {
       mac: {
-        url: "https://www.easy-claw.com/releases/EasyClaw-1.1.0.dmg",
+        url: "https://www.rivonclaw.com/releases/RivonClaw-1.1.0.dmg",
         sha256: "abc123",
         size: 50_000_000,
       },
       win: {
-        url: "https://www.easy-claw.com/releases/EasyClaw-1.1.0.exe",
+        url: "https://www.rivonclaw.com/releases/RivonClaw-1.1.0.exe",
         sha256: "def456",
         size: 55_000_000,
       },
@@ -201,12 +201,12 @@ describe("checkForUpdate", () => {
     releaseNotes: "Bug fixes and improvements.",
     downloads: {
       mac: {
-        url: "https://www.easy-claw.com/releases/EasyClaw-1.1.0.dmg",
+        url: "https://www.rivonclaw.com/releases/RivonClaw-1.1.0.dmg",
         sha256: "abc123",
         size: 50_000_000,
       },
       win: {
-        url: "https://www.easy-claw.com/releases/EasyClaw-1.1.0.exe",
+        url: "https://www.rivonclaw.com/releases/RivonClaw-1.1.0.exe",
         sha256: "def456",
         size: 55_000_000,
       },
@@ -287,7 +287,7 @@ describe("checkForUpdate", () => {
   });
 
   it("passes custom manifestUrl to fetch", async () => {
-    const customUrl = "https://staging.easy-claw.com/manifest.json";
+    const customUrl = "https://staging.rivonclaw.com/manifest.json";
     await checkForUpdate("1.0.0", { manifestUrl: customUrl });
     expect(fetch).toHaveBeenCalledWith(customUrl, {
       signal: expect.any(AbortSignal),
@@ -303,7 +303,7 @@ describe("checkForUpdate", () => {
   });
 
   it("uses explicit manifestUrl over region", async () => {
-    const customUrl = "https://staging.easy-claw.com/manifest.json";
+    const customUrl = "https://staging.rivonclaw.com/manifest.json";
     await checkForUpdate("1.0.0", { manifestUrl: customUrl, region: "cn" });
     expect(fetch).toHaveBeenCalledWith(
       customUrl,

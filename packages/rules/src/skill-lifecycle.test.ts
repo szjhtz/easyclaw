@@ -3,8 +3,8 @@ import { mkdtempSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
-import type { Rule } from "@easyclaw/core";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import type { Rule } from "@rivonclaw/core";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { ArtifactPipeline } from "./pipeline.js";
 import {
   materializeSkill,
@@ -30,7 +30,7 @@ vi.mock("./skill-writer.js", () => {
     },
 
     writeSkillFile(skillName: string, content: string, skillsDir?: string): string {
-      const dir = skillsDir ?? pathJoin(require("node:os").homedir(), ".easyclaw", "openclaw", "skills");
+      const dir = skillsDir ?? pathJoin(require("node:os").homedir(), ".rivonclaw", "openclaw", "skills");
       const skillDir = pathJoin(dir, skillName);
       mkdirSync(skillDir, { recursive: true });
       const filePath = pathJoin(skillDir, "SKILL.md");
@@ -59,7 +59,7 @@ vi.mock("./skill-writer.js", () => {
     },
 
     resolveSkillsDir(customDir?: string): string {
-      return customDir ?? pathJoin(require("node:os").homedir(), ".easyclaw", "openclaw", "skills");
+      return customDir ?? pathJoin(require("node:os").homedir(), ".rivonclaw", "openclaw", "skills");
     },
   };
 });
@@ -90,7 +90,7 @@ describe("skill-lifecycle", () => {
   beforeEach(() => {
     storage = createStorage(":memory:");
     pipeline = new ArtifactPipeline({ storage });
-    tmpDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-test-"));
+    tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-skill-test-"));
   });
 
   afterEach(() => {

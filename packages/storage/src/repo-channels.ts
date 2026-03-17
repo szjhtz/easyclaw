@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { ChannelConfig } from "@easyclaw/core";
+import type { ChannelConfig } from "@rivonclaw/core";
 
 interface ChannelRow {
   id: string;

@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
-import type { GatewayRpcClient } from "@easyclaw/gateway";
-import type { UsageSnapshotEngine } from "../usage/usage-snapshot-engine.js";
-import type { UsageQueryService } from "../usage/usage-query-service.js";
-import type { MobileManager } from "../mobile/mobile-manager.js";
-import type { AuthSessionManager } from "../auth/auth-session.js";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
+import type { GatewayRpcClient } from "@rivonclaw/gateway";
+import type { UsageSnapshotEngine } from "../usage-snapshot-engine.js";
+import type { UsageQueryService } from "../usage-query-service.js";
+import type { MobileManager } from "../mobile-manager.js";
+import type { AuthSessionManager } from "../auth-session.js";
 import type { SessionLifecycleManager } from "../browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "../browser-profiles/managed-browser-service.js";
 
@@ -25,7 +25,6 @@ export interface ApiContext {
   onExtrasChange?: () => void;
   onPermissionsChange?: () => void;
   onBrowserChange?: () => void;
-  onAuthChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;
   onChannelConfigured?: (channelId: string) => void;
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;

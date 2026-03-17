@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@easyclaw/core";
-import type { LLMProvider } from "@easyclaw/core";
+import { getDefaultModelForProvider, SUBSCRIPTION_PROVIDER_IDS } from "@rivonclaw/core";
+import type { LLMProvider } from "@rivonclaw/core";
 import {
   fetchProviderKeys,
   createProviderKey,

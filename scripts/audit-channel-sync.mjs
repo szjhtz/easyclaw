@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * Audit channel/schema sync between EasyClaw UI schemas and vendor (OpenClaw).
+ * Audit channel/schema sync between RivonClaw UI schemas and vendor (OpenClaw).
  *
  * For each channel with declared critical fields, verifies that:
- *   1) All requiredFieldIds appear as field `id` values in EasyClaw's channel-schemas.ts
- *   2) New vendor fields not in EasyClaw schema are reported as informational notes
+ *   1) All requiredFieldIds appear as field `id` values in RivonClaw's channel-schemas.ts
+ *   2) New vendor fields not in RivonClaw schema are reported as informational notes
  *
  * Usage:
  *   node scripts/audit-channel-sync.mjs
  *
  * Exit codes:
  *   0 - All critical fields present
- *   1 - Critical field(s) missing from EasyClaw schema
+ *   1 - Critical field(s) missing from RivonClaw schema
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -23,7 +23,7 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, "..");
 
 // ---------------------------------------------------------------------------
-// Critical fields per channel — fields that MUST exist in EasyClaw's schema
+// Critical fields per channel — fields that MUST exist in RivonClaw's schema
 // ---------------------------------------------------------------------------
 const CRITICAL_CHANNEL_FIELDS = {
   telegram: {
@@ -52,14 +52,14 @@ const CRITICAL_CHANNEL_FIELDS = {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract field IDs from EasyClaw's channel-schemas.ts for a given channel.
+ * Extract field IDs from RivonClaw's channel-schemas.ts for a given channel.
  *
  * Handles two patterns:
  *   1) Inline field objects with `id: "fieldName"` in the channel block
  *   2) Helper function calls like `dmPolicyField()` — resolves by finding
  *      the function definition elsewhere in the file and extracting its `id`
  */
-function getEasyClawFieldIds(schemaFilePath, channelId) {
+function getRivonClawFieldIds(schemaFilePath, channelId) {
   if (!existsSync(schemaFilePath)) {
     console.error(`  [error] Schema file not found: ${schemaFilePath}`);
     return null;
@@ -175,9 +175,9 @@ function main() {
 
     console.log(`--- ${channelId} ---`);
 
-    // 1) Check critical fields in EasyClaw schema
-    const easyClawFields = getEasyClawFieldIds(fullSchemaPath, channelId);
-    if (easyClawFields === null) {
+    // 1) Check critical fields in RivonClaw schema
+    const rivonClawFields = getRivonClawFieldIds(fullSchemaPath, channelId);
+    if (rivonClawFields === null) {
       console.log(`  [FAIL] Channel "${channelId}" not found in ${config.schemaFile}`);
       totalCriticalMissing += config.requiredFieldIds.length;
       console.log();
@@ -185,7 +185,7 @@ function main() {
     }
 
     const missingCritical = config.requiredFieldIds.filter(
-      (f) => !easyClawFields.has(f),
+      (f) => !rivonClawFields.has(f),
     );
 
     if (missingCritical.length === 0) {
@@ -198,17 +198,17 @@ function main() {
       totalCriticalMissing += missingCritical.length;
     }
 
-    // 2) Check for new vendor fields not in EasyClaw (informational)
+    // 2) Check for new vendor fields not in RivonClaw (informational)
     const vendorFields = getVendorFieldNames(fullVendorPath);
     if (vendorFields !== null) {
       const newVendorFields = [];
       for (const vf of vendorFields) {
-        if (!easyClawFields.has(vf)) {
+        if (!rivonClawFields.has(vf)) {
           newVendorFields.push(vf);
         }
       }
       if (newVendorFields.length > 0) {
-        console.log(`  [INFO] Vendor fields not in EasyClaw schema (may not need UI):`);
+        console.log(`  [INFO] Vendor fields not in RivonClaw schema (may not need UI):`);
         for (const f of newVendorFields) {
           console.log(`    - ${f}`);
         }

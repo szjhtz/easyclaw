@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -16,8 +16,8 @@ import {
   syncAllAuthProfiles,
   resolveAuthProfilePath,
   clearAllAuthProfiles,
-} from "@easyclaw/gateway";
-import { startPanelServer } from "../panel-server.js";
+} from "@rivonclaw/gateway";
+import { startPanelServer } from "./panel-server.js";
 
 // ---------------------------------------------------------------------------
 // Mock Ollama server
@@ -121,7 +121,7 @@ beforeAll(async () => {
 
   // 2. Set up storage
   storage = createStorage(":memory:");
-  stateDir = join(tmpdir(), `easyclaw-test-${randomUUID()}`);
+  stateDir = join(tmpdir(), `rivonclaw-test-${randomUUID()}`);
   mkdirSync(join(stateDir, "agents", "main", "agent"), { recursive: true });
 
   // 3. Start panel server
@@ -130,8 +130,6 @@ beforeAll(async () => {
     panelDistDir: "/tmp/nonexistent-panel-dist",
     storage,
     secretStore: mockSecretStore as any,
-    vendorDir: "/tmp/nonexistent-vendor",
-    nodeBin: process.execPath,
     onRuleChange: () => {},
     onProviderChange: () => {},
   });

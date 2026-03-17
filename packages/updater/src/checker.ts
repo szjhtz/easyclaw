@@ -1,12 +1,12 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type { UpdateManifest, UpdateCheckResult } from "./types.js";
 import { isNewerVersion } from "./version.js";
 
 const log = createLogger("updater");
 
 export const MANIFEST_URLS = {
-  default: "https://www.easy-claw.com/update-manifest.json",
-  cn: "https://cn.easy-claw.com/update-manifest-cn.json",
+  default: "https://www.rivonclaw.com/update-manifest.json",
+  cn: "https://www.zhuazhuaai.cn/update-manifest-cn.json",
 } as const;
 
 /**

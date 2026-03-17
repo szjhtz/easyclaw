@@ -1,15 +1,15 @@
-import { formatError } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
+import { formatError } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 import { app, Notification, shell } from "electron";
 import type { BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
-import type { UpdateDownloadState } from "@easyclaw/updater";
+import type { UpdateDownloadState } from "@rivonclaw/updater";
 import { writeFileSync, readFileSync, unlinkSync, existsSync, mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { resolveUpdateMarkerPath, resolveEasyClawHome } from "@easyclaw/core/node";
+import { resolveUpdateMarkerPath, resolveRivonClawHome } from "@rivonclaw/core/node";
 
 const log = createLogger("auto-updater");
 
@@ -104,10 +104,10 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
   const useStaging = process.env.UPDATE_FROM_STAGING === "1";
   const updateRegion = deps.locale === "zh" ? "cn" : "us";
   const updateFeedUrl = useStaging
-    ? "https://stg.easy-claw.com/releases"
+    ? "https://stg.rivonclaw.com/releases"
     : updateRegion === "cn"
       ? "https://www.zhuazhuaai.cn/releases"
-      : "https://www.easy-claw.com/releases";
+      : "https://www.rivonclaw.com/releases";
   if (useStaging) log.info("Using staging update feed: " + updateFeedUrl);
   autoUpdater.setFeedURL({
     provider: "generic",
@@ -127,7 +127,7 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     });
     const isZh = deps.systemLocale === "zh";
     const notification = new Notification({
-      title: isZh ? "EasyClaw 有新版本" : "EasyClaw Update Available",
+      title: isZh ? "RivonClaw 有新版本" : "RivonClaw Update Available",
       body: isZh
         ? `新版本 v${info.version} 已发布，点击查看详情。`
         : `A new version v${info.version} is available. Click to download.`,
@@ -206,13 +206,13 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     // TODO: remove this block once Apple developer certificate is approved.
     if (process.platform === "darwin") {
       const file = latestUpdateInfo.files.find(f => f.url.endsWith(".dmg"));
-      const fileName = file?.url ?? `EasyClaw-${latestUpdateInfo.version}-universal.dmg`;
+      const fileName = file?.url ?? `RivonClaw-${latestUpdateInfo.version}-universal.dmg`;
       const downloadUrl = `${updateFeedUrl}/${fileName}`;
       log.info(`macOS: opening browser for update download: ${downloadUrl}`);
       shell.openExternal(downloadUrl);
       const isZh = deps.systemLocale === "zh";
       new Notification({
-        title: isZh ? "EasyClaw 更新" : "EasyClaw Update",
+        title: isZh ? "RivonClaw 更新" : "RivonClaw Update",
         body: isZh
           ? "已在浏览器中打开下载链接，下载完成后请手动安装。"
           : "Download opened in browser. Install the DMG after downloading.",
@@ -268,14 +268,14 @@ export function createAutoUpdater(deps: AutoUpdaterDeps) {
     if (process.platform === "win32") {
       try {
         const markerPath = resolveUpdateMarkerPath();
-        mkdirSync(resolveEasyClawHome(), { recursive: true });
+        mkdirSync(resolveRivonClawHome(), { recursive: true });
         writeFileSync(markerPath, latestUpdateInfo?.version ?? "", { flag: "w" });
       } catch {}
     }
 
     const isZh = deps.systemLocale === "zh";
     new Notification({
-      title: isZh ? "EasyClaw 正在更新" : "EasyClaw Updating",
+      title: isZh ? "RivonClaw 正在更新" : "RivonClaw Updating",
       body: isZh
         ? "安装程序正在运行，完成后将自动启动。请勿手动打开应用。"
         : "The installer is running. The app will restart automatically.",

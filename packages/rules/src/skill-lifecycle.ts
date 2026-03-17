@@ -1,5 +1,5 @@
-import type { Rule, RuleArtifact } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
+import type { Rule, RuleArtifact } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 import type { ArtifactPipeline } from "./pipeline.js";
 import {
   writeSkillFile,

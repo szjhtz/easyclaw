@@ -1,5 +1,5 @@
-import { formatError } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
+import { formatError } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 import { request } from "node:http";
 import { request as requestHttps } from "node:https";
 

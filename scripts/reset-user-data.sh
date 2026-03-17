@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# reset-user-data.sh — Wipe all EasyClaw + OpenClaw user data to simulate fresh onboarding.
+# reset-user-data.sh — Wipe all RivonClaw + OpenClaw user data to simulate fresh onboarding.
 #
 # What gets cleaned:
-#   1. SQLite database          ~/.easyclaw/db.sqlite*
-#   2. Gateway state            ~/.easyclaw/openclaw/
-#   3. Logs                     ~/.easyclaw/logs/
+#   1. SQLite database          ~/.rivonclaw/db.sqlite*
+#   2. Gateway state            ~/.rivonclaw/openclaw/
+#   3. Logs                     ~/.rivonclaw/logs/
 #   4. OpenClaw workspace       ~/.openclaw/workspace/
 #   5. OpenClaw subagents       ~/.openclaw/subagents/
 #   6. OpenClaw canvas          ~/.openclaw/canvas/
-#   7. macOS Keychain entries   account=easyclaw, service=easyclaw/*
+#   7. macOS Keychain entries   account=rivonclaw, service=rivonclaw/*
 #
 # Usage:
 #   ./scripts/reset-user-data.sh          # interactive (asks for confirmation)
@@ -21,21 +21,21 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-EASYCLAW_DIR="$HOME/.easyclaw"
+RIVONCLAW_DIR="$HOME/.rivonclaw"
 OPENCLAW_DIR="$HOME/.openclaw"
 
-# ── Pre-flight: kill running EasyClaw / OpenClaw processes ────────────────────
+# ── Pre-flight: kill running RivonClaw / OpenClaw processes ────────────────────
 
 check_running_processes() {
   local pids
   # Match the Electron app or the openclaw gateway process, but NOT dev tools
-  # like turbo/node/pnpm that happen to run inside the easyclaw directory.
-  pids=$(pgrep -f 'EasyClaw\.app|easyclaw.*Electron|openclaw.*gateway' 2>/dev/null || true)
+  # like turbo/node/pnpm that happen to run inside the rivonclaw directory.
+  pids=$(pgrep -f 'RivonClaw\.app|rivonclaw.*Electron|openclaw.*gateway' 2>/dev/null || true)
   if [[ -n "$pids" ]]; then
-    echo -e "${YELLOW}Warning: EasyClaw/OpenClaw processes are still running:${NC}"
+    echo -e "${YELLOW}Warning: RivonClaw/OpenClaw processes are still running:${NC}"
     ps -p "$pids" -o pid,command 2>/dev/null || true
     echo ""
-    echo -e "${YELLOW}Please quit EasyClaw before running this script.${NC}"
+    echo -e "${YELLOW}Please quit RivonClaw before running this script.${NC}"
     exit 1
   fi
 }
@@ -47,14 +47,14 @@ confirm() {
     return 0
   fi
 
-  echo -e "${RED}This will permanently delete ALL EasyClaw user data:${NC}"
+  echo -e "${RED}This will permanently delete ALL RivonClaw user data:${NC}"
   echo ""
-  echo "  - SQLite database     ($EASYCLAW_DIR/db.sqlite*)"
-  echo "  - Gateway config      ($EASYCLAW_DIR/openclaw/)"
-  echo "  - Logs                ($EASYCLAW_DIR/logs/)"
+  echo "  - SQLite database     ($RIVONCLAW_DIR/db.sqlite*)"
+  echo "  - Gateway config      ($RIVONCLAW_DIR/openclaw/)"
+  echo "  - Logs                ($RIVONCLAW_DIR/logs/)"
   echo "  - Agent workspace     ($OPENCLAW_DIR/workspace/)"
   echo "  - Agent subagents     ($OPENCLAW_DIR/subagents/)"
-  echo "  - Keychain secrets    (account: easyclaw)"
+  echo "  - Keychain secrets    (account: rivonclaw)"
   echo ""
   read -rp "Type 'yes' to confirm: " answer
   if [[ "$answer" != "yes" ]]; then
@@ -68,10 +68,10 @@ confirm() {
 clean_filesystem() {
   local count=0
 
-  # ~/.easyclaw/
-  if [[ -d "$EASYCLAW_DIR" ]]; then
-    rm -rf "$EASYCLAW_DIR"
-    echo -e "  ${GREEN}✓${NC} Removed $EASYCLAW_DIR"
+  # ~/.rivonclaw/
+  if [[ -d "$RIVONCLAW_DIR" ]]; then
+    rm -rf "$RIVONCLAW_DIR"
+    echo -e "  ${GREEN}✓${NC} Removed $RIVONCLAW_DIR"
     ((count++))
   fi
 
@@ -95,11 +95,11 @@ clean_keychain() {
     return
   fi
 
-  # List all easyclaw/* service names from Keychain
+  # List all rivonclaw/* service names from Keychain
   local keys
   keys=$(security dump-keychain 2>/dev/null \
-    | grep -oE '"svce"<blob>="easyclaw/[^"]+"' \
-    | sed 's/"svce"<blob>="easyclaw\///' \
+    | grep -oE '"svce"<blob>="rivonclaw/[^"]+"' \
+    | sed 's/"svce"<blob>="rivonclaw\///' \
     | sed 's/"$//' \
     || true)
 
@@ -110,7 +110,7 @@ clean_keychain() {
 
   local count=0
   while IFS= read -r key; do
-    if security delete-generic-password -a easyclaw -s "easyclaw/$key" >/dev/null 2>&1; then
+    if security delete-generic-password -a rivonclaw -s "rivonclaw/$key" >/dev/null 2>&1; then
       ((count++))
     fi
   done <<< "$keys"
@@ -133,8 +133,8 @@ main() {
   clean_keychain
 
   echo ""
-  echo -e "${GREEN}Done! EasyClaw is now in a fresh state.${NC}"
-  echo "Launch EasyClaw to start onboarding from scratch."
+  echo -e "${GREEN}Done! RivonClaw is now in a fresh state.${NC}"
+  echo "Launch RivonClaw to start onboarding from scratch."
 }
 
 main "$@"

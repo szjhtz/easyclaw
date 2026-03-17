@@ -20,7 +20,7 @@ describe("skill-reload", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-reload-test-"));
+    tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-skill-reload-test-"));
   });
 
   afterEach(() => {
@@ -35,14 +35,14 @@ describe("skill-reload", () => {
       expect(result).toBe(join("/custom/state", "skills"));
     });
 
-    it("defaults to ~/.easyclaw/openclaw/skills when no stateDir is given", () => {
+    it("defaults to ~/.rivonclaw/openclaw/skills when no stateDir is given", () => {
       const result = resolveSkillsDir();
-      expect(result).toBe(join(homedir(), ".easyclaw", "openclaw", "skills"));
+      expect(result).toBe(join(homedir(), ".rivonclaw", "openclaw", "skills"));
     });
 
-    it("defaults to ~/.easyclaw/openclaw/skills when stateDir is undefined", () => {
+    it("defaults to ~/.rivonclaw/openclaw/skills when stateDir is undefined", () => {
       const result = resolveSkillsDir(undefined);
-      expect(result).toBe(join(homedir(), ".easyclaw", "openclaw", "skills"));
+      expect(result).toBe(join(homedir(), ".rivonclaw", "openclaw", "skills"));
     });
   });
 

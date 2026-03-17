@@ -17,8 +17,8 @@ describe("createLogger", () => {
     expect(log.settings.name).toBe("test");
   });
 
-  it("LOG_DIR points to ~/.easyclaw/logs", () => {
-    expect(LOG_DIR).toContain(".easyclaw");
+  it("LOG_DIR points to ~/.rivonclaw/logs", () => {
+    expect(LOG_DIR).toContain(".rivonclaw");
     expect(LOG_DIR).toContain("logs");
   });
 });
@@ -36,13 +36,13 @@ describe("file logging", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("writes log lines to easyclaw.log after enableFileLogging", () => {
+  it("writes log lines to rivonclaw.log after enableFileLogging", () => {
     enableFileLogging({ logDir: tempDir });
     const log = createLogger("test-file");
 
     log.info("hello from test");
 
-    const logPath = join(tempDir, "easyclaw.log");
+    const logPath = join(tempDir, "rivonclaw.log");
     expect(existsSync(logPath)).toBe(true);
 
     const content = readFileSync(logPath, "utf-8");
@@ -56,7 +56,7 @@ describe("file logging", () => {
     enableFileLogging({ logDir: tempDir });
     log.info("retroactive message");
 
-    const logPath = join(tempDir, "easyclaw.log");
+    const logPath = join(tempDir, "rivonclaw.log");
     const content = readFileSync(logPath, "utf-8");
     expect(content).toContain("[early-logger]");
     expect(content).toContain("retroactive message");
@@ -66,7 +66,7 @@ describe("file logging", () => {
     const log = createLogger("silent-logger");
     log.info("should not appear on disk");
 
-    const logPath = join(tempDir, "easyclaw.log");
+    const logPath = join(tempDir, "rivonclaw.log");
     expect(existsSync(logPath)).toBe(false);
   });
 
@@ -78,8 +78,8 @@ describe("file logging", () => {
       log.info(`line ${i} with some padding to fill the file quickly`);
     }
 
-    const logPath = join(tempDir, "easyclaw.log");
-    const prevPath = join(tempDir, "easyclaw.log.1");
+    const logPath = join(tempDir, "rivonclaw.log");
+    const prevPath = join(tempDir, "rivonclaw.log.1");
 
     expect(existsSync(logPath)).toBe(true);
     expect(existsSync(prevPath)).toBe(true);
@@ -94,8 +94,8 @@ describe("file logging", () => {
       log.info(`entry ${i}: ${"x".repeat(50)}`);
     }
 
-    const logPath = join(tempDir, "easyclaw.log");
-    const prevPath = join(tempDir, "easyclaw.log.1");
+    const logPath = join(tempDir, "rivonclaw.log");
+    const prevPath = join(tempDir, "rivonclaw.log.1");
 
     let totalSize = 0;
     if (existsSync(logPath)) totalSize += statSync(logPath).size;
@@ -111,7 +111,7 @@ describe("file logging", () => {
 
     log.warn("something went wrong", "detail");
 
-    const content = readFileSync(join(tempDir, "easyclaw.log"), "utf-8");
+    const content = readFileSync(join(tempDir, "rivonclaw.log"), "utf-8");
     expect(content).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     expect(content).toMatch(/WARN/);
     expect(content).toContain("[fmt-test]");

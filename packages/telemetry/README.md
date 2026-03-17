@@ -1,6 +1,6 @@
-# @easyclaw/telemetry
+# @rivonclaw/telemetry
 
-Privacy-first telemetry client SDK for the EasyClaw desktop application.
+Privacy-first telemetry client SDK for the RivonClaw desktop application.
 
 ## Features
 
@@ -14,17 +14,17 @@ Privacy-first telemetry client SDK for the EasyClaw desktop application.
 ## Installation
 
 ```bash
-pnpm add @easyclaw/telemetry
+pnpm add @rivonclaw/telemetry
 ```
 
 ## Quick Start
 
 ```typescript
-import { RemoteTelemetryClient } from "@easyclaw/telemetry";
+import { RemoteTelemetryClient } from "@rivonclaw/telemetry";
 
 // Initialize the client
 const client = new RemoteTelemetryClient({
-  endpoint: "https://t.easy-claw.com/",
+  endpoint: "https://t.rivonclaw.com/",
   enabled: true,
   version: "0.1.0",
   platform: process.platform,
@@ -139,7 +139,7 @@ The following event types are supported:
 ### Desktop Application Integration
 
 ```typescript
-import { RemoteTelemetryClient } from "@easyclaw/telemetry";
+import { RemoteTelemetryClient } from "@rivonclaw/telemetry";
 import { app } from "electron";
 
 let telemetryClient: RemoteTelemetryClient | null = null;
@@ -150,7 +150,7 @@ app.on("ready", () => {
 
   if (telemetryEnabled) {
     telemetryClient = new RemoteTelemetryClient({
-      endpoint: "https://t.easy-claw.com/",
+      endpoint: "https://t.rivonclaw.com/",
       enabled: true,
       version: app.getVersion(),
       platform: process.platform,
@@ -220,7 +220,7 @@ function onGatewayRestarted() {
 ### Testing with Mock Endpoint
 
 ```typescript
-import { RemoteTelemetryClient } from "@easyclaw/telemetry";
+import { RemoteTelemetryClient } from "@rivonclaw/telemetry";
 
 // For testing, you can use a mock endpoint
 const client = new RemoteTelemetryClient({

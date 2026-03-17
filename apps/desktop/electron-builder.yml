@@ -1,5 +1,5 @@
-appId: com.easyclaw.desktop
-productName: EasyClaw
+appId: com.rivonclaw.desktop
+productName: RivonClaw
 
 directories:
   output: release
@@ -25,7 +25,7 @@ extraResources:
   # Created by create-runtime-archive.cjs (tar.gz + manifest).
   - from: "runtime-archive"
     to: "runtime-archive"
-  # EasyClaw extensions — auto-discovered by OpenClaw at runtime
+  # RivonClaw extensions — auto-discovered by OpenClaw at runtime
   - from: "../../extensions"
     to: "extensions"
     filter:
@@ -86,6 +86,6 @@ dmg:
 
 publish:
   - provider: generic
-    url: https://www.easy-claw.com/releases/
+    url: https://www.rivonclaw.com/releases/
 
 afterSign: scripts/notarize.cjs

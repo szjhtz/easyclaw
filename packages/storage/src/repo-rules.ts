@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { Rule } from "@easyclaw/core";
+import type { Rule } from "@rivonclaw/core";
 
 interface RuleRow {
   id: string;

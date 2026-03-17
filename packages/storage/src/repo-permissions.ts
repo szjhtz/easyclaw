@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { PermissionConfig } from "@easyclaw/core";
+import type { PermissionConfig } from "@rivonclaw/core";
 
 interface PermissionRow {
   id: number;

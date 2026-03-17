@@ -1,6 +1,6 @@
 import { nativeImage } from "electron";
 import type { NativeImage } from "electron";
-import type { GatewayState } from "@easyclaw/gateway";
+import type { GatewayState } from "@rivonclaw/gateway";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 

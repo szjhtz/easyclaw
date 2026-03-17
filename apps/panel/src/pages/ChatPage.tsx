@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchGatewayInfo, fetchProviderKeys, trackEvent, fetchChatShowAgentEvents, fetchChatPreserveToolEvents, fetchChatCollapseMessages } from "../api/index.js";
-import { formatError } from "@easyclaw/core";
+import { formatError } from "@rivonclaw/core";
 import { configManager } from "../lib/config-manager.js";
 import { Select } from "../components/inputs/Select.js";
 import { GatewayChatClient } from "../lib/gateway-client.js";
@@ -540,7 +540,7 @@ export function ChatPage({ onAgentNameChange }: { onAgentNameChange?: (name: str
       // loadHistory fetches the full transcript and extractToolInputMessage()
       // recovers the delivered text from tool_use blocks.
       //
-      // Proper fix: add an `after_tool_call` plugin hook in easyclaw-tools that
+      // Proper fix: add an `after_tool_call` plugin hook in rivonclaw-tools that
       // intercepts toolName==="message" and broadcasts a chat event with
       // state==="delivery" to ALL connected clients (not just registered ones).
       // Then handle state==="delivery" here to append the message in real time.

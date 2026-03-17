@@ -92,12 +92,12 @@ jobs:
         # Best-effort until a real signing identity is configured.
         continue-on-error: true
         run: |
-          node apps/desktop/scripts/prod-model-switch-check.mjs apps/desktop/release/win-unpacked/EasyClaw.exe
+          node apps/desktop/scripts/prod-model-switch-check.mjs apps/desktop/release/win-unpacked/RivonClaw.exe
         env:
-          EASYCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
-          EASYCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
-          EASYCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 20
-          EASYCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
+          RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
+          RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
+          RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 20
+          RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
 
       - name: Upload unsigned installer for signing
         uses: actions/upload-artifact@v6
@@ -112,11 +112,11 @@ jobs:
       #   with:
       #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
       #     organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-      #     project-slug: 'easyclaw'
+      #     project-slug: 'rivonclaw'
       #     signing-policy-slug: 'release-signing'
       #     artifact-configuration-slug: 'windows-installer'
-      #     input-artifact-path: 'apps/desktop/release/EasyClaw-Setup.exe'
-      #     output-artifact-path: 'apps/desktop/release/EasyClaw-Setup-Signed.exe'
+      #     input-artifact-path: 'apps/desktop/release/RivonClaw-Setup.exe'
+      #     output-artifact-path: 'apps/desktop/release/RivonClaw-Setup-Signed.exe'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -284,7 +284,7 @@ jobs:
 
           # Create the draft release with release notes and all artifacts
           gh release create "$TAG" \
-            --title "EasyClaw $TAG" \
+            --title "RivonClaw $TAG" \
             --notes-file .github/RELEASE_BODY.md \
             --draft \
             artifacts/windows/* \

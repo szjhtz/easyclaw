@@ -9,7 +9,7 @@ import {
   rmSync,
 } from "node:fs";
 import { join } from "node:path";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("runtime-hydrator");
 

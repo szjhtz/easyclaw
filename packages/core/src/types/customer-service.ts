@@ -39,7 +39,7 @@ export interface CustomerServiceConfig {
   relayUrl: string;
   /** Authentication token for relay. */
   authToken: string;
-  /** Gateway ID for this EasyClaw instance. */
+  /** Gateway ID for this RivonClaw instance. */
   gatewayId: string;
   /** User-defined business rules/prompt (editable). */
   businessPrompt: string;

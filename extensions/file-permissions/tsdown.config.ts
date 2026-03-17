@@ -2,7 +2,7 @@ import { defineConfig } from "tsdown";
 
 export default defineConfig({
   entry: {
-    "easyclaw-file-permissions": "src/index.ts",
+    "rivonclaw-file-permissions": "src/index.ts",
   },
   format: ["esm"],
   dts: true,

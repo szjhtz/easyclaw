@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { UsageSnapshotEngine, type ModelUsageTotals, type CaptureUsageFn } from "./usage-snapshot-engine.js";
 
 let storage: Storage;

@@ -36,40 +36,40 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@easyclaw/customer-service':
+      '@rivonclaw/customer-service':
         specifier: workspace:*
         version: link:../../packages/apps/customer-service
-      '@easyclaw/device-id':
+      '@rivonclaw/device-id':
         specifier: workspace:*
         version: link:../../packages/device-id
-      '@easyclaw/gateway':
+      '@rivonclaw/gateway':
         specifier: workspace:*
         version: link:../../packages/gateway
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      '@easyclaw/proxy-router':
+      '@rivonclaw/proxy-router':
         specifier: workspace:*
         version: link:../../packages/proxy-router
-      '@easyclaw/rules':
+      '@rivonclaw/rules':
         specifier: workspace:*
         version: link:../../packages/rules
-      '@easyclaw/secrets':
+      '@rivonclaw/secrets':
         specifier: workspace:*
         version: link:../../packages/secrets
-      '@easyclaw/storage':
+      '@rivonclaw/storage':
         specifier: workspace:*
         version: link:../../packages/storage
-      '@easyclaw/stt':
+      '@rivonclaw/stt':
         specifier: workspace:*
         version: link:../../packages/stt
-      '@easyclaw/telemetry':
+      '@rivonclaw/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
-      '@easyclaw/updater':
+      '@rivonclaw/updater':
         specifier: workspace:*
         version: link:../../packages/updater
       '@types/adm-zip':
@@ -97,22 +97,22 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
     devDependencies:
-      '@easyclaw/browser-profiles-tools':
+      '@rivonclaw/browser-profiles-tools':
         specifier: workspace:*
         version: link:../../extensions/browser-profiles-tools
-      '@easyclaw/easyclaw-event-bridge':
+      '@rivonclaw/rivonclaw-event-bridge':
         specifier: workspace:*
-        version: link:../../extensions/easyclaw-event-bridge
-      '@easyclaw/easyclaw-policy':
+        version: link:../../extensions/rivonclaw-event-bridge
+      '@rivonclaw/rivonclaw-policy':
         specifier: workspace:*
-        version: link:../../extensions/easyclaw-policy
-      '@easyclaw/easyclaw-tools':
+        version: link:../../extensions/rivonclaw-policy
+      '@rivonclaw/rivonclaw-tools':
         specifier: workspace:*
-        version: link:../../extensions/easyclaw-tools
-      '@easyclaw/file-permissions':
+        version: link:../../extensions/rivonclaw-tools
+      '@rivonclaw/file-permissions':
         specifier: workspace:*
         version: link:../../extensions/file-permissions
-      '@easyclaw/mobile-chat-channel':
+      '@rivonclaw/mobile-chat-channel':
         specifier: workspace:*
         version: link:../../extensions/mobile-chat-channel
       '@electron/notarize':
@@ -154,7 +154,7 @@ importers:
       '@apollo/client':
         specifier: ^4.1.6
         version: 4.1.6(graphql@16.13.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rxjs@7.8.2)
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@fontsource/inter':
@@ -230,7 +230,7 @@ importers:
 
   extensions/browser-profiles-tools:
     devDependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@sinclair/typebox':
@@ -252,7 +252,7 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
 
-  extensions/easyclaw-event-bridge:
+  extensions/rivonclaw-event-bridge:
     devDependencies:
       oxlint:
         specifier: ^1.43.0
@@ -261,12 +261,12 @@ importers:
         specifier: ^0.20.3
         version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
 
-  extensions/easyclaw-policy:
+  extensions/rivonclaw-policy:
     dependencies:
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../../packages/logger
-      '@easyclaw/policy':
+      '@rivonclaw/policy':
         specifier: workspace:*
         version: link:../../packages/policy
     devDependencies:
@@ -280,7 +280,7 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
 
-  extensions/easyclaw-tools:
+  extensions/rivonclaw-tools:
     devDependencies:
       '@sinclair/typebox':
         specifier: ^0.34.0
@@ -315,7 +315,7 @@ importers:
 
   extensions/mobile-chat-channel:
     dependencies:
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../../packages/logger
       ws:
@@ -337,7 +337,7 @@ importers:
 
   packages/apps/customer-service:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../../core
       ws:
@@ -390,16 +390,16 @@ importers:
 
   packages/gateway:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
-      '@easyclaw/secrets':
+      '@rivonclaw/secrets':
         specifier: workspace:*
         version: link:../secrets
-      '@easyclaw/storage':
+      '@rivonclaw/storage':
         specifier: workspace:*
         version: link:../storage
       undici:
@@ -427,7 +427,7 @@ importers:
 
   packages/logger:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
       tslog:
@@ -446,10 +446,10 @@ importers:
 
   packages/policy:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
     devDependencies:
@@ -465,10 +465,10 @@ importers:
 
   packages/proxy-router:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
     devDependencies:
@@ -484,13 +484,13 @@ importers:
 
   packages/rules:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
-      '@easyclaw/storage':
+      '@rivonclaw/storage':
         specifier: workspace:*
         version: link:../storage
     devDependencies:
@@ -506,10 +506,10 @@ importers:
 
   packages/secrets:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
     devDependencies:
@@ -525,10 +525,10 @@ importers:
 
   packages/storage:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
       better-sqlite3:
@@ -556,10 +556,10 @@ importers:
 
   packages/stt:
     dependencies:
-      '@easyclaw/core':
+      '@rivonclaw/core':
         specifier: workspace:*
         version: link:../core
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
     devDependencies:
@@ -587,7 +587,7 @@ importers:
 
   packages/updater:
     dependencies:
-      '@easyclaw/logger':
+      '@rivonclaw/logger':
         specifier: workspace:*
         version: link:../logger
     devDependencies:

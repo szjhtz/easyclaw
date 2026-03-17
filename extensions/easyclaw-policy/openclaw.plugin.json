@@ -1,6 +1,6 @@
 {
-  "id": "easyclaw-policy",
-  "name": "EasyClaw Policy",
+  "id": "rivonclaw-policy",
+  "name": "RivonClaw Policy",
   "description": "Injects compiled policies and guard directives into the agent system prompt",
   "configSchema": {
     "type": "object",

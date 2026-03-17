@@ -21,10 +21,10 @@ Click **"Apply for Free Code Signing"**
 Provide the following information:
 
 ```
-GitHub Repository: https://github.com/gaoyangz77/easyclaw
-Project Name: EasyClaw
+GitHub Repository: https://github.com/gaoyangz77/rivonclaw
+Project Name: RivonClaw
 Open Source License: MIT License
-Project Description: EasyClaw is a desktop app that provides visual permission
+Project Description: RivonClaw is a desktop app that provides visual permission
                      control for OpenClaw, making it easy to manage LLM providers,
                      API keys, and permissions through a clean UI.
 Build Method: GitHub Actions
@@ -57,7 +57,7 @@ Required secrets:
 In the SignPath dashboard:
 
 1. **Create Project**
-   - Project name: `easyclaw`
+   - Project name: `rivonclaw`
    - Project type: Electron App
 
 2. **Configure Artifact Configuration**
@@ -81,11 +81,11 @@ Uncomment the signing steps in `.github/workflows/build.yml`:
   with:
     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
     organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
-    project-slug: 'easyclaw'
+    project-slug: 'rivonclaw'
     signing-policy-slug: 'release-signing'
     artifact-configuration-slug: 'windows-installer'
-    input-artifact-path: 'apps/desktop/release/EasyClaw-Setup.exe'
-    output-artifact-path: 'apps/desktop/release/EasyClaw-Setup-Signed.exe'
+    input-artifact-path: 'apps/desktop/release/RivonClaw-Setup.exe'
+    output-artifact-path: 'apps/desktop/release/RivonClaw-Setup-Signed.exe'
 ```
 
 ### 7. Test the Signing Workflow
@@ -149,7 +149,7 @@ If signing fails, check:
 
 1. Error messages in GitHub Actions logs
 2. Signing request status in SignPath dashboard
-3. Ensure file paths are correct (`EasyClaw-Setup.exe` vs `EasyClaw Setup.exe`)
+3. Ensure file paths are correct (`RivonClaw-Setup.exe` vs `RivonClaw Setup.exe`)
 
 ## 🔗 Useful Links
 

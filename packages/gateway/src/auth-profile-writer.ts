@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { createLogger } from "@easyclaw/logger";
-import { resolveGatewayProvider, type LLMProvider } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
 
 const log = createLogger("gateway:auth-profile");
 

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { easyClawConfigSchema } from "./config.js";
+import { rivonClawConfigSchema } from "./config.js";
 
-describe("easyClawConfigSchema", () => {
+describe("rivonClawConfigSchema", () => {
   it("accepts a valid config", () => {
-    const result = easyClawConfigSchema.safeParse({
+    const result = rivonClawConfigSchema.safeParse({
       region: "cn",
       language: "zh",
       gatewayVersion: "2026.2.10",
@@ -13,7 +13,7 @@ describe("easyClawConfigSchema", () => {
   });
 
   it("rejects port below 1024", () => {
-    const result = easyClawConfigSchema.safeParse({
+    const result = rivonClawConfigSchema.safeParse({
       region: "us",
       language: "en",
       gatewayVersion: "0.0.0",
@@ -23,7 +23,7 @@ describe("easyClawConfigSchema", () => {
   });
 
   it("rejects port above 65535", () => {
-    const result = easyClawConfigSchema.safeParse({
+    const result = rivonClawConfigSchema.safeParse({
       region: "us",
       language: "en",
       gatewayVersion: "0.0.0",
@@ -33,7 +33,7 @@ describe("easyClawConfigSchema", () => {
   });
 
   it("rejects non-integer port", () => {
-    const result = easyClawConfigSchema.safeParse({
+    const result = rivonClawConfigSchema.safeParse({
       region: "us",
       language: "en",
       gatewayVersion: "0.0.0",
@@ -43,7 +43,7 @@ describe("easyClawConfigSchema", () => {
   });
 
   it("rejects missing fields", () => {
-    const result = easyClawConfigSchema.safeParse({
+    const result = rivonClawConfigSchema.safeParse({
       region: "us",
     });
     expect(result.success).toBe(false);

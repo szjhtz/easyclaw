@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { UsageQueryService, type CaptureUsageFn, type ModelUsageTotals } from "./usage-query-service.js";
 
 let storage: Storage;

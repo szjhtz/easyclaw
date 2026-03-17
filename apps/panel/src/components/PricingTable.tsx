@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { getProviderMeta } from "@easyclaw/core";
-import type { LLMProvider, GQL } from "@easyclaw/core";
+import { getProviderMeta } from "@rivonclaw/core";
+import type { LLMProvider } from "@rivonclaw/core";
+import type { ProviderPricing, ProviderSubscription, Plan } from "../api/index.js";
 
 /** Find a subscription by ID across all provider documents. */
 function findSubscription(
-  pricingList: GQL.ProviderPricing[] | null,
+  pricingList: ProviderPricing[] | null,
   subId: string,
-): { sub: GQL.Subscription; currency: string; pricingUrl: string } | null {
+): { sub: ProviderSubscription; currency: string; pricingUrl: string } | null {
   for (const pp of pricingList ?? []) {
     const sub = pp.subscriptions?.find((s) => s.id === subId);
     if (sub) return { sub, currency: pp.currency, pricingUrl: sub.pricingUrl };
@@ -24,7 +25,7 @@ export function PricingTable({
   loading,
 }: {
   provider: string;
-  pricingList: GQL.ProviderPricing[] | null;
+  pricingList: ProviderPricing[] | null;
   loading: boolean;
 }) {
   const { t } = useTranslation();
@@ -135,13 +136,13 @@ export function SubscriptionPricingTable({
   loading,
 }: {
   provider: string;
-  pricingList: GQL.ProviderPricing[] | null;
+  pricingList: ProviderPricing[] | null;
   loading: boolean;
 }) {
   const { t } = useTranslation();
 
   const result = findSubscription(pricingList, provider);
-  const plans: GQL.Plan[] = result?.sub.plans ?? [];
+  const plans: Plan[] = result?.sub.plans ?? [];
   const providerLabel = getProviderMeta(provider as LLMProvider)?.label ?? provider;
 
   return (

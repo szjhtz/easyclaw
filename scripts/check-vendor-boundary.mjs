@@ -9,7 +9,7 @@
  * Two tiers of permitted vendor access (defined in vendor-boundary-allowlist.json):
  *
  *   sentinels  — permanent drift-detection tests that intentionally read vendor
- *                source to verify EasyClaw assumptions. Not runtime imports.
+ *                source to verify RivonClaw assumptions. Not runtime imports.
  *
  *   allowlist  — temporary migration exceptions. Should be empty when the
  *                Phase 2 migration is complete.

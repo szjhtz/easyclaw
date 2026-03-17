@@ -1,12 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { createEasyClawPlugin } from "./index.js";
+import { createRivonClawPlugin } from "./index.js";
 import type {
   PolicyProvider,
   GuardProvider,
-  PromptBuildEvent,
-  PromptBuildResult,
+  AgentStartContext,
   OpenClawPluginAPI,
-} from "@easyclaw/policy";
+} from "@rivonclaw/policy";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,18 +33,18 @@ function makeGuardContent(
 // Plugin Registration Tests
 // ---------------------------------------------------------------------------
 
-describe("createEasyClawPlugin", () => {
+describe("createRivonClawPlugin", () => {
   it("plugin has correct name", () => {
-    const plugin = createEasyClawPlugin({
+    const plugin = createRivonClawPlugin({
       policyProvider: makePolicyProvider(""),
       guardProvider: makeGuardProvider([]),
     });
 
-    expect(plugin.name).toBe("easyclaw");
+    expect(plugin.name).toBe("rivonclaw");
   });
 
-  it("plugin registers only before_prompt_build hook", () => {
-    const plugin = createEasyClawPlugin({
+  it("plugin registers only before_agent_start hook", () => {
+    const plugin = createRivonClawPlugin({
       policyProvider: makePolicyProvider("Test policy"),
       guardProvider: makeGuardProvider([]),
     });
@@ -59,12 +58,12 @@ describe("createEasyClawPlugin", () => {
 
     plugin.register(mockAPI);
 
-    expect(registeredHooks).toContain("before_prompt_build");
+    expect(registeredHooks).toContain("before_agent_start");
     expect(registeredHooks).not.toContain("before_tool_call");
     expect(registeredHooks).toHaveLength(1);
   });
 
-  it("full integration: policy + guard prompt injection via before_prompt_build", () => {
+  it("full integration: policy + guard prompt injection via before_agent_start", () => {
     const policyProvider = makePolicyProvider("Never modify system files.");
     const guardProvider = makeGuardProvider([
       {
@@ -78,18 +77,18 @@ describe("createEasyClawPlugin", () => {
       },
     ]);
 
-    const plugin = createEasyClawPlugin({ policyProvider, guardProvider });
+    const plugin = createRivonClawPlugin({ policyProvider, guardProvider });
 
     // Capture registered handler
-    let promptBuildHandler:
-      | ((event: PromptBuildEvent) => PromptBuildResult)
+    let agentStartHandler:
+      | ((ctx: AgentStartContext) => { prependContext: string })
       | undefined;
 
     const mockAPI: OpenClawPluginAPI = {
       registerHook: vi.fn(
         (hookName: string, handler: (...args: unknown[]) => unknown) => {
-          if (hookName === "before_prompt_build") {
-            promptBuildHandler = handler as typeof promptBuildHandler;
+          if (hookName === "before_agent_start") {
+            agentStartHandler = handler as typeof agentStartHandler;
           }
         },
       ) as unknown as OpenClawPluginAPI["registerHook"],
@@ -98,9 +97,14 @@ describe("createEasyClawPlugin", () => {
     plugin.register(mockAPI);
 
     // Verify policy injection works
-    expect(promptBuildHandler).toBeDefined();
-    const result = promptBuildHandler!({ prompt: "hello" });
-    expect(result.prependSystemContext).toContain("Never modify system files.");
-    expect(result.prependSystemContext).toContain("System directory protected");
+    expect(agentStartHandler).toBeDefined();
+    const agentResult = agentStartHandler!({ prependContext: "" });
+    expect(agentResult.prependContext).toContain("--- RivonClaw Policy ---");
+    expect(agentResult.prependContext).toContain(
+      "Never modify system files.",
+    );
+    // Guard should also be injected into the prompt
+    expect(agentResult.prependContext).toContain("--- RivonClaw Guards (MUST enforce) ---");
+    expect(agentResult.prependContext).toContain("System directory protected");
   });
 });

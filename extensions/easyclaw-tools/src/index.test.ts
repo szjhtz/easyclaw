@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import plugin from "./index.js";
 
-describe("easyclaw-tools plugin", () => {
+describe("rivonclaw-tools plugin", () => {
   it("exports a valid plugin definition", () => {
-    expect(plugin.id).toBe("easyclaw-tools");
-    expect(plugin.name).toBe("EasyClaw Tools");
+    expect(plugin.id).toBe("rivonclaw-tools");
+    expect(plugin.name).toBe("RivonClaw Tools");
     expect(typeof plugin.activate).toBe("function");
   });
 

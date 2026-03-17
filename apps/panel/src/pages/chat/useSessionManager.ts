@@ -11,8 +11,8 @@ import { ensureToolContext } from "../../api/tool-registry.js";
 const REFRESH_DEBOUNCE = 2000;
 const MAX_CACHED_SESSIONS = 20;
 
-/** Strip EasyClaw prependContext blocks from a derived title. */
-const PREPEND_CONTEXT_RE = /---\s+EasyClaw[\s\S]*?---\s+End\s+\w[\w\s]*---/g;
+/** Strip RivonClaw prependContext blocks from a derived title. */
+const PREPEND_CONTEXT_RE = /---\s+RivonClaw[\s\S]*?---\s+End\s+\w[\w\s]*---/g;
 function cleanDerivedTitle(raw: string | undefined): string | undefined {
   if (!raw) return raw;
   const cleaned = raw.replace(PREPEND_CONTEXT_RE, "").trim();
@@ -20,12 +20,12 @@ function cleanDerivedTitle(raw: string | undefined): string | undefined {
 }
 
 /**
- * Internal sessions created by EasyClaw subsystems (e.g. rule compilation
- * LLM calls via /v1/chat/completions with `user: "easyclaw-rule-compile"`).
- * The gateway generates session keys like `agent:main:openai-user:easyclaw-rule-compile`.
+ * Internal sessions created by RivonClaw subsystems (e.g. rule compilation
+ * LLM calls via /v1/chat/completions with `user: "rivonclaw-rule-compile"`).
+ * The gateway generates session keys like `agent:main:openai-user:rivonclaw-rule-compile`.
  */
 function isInternalSession(key: string): boolean {
-  return key.includes(":openai-user:easyclaw-");
+  return key.includes(":openai-user:rivonclaw-");
 }
 
 /** Load custom tab order from localStorage. */

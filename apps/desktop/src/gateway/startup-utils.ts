@@ -4,10 +4,10 @@ import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { app } from "electron";
-import { createLogger } from "@easyclaw/logger";
-import { ALL_PROVIDERS, getDefaultModelForProvider, providerSecretKey } from "@easyclaw/core";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
+import { createLogger } from "@rivonclaw/logger";
+import { ALL_PROVIDERS, getDefaultModelForProvider, providerSecretKey } from "@rivonclaw/core";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
 
 const log = createLogger("main");
 

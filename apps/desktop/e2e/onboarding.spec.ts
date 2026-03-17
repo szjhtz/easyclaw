@@ -1,6 +1,6 @@
 import { freshTest as test, expect } from "./electron-fixture.js";
 
-test.describe("EasyClaw Onboarding Flow", () => {
+test.describe("RivonClaw Onboarding Flow", () => {
   test("fresh user completes onboarding with GLM API key", async ({ window }) => {
     const apiKey = process.env.E2E_ZHIPU_API_KEY;
     test.skip(!apiKey, "E2E_ZHIPU_API_KEY env var not set");

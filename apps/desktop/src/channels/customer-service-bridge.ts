@@ -1,7 +1,7 @@
 /**
  * Customer Service Bridge
  *
- * Thin integration layer between the `@easyclaw/customer-service` module and
+ * Thin integration layer between the `@rivonclaw/customer-service` module and
  * the desktop application.  It:
  *  - Creates a CustomerServiceModule instance
  *  - Wires the onInboundMessage callback to forward messages to the gateway agent
@@ -11,20 +11,20 @@
 
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@easyclaw/logger";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
-import type { CustomerServiceConfig, CustomerServiceStatus } from "@easyclaw/core";
-import { resolveGatewayPort } from "@easyclaw/core";
-import { GatewayRpcClient, resolveOpenClawStateDir } from "@easyclaw/gateway";
-import { createCustomerServiceModule, buildCustomerServicePrompt } from "@easyclaw/customer-service";
-import type { CustomerServiceModule } from "@easyclaw/customer-service";
+import { createLogger } from "@rivonclaw/logger";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
+import type { CustomerServiceConfig, CustomerServiceStatus } from "@rivonclaw/core";
+import { resolveGatewayPort } from "@rivonclaw/core";
+import { GatewayRpcClient, resolveOpenClawStateDir } from "@rivonclaw/gateway";
+import { createCustomerServiceModule, buildCustomerServicePrompt } from "@rivonclaw/customer-service";
+import type { CustomerServiceModule } from "@rivonclaw/customer-service";
 
 const log = createLogger("cs-bridge");
 
 // Hardcoded relay connection (our own server — must match CS_RELAY_AUTH_SECRET on server)
 const CS_RELAY_URL = "ws://49.235.178.19:3003";
-const CS_RELAY_AUTH_TOKEN = "easyclaw-cs-relay-secret-2024";
+const CS_RELAY_AUTH_TOKEN = "rivonclaw-cs-relay-secret-2024";
 
 // Session key prefix for customer service agent calls (separate from main chat).
 // Each customer gets their own session so the LLM maintains per-customer context.

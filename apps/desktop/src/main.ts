@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Menu, Tray, shell, dialog } from "electron";
-import { createLogger, enableFileLogging } from "@easyclaw/logger";
+import { createLogger, enableFileLogging } from "@rivonclaw/logger";
 import {
   GatewayLauncher,
   GatewayRpcClient,
@@ -23,17 +23,17 @@ import {
   validateCodexAccessToken,
   startHybridCodexOAuthFlow,
   startHybridGeminiOAuthFlow,
-} from "@easyclaw/gateway";
-import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@easyclaw/gateway";
-import type { GatewayState } from "@easyclaw/gateway";
-import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort } from "@easyclaw/core";
-import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveEasyClawHome } from "@easyclaw/core/node";
-import { createStorage } from "@easyclaw/storage";
-import { createSecretStore } from "@easyclaw/secrets";
-import { ArtifactPipeline, syncSkillsForRule, cleanupSkillsForDeletedRule } from "@easyclaw/rules";
-import type { LLMConfig } from "@easyclaw/rules";
-import { ProxyRouter } from "@easyclaw/proxy-router";
-import { getDeviceId } from "@easyclaw/device-id";
+} from "@rivonclaw/gateway";
+import type { OAuthFlowResult, AcquiredOAuthCredentials, AcquiredCodexOAuthCredentials } from "@rivonclaw/gateway";
+import type { GatewayState } from "@rivonclaw/gateway";
+import { parseProxyUrl, formatError, resolveGatewayPort, resolvePanelPort, resolveProxyRouterPort } from "@rivonclaw/core";
+import { resolveUpdateMarkerPath, resolveHeartbeatPath, resolveRivonClawHome } from "@rivonclaw/core/node";
+import { createStorage } from "@rivonclaw/storage";
+import { createSecretStore } from "@rivonclaw/secrets";
+import { ArtifactPipeline, syncSkillsForRule, cleanupSkillsForDeletedRule } from "@rivonclaw/rules";
+import type { LLMConfig } from "@rivonclaw/rules";
+import { ProxyRouter } from "@rivonclaw/proxy-router";
+import { getDeviceId } from "@rivonclaw/device-id";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -41,30 +41,28 @@ import { createConnection } from "node:net";
 import { existsSync, unlinkSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import { createTrayIcon } from "./tray/tray-icon.js";
-import { buildTrayMenu } from "./tray/tray-menu.js";
+import { createTrayIcon } from "./tray-icon.js";
+import { buildTrayMenu } from "./tray-menu.js";
 import { startPanelServer, pushChatSSE } from "./panel-server.js";
-import { stopCS } from "./channels/customer-service-bridge.js";
-import { SttManager } from "./utils/stt-manager.js";
-import { createCdpManager } from "./browser-profiles/cdp-manager.js";
+import { stopCS } from "./customer-service-bridge.js";
+import { SttManager } from "./stt-manager.js";
+import { createCdpManager } from "./cdp-manager.js";
 import { CdpCookieAdapter } from "./browser-profiles/cdp-cookie-adapter.js";
-import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "./gateway/proxy-manager.js";
-import { createAutoUpdater } from "./utils/auto-updater.js";
-import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch, migrateOldProviderKeys } from "./gateway/startup-utils.js";
-import { initTelemetry } from "./utils/telemetry-init.js";
-import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
-import type { GatewayConfigDeps } from "./gateway/gateway-config-builder.js";
-import { AuthSessionManager } from "./auth/auth-session.js";
-import { fetchPluginPrompts } from "./utils/plugin-prompt-fetcher.js";
+import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "./proxy-manager.js";
+import { createAutoUpdater } from "./auto-updater.js";
+import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch, migrateOldProviderKeys } from "./startup-utils.js";
+import { initTelemetry } from "./telemetry-init.js";
+import { createGatewayConfigBuilder } from "./gateway-config-builder.js";
+import { AuthSessionManager } from "./auth-session.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
-import type { BrowserProfileSessionStatePolicy } from "@easyclaw/core";
+import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
-import { buildToolContext } from "./utils/tool-context-builder.js";
-import { checkRuntimeReady, hydrateRuntime } from "./gateway/runtime-hydrator.js";
-import { createBootstrapWindow } from "./tray/bootstrap-window.js";
+import { buildToolContext } from "./tool-context-builder.js";
+import { checkRuntimeReady, hydrateRuntime } from "./runtime-hydrator.js";
+import { createBootstrapWindow } from "./bootstrap-window.js";
 
 const log = createLogger("desktop");
 
@@ -126,7 +124,7 @@ if (existsSync(UPDATE_MARKER)) {
 //        otherwise the user is stuck and can never open the app.
 //
 // To tell them apart, the running instance writes a heartbeat file
-// (~/.easyclaw/heartbeat.json) containing { pid, ts } every 10 seconds.
+// (~/.rivonclaw/heartbeat.json) containing { pid, ts } every 10 seconds.
 // When a second instance can't acquire the lock, it reads the heartbeat:
 //   - ts < 30s old  →  healthy, exit
 //   - ts > 30s old or missing  →  stale, kill & relaunch
@@ -166,7 +164,7 @@ if (!gotTheLock) {
     let killedStale = false;
     try {
       if (process.platform === "win32") {
-        const out = execSync('wmic process where "name=\'EasyClaw.exe\'" get ProcessId 2>nul', {
+        const out = execSync('wmic process where "name=\'RivonClaw.exe\'" get ProcessId 2>nul', {
           encoding: "utf-8",
           timeout: 3000,
         }).trim();
@@ -182,7 +180,7 @@ if (!gotTheLock) {
           } catch { }
         }
       } else {
-        const out = execSync("pgrep -x EasyClaw 2>/dev/null || true", {
+        const out = execSync("pgrep -x RivonClaw 2>/dev/null || true", {
           encoding: "utf-8",
           timeout: 3000,
         }).trim();
@@ -270,10 +268,10 @@ app.whenReady().then(async () => {
     const isZh = app.getLocale().startsWith("zh");
     dialog.showMessageBoxSync({
       type: "info",
-      title: "EasyClaw",
+      title: "RivonClaw",
       message: isZh
-        ? "EasyClaw 正在更新中，请等待安装完成后再打开。"
-        : "EasyClaw is being updated. Please wait for the installation to finish.",
+        ? "RivonClaw 正在更新中，请等待安装完成后再打开。"
+        : "RivonClaw is being updated. Please wait for the installation to finish.",
       buttons: ["OK"],
     });
     app.exit(0);
@@ -282,66 +280,12 @@ app.whenReady().then(async () => {
 
   Menu.setApplicationMenu(null);
   enableFileLogging();
-  log.info(`EasyClaw desktop starting (build: ${__BUILD_TIMESTAMP__})`);
+  log.info(`RivonClaw desktop starting (build: ${__BUILD_TIMESTAMP__})`);
 
   // Show dock icon immediately. LSUIElement=true in Info.plist hides it by default
   // (which also prevents child processes like the gateway from showing dock icons).
   // We explicitly show it for the main process here.
   app.dock?.show();
-
-  // Prevent Electron from quitting when the bootstrap window closes during
-  // hydration. The app is a tray app — it should stay alive even with zero
-  // windows until the tray is created and the full lifecycle is running.
-  app.on("window-all-closed", () => { /* tray app — stay alive with zero windows */ });
-
-  // In packaged app, the runtime archive is extracted on first launch to a
-  // content-addressed directory under ~/.easyclaw/runtime/{hash}/. Subsequent
-  // launches skip extraction if the hash matches (fast path, ~1ms).
-  // In dev, resolveVendorDir() resolves relative to source via import.meta.url.
-  let vendorDir = "";
-  if (app.isPackaged) {
-    const archiveDir = join(process.resourcesPath, "runtime-archive");
-    const runtimeBaseDir = join(resolveEasyClawHome(), "runtime");
-
-    // Quick check — is the runtime already hydrated?
-    const existingRuntime = checkRuntimeReady(archiveDir, runtimeBaseDir);
-
-    if (existingRuntime) {
-      vendorDir = existingRuntime;
-    } else {
-      // Need extraction — show bootstrap splash window
-      const bootstrap = createBootstrapWindow();
-      bootstrap.show();
-
-      let extracted = false;
-      while (!extracted) {
-        try {
-          const result = await hydrateRuntime({
-            archiveDir,
-            runtimeBaseDir,
-            onProgress: (p) => bootstrap.updateProgress(p),
-          });
-          vendorDir = result.runtimeDir;
-          extracted = true;
-          bootstrap.close();
-        } catch (err) {
-          log.error("Runtime hydration failed:", err);
-          const action = await bootstrap.showError(
-            err instanceof Error ? err.message : String(err),
-            true,
-          );
-          if (action !== "retry") {
-            bootstrap.close();
-            app.quit();
-            return;
-          }
-          // Loop continues — retry extraction
-        }
-      }
-    }
-  } else {
-    vendorDir = resolveVendorDir();
-  }
 
   // --- Device ID ---
   let deviceId: string;
@@ -373,25 +317,25 @@ app.whenReady().then(async () => {
   // Only show the import wizard for truly new users:
   //  1. openclaw_import_checked is not set (never checked before)
   //  2. Standalone OpenClaw exists at ~/.openclaw/openclaw.json
-  //  3. EasyClaw's own state dir (~/.easyclaw/openclaw/) does NOT yet exist
-  //     (if it exists, this is an existing EasyClaw user upgrading — skip silently)
+  //  3. RivonClaw's own state dir (~/.rivonclaw/openclaw/) does NOT yet exist
+  //     (if it exists, this is an existing RivonClaw user upgrading — skip silently)
   const importChecked = storage.settings.get("openclaw_import_checked");
   if (!importChecked) {
     const standaloneDir = join(homedir(), ".openclaw");
     const standaloneConfig = join(standaloneDir, "openclaw.json");
-    const defaultStateDir = join(resolveEasyClawHome(), "openclaw");
+    const defaultStateDir = join(resolveRivonClawHome(), "openclaw");
     if (existsSync(standaloneConfig) && !existsSync(defaultStateDir)) {
       const { response } = await dialog.showMessageBox({
         type: "question",
         buttons: [locale === "zh" ? "使用现有数据" : "Use existing data", locale === "zh" ? "全新开始" : "Start fresh"],
         defaultId: 0,
-        title: "EasyClaw",
+        title: "RivonClaw",
         message: locale === "zh"
           ? "检测到本地已安装的 OpenClaw"
           : "Existing OpenClaw installation detected",
         detail: locale === "zh"
-          ? `发现 ${standaloneDir} 中的 OpenClaw 数据（包括 Agent 记忆和文档）。\n是否让 EasyClaw 直接使用这些数据？`
-          : `Found OpenClaw data at ${standaloneDir} (including agent memory and documents).\nWould you like EasyClaw to use this existing data?`,
+          ? `发现 ${standaloneDir} 中的 OpenClaw 数据（包括 Agent 记忆和文档）。\n是否让 RivonClaw 直接使用这些数据？`
+          : `Found OpenClaw data at ${standaloneDir} (including agent memory and documents).\nWould you like RivonClaw to use this existing data?`,
       });
       if (response === 0) {
         storage.settings.set("openclaw_state_dir_override", standaloneDir);
@@ -404,19 +348,6 @@ app.whenReady().then(async () => {
   const stateDirOverride = storage.settings.get("openclaw_state_dir_override");
   if (stateDirOverride) {
     process.env.OPENCLAW_STATE_DIR = stateDirOverride;
-  }
-
-  // --- System Dependencies Provisioning ---
-  // On first launch, check and optionally install missing system dependencies
-  // (git, python, node, uv) that the agent needs to function properly.
-  // Runs in the background so the app starts immediately.
-  const depsProvisioned = storage.settings.get("deps_provisioned");
-  if (!depsProvisioned) {
-    import("./deps-provisioner/index.js").then(({ runDepsProvisioner }) => {
-      runDepsProvisioner({ storage }).catch((err: unknown) => {
-        log.error("Deps provisioner failed:", err);
-      });
-    });
   }
 
   // --- Auto-updater state (updater instance created after tray) ---
@@ -464,7 +395,7 @@ app.whenReady().then(async () => {
   // In packaged app, plugins/extensions live in Resources/.
   // In dev, config-writer auto-resolves via monorepo root.
   const filePermissionsPluginPath = app.isPackaged
-    ? join(process.resourcesPath, "extensions", "file-permissions", "dist", "easyclaw-file-permissions.mjs")
+    ? join(process.resourcesPath, "extensions", "file-permissions", "dist", "rivonclaw-file-permissions.mjs")
     : undefined;
   const extensionsDir = app.isPackaged
     ? join(process.resourcesPath, "extensions")
@@ -500,19 +431,13 @@ app.whenReady().then(async () => {
   }, 5 * 60 * 1000);
 
   // One-time backfill: ensure existing allowFrom entries have channel_recipients rows as owners
-  const { backfillOwnerMigration } = await import("./auth/owner-migration.js");
+  const { backfillOwnerMigration } = await import("./owner-migration.js");
   await backfillOwnerMigration(storage, stateDir, configPath);
 
-  // Fetch server-managed plugin prompts before first config build.
-  // Kept as a separate variable (not in configDeps) — prompts are pushed
-  // to the plugin via RPC, never written to the gateway config file.
-  let pluginPrompts: Record<string, string> = authSession?.getAccessToken()
-    ? await fetchPluginPrompts(authSession)
-    : {};
-  const configDeps: GatewayConfigDeps = {
+  // Build gateway config helpers (closures bound to current settings)
+  const { buildFullGatewayConfig } = createGatewayConfigBuilder({
     storage, secretStore, locale, configPath, stateDir, extensionsDir, sttCliPath, filePermissionsPluginPath, authSession,
-  };
-  const { buildFullGatewayConfig } = createGatewayConfigBuilder(configDeps);
+  });
 
   writeGatewayConfig(await buildFullGatewayConfig());
 
@@ -564,6 +489,55 @@ app.whenReady().then(async () => {
   // Normalize legacy cron store: rename jobId → id so the gateway's findJobOrThrow works.
   // The OpenClaw CLI writes "jobId" but the gateway service indexes jobs by "id".
   normalizeCronStoreIds(join(stateDir, "cron", "jobs.json"));
+
+  // In packaged app, the runtime archive is extracted on first launch to a
+  // content-addressed directory under ~/.rivonclaw/runtime/{hash}/. Subsequent
+  // launches skip extraction if the hash matches (fast path, ~1ms).
+  // In dev, resolveVendorDir() resolves relative to source via import.meta.url.
+  let vendorDir = "";
+  if (app.isPackaged) {
+    const archiveDir = join(process.resourcesPath, "runtime-archive");
+    const runtimeBaseDir = join(resolveRivonClawHome(), "runtime");
+
+    // Quick check — is the runtime already hydrated?
+    const existingRuntime = checkRuntimeReady(archiveDir, runtimeBaseDir);
+
+    if (existingRuntime) {
+      vendorDir = existingRuntime;
+    } else {
+      // Need extraction — show bootstrap splash window
+      const bootstrap = createBootstrapWindow();
+      bootstrap.show();
+
+      let extracted = false;
+      while (!extracted) {
+        try {
+          const result = await hydrateRuntime({
+            archiveDir,
+            runtimeBaseDir,
+            onProgress: (p) => bootstrap.updateProgress(p),
+          });
+          vendorDir = result.runtimeDir;
+          extracted = true;
+          bootstrap.close();
+        } catch (err) {
+          log.error("Runtime hydration failed:", err);
+          const action = await bootstrap.showError(
+            err instanceof Error ? err.message : String(err),
+            true,
+          );
+          if (action !== "retry") {
+            bootstrap.close();
+            app.quit();
+            return;
+          }
+          // Loop continues — retry extraction
+        }
+      }
+    }
+  } else {
+    vendorDir = resolveVendorDir();
+  }
 
   const launcher = new GatewayLauncher({
     entryPath: resolveVendorEntryPath(vendorDir),
@@ -659,15 +633,6 @@ app.whenReady().then(async () => {
             .catch((e: unknown) => log.warn("Failed to list cron jobs for tool context push:", e));
         }
 
-        // Push plugin prompts via RPC (in-memory, not written to config file).
-        // Each plugin registers "{pluginId}_set_prompt_addendum" gateway method;
-        // we iterate the map so new plugins need zero changes in main.ts.
-        for (const [pluginId, prompt] of Object.entries(pluginPrompts)) {
-          const method = `${pluginId.replace(/-/g, "_")}_set_prompt_addendum`;
-          rpcClient?.request(method, { prompt })
-            .catch((e: unknown) => log.debug(`Failed to push prompt for ${pluginId}:`, e));
-        }
-
         // Push locally-stored cookies for managed profiles to the gateway plugin
         pushStoredCookiesToGateway()
           .catch((e: unknown) => log.debug("Failed to push stored cookies to gateway (best-effort):", e));
@@ -682,7 +647,7 @@ app.whenReady().then(async () => {
             pushChatSSE("session-reset", { sessionKey: payload.sessionKey });
           }
         }
-        if (evt.event === "easyclaw.chat-mirror") {
+        if (evt.event === "rivonclaw.chat-mirror") {
           const p = evt.payload as {
             runId: string;
             sessionKey: string;
@@ -943,7 +908,7 @@ app.whenReady().then(async () => {
         return;
       }
       // CDP compatibility session — uses "__cdp__" as the scope key since
-      // CDP mode operates on the user's existing Chrome, not an EasyClaw-managed profile.
+      // CDP mode operates on the user's existing Chrome, not an RivonClaw-managed profile.
       const adapter = new CdpCookieAdapter(port);
       stack.lifecycleManager.startSession("__cdp__", adapter, "cdp")
         .catch((err: unknown) => log.warn("Failed to start CDP session state tracking:", err));
@@ -1081,7 +1046,7 @@ app.whenReady().then(async () => {
     );
   }
 
-  tray.setToolTip("EasyClaw");
+  tray.setToolTip("RivonClaw");
 
   // Windows/Linux: clicking the tray icon should show/hide the window.
   // macOS uses the context menu on click, so skip this handler there.
@@ -1128,7 +1093,7 @@ app.whenReady().then(async () => {
     width: isDev ? 2000 : 1400,
     height: 800,
     show: false,
-    title: "EasyClaw",
+    title: "RivonClaw",
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -1467,22 +1432,6 @@ app.whenReady().then(async () => {
             });
         });
     },
-    onAuthChange: () => {
-      // Re-fetch server-managed plugin prompts and push via RPC (in-memory).
-      (async () => {
-        if (authSession?.getAccessToken()) {
-          pluginPrompts = await fetchPluginPrompts(authSession);
-        } else {
-          pluginPrompts = {};
-        }
-        // Push updated prompts to all plugins via RPC (in-memory)
-        for (const [pluginId, prompt] of Object.entries(pluginPrompts)) {
-          const method = `${pluginId.replace(/-/g, "_")}_set_prompt_addendum`;
-          rpcClient?.request(method, { prompt })
-            .catch((e: unknown) => log.debug(`Failed to push prompt for ${pluginId} on auth change:`, e));
-        }
-      })().catch((e: unknown) => log.warn("onAuthChange prompt refresh failed:", e));
-    },
     onAutoLaunchChange: (enabled: boolean) => {
       applyAutoLaunch(enabled);
     },
@@ -1745,8 +1694,8 @@ app.whenReady().then(async () => {
       log.info(`Proxy router: http://127.0.0.1:${resolveProxyRouterPort()} (dynamic routing enabled)`);
 
       // Log file permissions status (without showing paths)
-      if (secretEnv.EASYCLAW_FILE_PERMISSIONS) {
-        const perms = JSON.parse(secretEnv.EASYCLAW_FILE_PERMISSIONS);
+      if (secretEnv.RIVONCLAW_FILE_PERMISSIONS) {
+        const perms = JSON.parse(secretEnv.RIVONCLAW_FILE_PERMISSIONS);
         log.info(`File permissions: workspace=${perms.workspacePath}, read=${perms.readPaths.length}, write=${perms.writePaths.length}`);
       }
 
@@ -1784,7 +1733,7 @@ app.whenReady().then(async () => {
     }
   }, 30_000);
 
-  log.info("EasyClaw desktop ready");
+  log.info("RivonClaw desktop ready");
 
   // Register full cleanup for auto-updater — defined here (after all timers)
   // so the closure has access to every dependency. The auto-updater calls this

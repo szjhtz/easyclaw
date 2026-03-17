@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { createLogger } from "@easyclaw/logger";
-import type { ProviderKeyEntry } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import type { ProviderKeyEntry } from "@rivonclaw/core";
 import type { OAuthFlowCallbacks, OAuthFlowResult } from "./oauth-flow.js";
 import { resolveVendorDir } from "./vendor.js";
 

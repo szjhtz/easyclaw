@@ -1,4 +1,4 @@
-/** Well-known secret keys used by EasyClaw. */
+/** Well-known secret keys used by RivonClaw. */
 export type SecretKey =
   | "llm-api-key"
   | "dingtalk-app-secret"

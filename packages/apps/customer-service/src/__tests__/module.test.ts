@@ -10,7 +10,7 @@ import type {
   CSBindingResolvedFrame,
   CSReplyFrame,
   CustomerServiceConfig,
-} from "@easyclaw/core";
+} from "@rivonclaw/core";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

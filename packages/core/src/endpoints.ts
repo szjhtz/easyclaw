@@ -1,7 +1,7 @@
 // Cloud service base domains
-export const API_BASE_URL = "https://api.easy-claw.com";
+export const API_BASE_URL = "https://api.rivonclaw.com";
 export const API_BASE_URL_CN = "https://api.zhuazhuaai.cn";
-export const TELEMETRY_URL = "https://t.easy-claw.com/";
+export const TELEMETRY_URL = "https://t.rivonclaw.com/";
 export const TELEMETRY_URL_CN = "https://t.zhuazhuaai.cn/";
 
 /** Return the API base URL for the given language/locale. */

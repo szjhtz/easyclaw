@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import { resolveOpenClawConfigPath, readExistingConfig } from "./config-writer.js";
 import { windowsPathToPosix } from "./windows-bind-sanitizer.js";
 
@@ -11,7 +11,7 @@ export interface PermissionsConfig {
 }
 
 /**
- * Convert EasyClaw permissions (readPaths/writePaths) to OpenClaw Docker bind mounts.
+ * Convert RivonClaw permissions (readPaths/writePaths) to OpenClaw Docker bind mounts.
  *
  * OpenClaw's sandbox uses Docker bind mounts with format: "host:container:mode"
  * - readPaths → mounted as :ro (read-only)
@@ -45,7 +45,7 @@ function permissionsToBinds(permissions: PermissionsConfig): string[] {
  * Updates `agents.defaults.sandbox.docker.binds` in openclaw.json.
  * Also ensures workspaceAccess is set to "rw" to enable the bind mounts.
  *
- * @param permissions - EasyClaw permissions (readPaths/writePaths)
+ * @param permissions - RivonClaw permissions (readPaths/writePaths)
  * @param configPath - Optional path to openclaw.json (defaults to standard location)
  */
 export function syncPermissions(

@@ -1,5 +1,5 @@
 {
-  "name": "@easyclaw/storage",
+  "name": "@rivonclaw/storage",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -19,8 +19,8 @@
   "dependencies": {
     "better-sqlite3": "^12.6.2",
     "uuid": "^11.0.5",
-    "@easyclaw/core": "workspace:*",
-    "@easyclaw/logger": "workspace:*"
+    "@rivonclaw/core": "workspace:*",
+    "@rivonclaw/logger": "workspace:*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

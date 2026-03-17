@@ -65,7 +65,7 @@ describe("FileSecretStore", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "easyclaw-secrets-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "rivonclaw-secrets-test-"));
     store = new FileSecretStore(tempDir);
   });
 

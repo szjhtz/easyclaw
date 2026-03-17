@@ -1,8 +1,8 @@
 import { app } from "electron";
-import { getTelemetryUrl } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
-import { RemoteTelemetryClient } from "@easyclaw/telemetry";
-import type { Storage } from "@easyclaw/storage";
+import { getTelemetryUrl } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import { RemoteTelemetryClient } from "@rivonclaw/telemetry";
+import type { Storage } from "@rivonclaw/storage";
 
 const log = createLogger("main");
 

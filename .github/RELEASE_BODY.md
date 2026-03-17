@@ -2,9 +2,9 @@
 
 ### macOS
 
-If you see **"'EasyClaw' is damaged and can't be opened"** — this is macOS Gatekeeper blocking an unsigned app. The file is not actually damaged.
+If you see **"'RivonClaw' is damaged and can't be opened"** — this is macOS Gatekeeper blocking an unsigned app. The file is not actually damaged.
 
-如果提示 **"'EasyClaw' 已损坏，无法打开"**，这是 macOS Gatekeeper 安全机制拦截了未签名应用，并非文件真的损坏。
+如果提示 **"'RivonClaw' 已损坏，无法打开"**，这是 macOS Gatekeeper 安全机制拦截了未签名应用，并非文件真的损坏。
 
 **Fix / 解决方法：**
 
@@ -12,7 +12,7 @@ If you see **"'EasyClaw' is damaged and can't be opened"** — this is macOS Gat
 2. Run the following command / 运行以下命令：
 
 ```bash
-sudo xattr -r -d com.apple.quarantine /Applications/EasyClaw.app
+sudo xattr -r -d com.apple.quarantine /Applications/RivonClaw.app
 ```
 
 3. Enter your login password (characters won't be displayed), press Enter / 输入开机密码（不显示字符），按回车

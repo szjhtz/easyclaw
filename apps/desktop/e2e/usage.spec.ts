@@ -12,7 +12,7 @@ test.describe("Usage Page", () => {
     }
 
     // --- Seed 2 providers, 3 keys, 5 models across multiple days ---
-    const dbPath = await electronApp.evaluate(() => process.env.EASYCLAW_DB_PATH);
+    const dbPath = await electronApp.evaluate(() => process.env.RIVONCLAW_DB_PATH);
     expect(dbPath).toBeTruthy();
     const now = Date.now();
     const isoNow = new Date().toISOString();

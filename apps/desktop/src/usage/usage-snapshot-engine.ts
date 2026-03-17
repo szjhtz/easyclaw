@@ -1,5 +1,5 @@
-import type { Storage } from "@easyclaw/storage";
-import { resolveGatewayProvider, type LLMProvider } from "@easyclaw/core";
+import type { Storage } from "@rivonclaw/storage";
+import { resolveGatewayProvider, type LLMProvider } from "@rivonclaw/core";
 
 /**
  * Cumulative per-model usage totals from OpenClaw JSONL.

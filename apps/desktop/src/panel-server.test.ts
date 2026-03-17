@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import type { Server } from "node:http";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { startPanelServer } from "./panel-server.js";
 
 let server: Server;

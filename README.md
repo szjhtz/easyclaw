@@ -1,21 +1,18 @@
 <p align="center">
-  <img src="assets/LOGO_EN_COMPACT.png" width="400" alt="EasyClaw">
+  <img src="assets/LOGO_EN_COMPACT.png" width="400" alt="RivonClaw">
 </p>
 
 <p align="center">
-  <a href="https://www.easy-claw.com">Website</a> · English | <a href="README.zh-CN.md">中文</a>
+  English | <a href="README.zh-CN.md">中文</a>
 </p>
 
-> **Download the latest production release from [easy-claw.com](https://www.easy-claw.com).**
-> The code on GitHub may contain unreleased changes and should be considered a staging/development version.
-
-## Why EasyClaw?
+## Why RivonClaw?
 
 [OpenClaw](https://github.com/openclaw/openclaw) is a powerful agent runtime — but it's built for engineers. Setting it up means editing config files, managing processes, and juggling API keys from the terminal. For non-programmers (designers, operators, small business owners), that barrier is too high.
 
-EasyClaw wraps OpenClaw into a desktop app that **anyone can use**: install, launch from the system tray, and manage everything through a local web panel. Write rules in plain language instead of code, configure LLM providers and messaging channels with a few clicks, and let the agent learn your preferences over time. No terminal required.
+RivonClaw wraps OpenClaw into a desktop app that **anyone can use**: install, launch from the system tray, and manage everything through a local web panel. Write rules in plain language instead of code, configure LLM providers and messaging channels with a few clicks, and let the agent learn your preferences over time. No terminal required.
 
-**In short:** OpenClaw is the engine; EasyClaw is the cockpit.
+**In short:** OpenClaw is the engine; RivonClaw is the cockpit.
 
 ## Features
 
@@ -36,14 +33,14 @@ EasyClaw wraps OpenClaw into a desktop app that **anyone can use**: install, lau
 
 ### How File Permissions Work
 
-EasyClaw enforces file access permissions through an OpenClaw plugin that intercepts tool calls *before* they execute. Here's what's protected:
+RivonClaw enforces file access permissions through an OpenClaw plugin that intercepts tool calls *before* they execute. Here's what's protected:
 
 - **File access tools** (`read`, `write`, `edit`, `image`, `apply-patch`): Fully protected—paths are validated against your configured permissions
 - **Command execution** (`exec`, `process`): Working directory is validated, but paths *inside* command strings (like `cat /etc/passwd`) cannot be inspected
 
 **Coverage**: ~85-90% of file access scenarios. For maximum security, consider restricting or disabling `exec` tools through Rules.
 
-**Technical note**: The file permissions plugin uses OpenClaw's `before_tool_call` hook—no vendor source code modifications needed, so EasyClaw can cleanly pull upstream OpenClaw updates.
+**Technical note**: The file permissions plugin uses OpenClaw's `before_tool_call` hook—no vendor source code modifications needed, so RivonClaw can cleanly pull upstream OpenClaw updates.
 
 ## Prerequisites
 
@@ -63,15 +60,15 @@ pnpm install
 pnpm build
 
 # 3. Launch in dev mode
-pnpm dev
+pnpm --filter @rivonclaw/desktop dev
 ```
 
-This starts the Electron tray app and the panel dev server. The tray app spawns the OpenClaw gateway and serves the management panel at `http://localhost:3210`.
+This starts the Electron tray app, which spawns the OpenClaw gateway and serves the management panel at `http://localhost:3210`.
 
 ## Repository Structure
 
 ```
-easyclaw/
+rivonclaw/
 ├── apps/
 │   ├── desktop/          # Electron tray app (main process)
 │   └── panel/            # React management UI (served by desktop)
@@ -89,15 +86,16 @@ easyclaw/
 │   ├── telemetry/        # Privacy-first anonymous analytics client
 │   └── policy/           # Policy injector & guard evaluator logic
 ├── extensions/
-│   ├── easyclaw-policy/      # OpenClaw plugin shell for policy injection
-│   ├── easyclaw-tools/       # Owner-only custom tools plugin
+│   ├── rivonclaw-policy/      # OpenClaw plugin shell for policy injection
+│   ├── rivonclaw-tools/       # Owner-only custom tools plugin
 │   ├── file-permissions/     # OpenClaw plugin for file access control
 │   └── mobile-chat-channel/  # Mobile messaging relay plugin
 ├── scripts/
 │   ├── test-local.sh             # Local test pipeline (build + unit + e2e tests)
 │   ├── publish-release.sh        # Publish draft GitHub Release
 │   ├── rebuild-native.sh         # Prebuild better-sqlite3 for Node.js + Electron
-│   └── vendor-runtime-packages.cjs  # Shared vendor external package definitions
+│   ├── smoke-test-vendor.cjs     # Vendor gateway startup smoke test
+│   └── verify-vendor-bundle.cjs  # Dry-run bundle verification (pre-release check)
 └── vendor/
     └── openclaw/         # Vendored OpenClaw binary (gitignored)
 ```
@@ -110,34 +108,34 @@ The monorepo uses pnpm workspaces (`apps/*`, `packages/*`, `extensions/*`) with 
 
 | Package                  | Description                                                                                                            |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `@easyclaw/desktop`      | Electron 35 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
-| `@easyclaw/panel`        | React 19 + Vite 6 SPA. Pages for chat, rules, providers, channels, permissions, STT, usage, skills marketplace, and a first-launch onboarding wizard. |
+| `@rivonclaw/desktop`      | Electron 35 tray app. Manages gateway lifecycle, hosts the panel server on port 3210, stores data in SQLite.           |
+| `@rivonclaw/panel`        | React 19 + Vite 6 SPA. Pages for chat, rules, providers, channels, permissions, STT, usage, skills marketplace, and a first-launch onboarding wizard. |
 
 ### Extensions
 
 | Package              | Description                                                                                                                    |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `@easyclaw/easyclaw-policy`      | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                     |
-| `@easyclaw/easyclaw-tools`       | Owner-only custom tools plugin (e.g. system control, desktop integration).                                              |
-| `@easyclaw/file-permissions`     | OpenClaw plugin that enforces file access permissions by intercepting and validating tool calls before execution.        |
-| `@easyclaw/mobile-chat-channel`  | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                                  |
+| `@rivonclaw/rivonclaw-policy`      | Thin OpenClaw plugin shell that wires policy injection into the gateway's `before_agent_start` hook.                     |
+| `@rivonclaw/rivonclaw-tools`       | Owner-only custom tools plugin (e.g. system control, desktop integration).                                              |
+| `@rivonclaw/file-permissions`     | OpenClaw plugin that enforces file access permissions by intercepting and validating tool calls before execution.        |
+| `@rivonclaw/mobile-chat-channel`  | Mobile PWA messaging relay — bridges mobile chat clients to the gateway via WebSocket.                                  |
 
 ### Packages
 
 | Package                            | Description                                                                                                                                                                                         |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@easyclaw/core`                   | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (20+ providers including subscription/coding plans and Ollama), region-aware defaults. |
-| `@easyclaw/gateway`                | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, Gemini CLI OAuth flow, auth profile sync, skills directory watcher for hot reload. |
-| `@easyclaw/logger`                 | tslog-based logger. Writes to `~/.easyclaw/logs/`.                                                                                                                                                  |
-| `@easyclaw/storage`                | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.easyclaw/easyclaw.db`.                                          |
-| `@easyclaw/rules`                  | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                                  |
-| `@easyclaw/secrets`                | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                                            |
-| `@easyclaw/updater`                | Checks `update-manifest.json` on the website, notifies user of new versions.                                                                                                                        |
-| `@easyclaw/device-id`              | Machine fingerprinting (SHA-256 of hardware UUID) for device identity and quota enforcement.                                                                                                        |
-| `@easyclaw/stt`                    | Speech-to-text provider abstraction (Groq for international, Volcengine for China).                                                                                                                 |
-| `@easyclaw/proxy-router`           | HTTP CONNECT proxy that routes requests to different upstream proxies based on per-provider domain configuration.                                                                                    |
-| `@easyclaw/telemetry`              | Privacy-first telemetry client with batch uploads and retry logic; no PII collected.                                                                                                                |
-| `@easyclaw/policy`                 | Policy injector & guard evaluator — compiles policies into prompt fragments and guards into enforcement checks.                                                                                     |
+| `@rivonclaw/core`                   | Zod-validated types: `Rule`, `ChannelConfig`, `PermissionConfig`, `ModelConfig`, LLM provider definitions (20+ providers including subscription/coding plans and Ollama), region-aware defaults. |
+| `@rivonclaw/gateway`                | `GatewayLauncher` (spawn/stop/restart with exponential backoff), config writer, secret injection from system keychain, Gemini CLI OAuth flow, auth profile sync, skills directory watcher for hot reload. |
+| `@rivonclaw/logger`                 | tslog-based logger. Writes to `~/.rivonclaw/logs/`.                                                                                                                                                  |
+| `@rivonclaw/storage`                | SQLite via better-sqlite3. Repositories for rules, artifacts, channels, permissions, settings. Migration system included. DB at `~/.rivonclaw/rivonclaw.db`.                                          |
+| `@rivonclaw/rules`                  | Rule compilation, skill lifecycle (activate/deactivate), skill file writer that materializes rules as SKILL.md files for OpenClaw.                                                                  |
+| `@rivonclaw/secrets`                | Platform-aware secret storage. macOS Keychain, file-based fallback, in-memory for tests.                                                                                                            |
+| `@rivonclaw/updater`                | Checks `update-manifest.json` on the website, notifies user of new versions.                                                                                                                        |
+| `@rivonclaw/device-id`              | Machine fingerprinting (SHA-256 of hardware UUID) for device identity and quota enforcement.                                                                                                        |
+| `@rivonclaw/stt`                    | Speech-to-text provider abstraction (Groq for international, Volcengine for China).                                                                                                                 |
+| `@rivonclaw/proxy-router`           | HTTP CONNECT proxy that routes requests to different upstream proxies based on per-provider domain configuration.                                                                                    |
+| `@rivonclaw/telemetry`              | Privacy-first telemetry client with batch uploads and retry logic; no PII collected.                                                                                                                |
+| `@rivonclaw/policy`                 | Policy injector & guard evaluator — compiles policies into prompt fragments and guards into enforcement checks.                                                                                     |
 
 ## Scripts
 
@@ -158,19 +156,19 @@ pnpm verify:bundle      # Full dry-run bundle verification (~18s, run before rel
 
 ```bash
 # Desktop
-pnpm --filter @easyclaw/desktop dev        # Launch Electron in dev mode
-pnpm --filter @easyclaw/desktop build      # Bundle main process
-pnpm --filter @easyclaw/desktop test       # Run desktop tests
-pnpm --filter @easyclaw/desktop dist:mac   # Build macOS DMG (universal)
-pnpm --filter @easyclaw/desktop dist:win   # Build Windows NSIS installer
+pnpm --filter @rivonclaw/desktop dev        # Launch Electron in dev mode
+pnpm --filter @rivonclaw/desktop build      # Bundle main process
+pnpm --filter @rivonclaw/desktop test       # Run desktop tests
+pnpm --filter @rivonclaw/desktop dist:mac   # Build macOS DMG (universal)
+pnpm --filter @rivonclaw/desktop dist:win   # Build Windows NSIS installer
 
 # Panel
-pnpm --filter @easyclaw/panel dev          # Vite dev server
-pnpm --filter @easyclaw/panel build        # Production build
+pnpm --filter @rivonclaw/panel dev          # Vite dev server
+pnpm --filter @rivonclaw/panel build        # Production build
 
 # Any package
-pnpm --filter @easyclaw/core test
-pnpm --filter @easyclaw/gateway test
+pnpm --filter @rivonclaw/core test
+pnpm --filter @rivonclaw/gateway test
 ```
 
 ## Architecture
@@ -199,9 +197,9 @@ The desktop app runs as a **tray-only** application (hidden from the dock on mac
 
 1. Spawns the OpenClaw gateway from `vendor/openclaw/`
 2. Serves the panel UI and REST API on `localhost:3210`
-3. Writes gateway config and auth profiles to `~/.easyclaw/openclaw/`
+3. Writes gateway config and auth profiles to `~/.openclaw/`
 4. Injects secrets (API keys + OAuth tokens) from the system keychain at runtime
-5. Watches `~/.easyclaw/openclaw/skills/` for hot-reload of rule-generated skill files
+5. Watches `~/.openclaw/skills/` for hot-reload of rule-generated skill files
 6. Syncs refreshed OAuth tokens back to keychain on shutdown
 
 ### REST API
@@ -228,23 +226,29 @@ The panel server exposes these endpoints:
 
 | Path                             | Purpose                    |
 | -------------------------------- | -------------------------- |
-| `~/.easyclaw/db.sqlite`                  | SQLite database            |
-| `~/.easyclaw/logs/`                      | Application logs           |
-| `~/.easyclaw/openclaw/`                  | OpenClaw state directory   |
-| `~/.easyclaw/openclaw/openclaw.json`     | Gateway configuration      |
-| `~/.easyclaw/openclaw/sessions/`         | WhatsApp sessions          |
-| `~/.easyclaw/openclaw/skills/`           | User skills (marketplace-installed + rule-generated; loaded as `extraSkillDirs` alongside OpenClaw's built-in skills under `~/.easyclaw/runtime/{hash}/skills/`) |
+| `~/.rivonclaw/rivonclaw.db`        | SQLite database            |
+| `~/.rivonclaw/logs/`              | Application logs           |
+| `~/.openclaw/`                   | OpenClaw state directory   |
+| `~/.openclaw/gateway/config.yml` | Gateway configuration      |
+| `~/.openclaw/sessions/`          | WhatsApp sessions          |
+| `~/.openclaw/skills/`            | Auto-generated skill files |
 
 ## Building Installers
 
-The `dist:mac` and `dist:win` scripts generate a runtime archive from `vendor/openclaw` (staging-based, vendor is never modified). The archive includes esbuild-bundled code, pruned node_modules, pre-bundled extensions, and a V8 compile cache. On first launch, the app extracts the archive to `~/.easyclaw/runtime/`. See the "Infrastructure: Runtime Archive" section in `docs/PROGRESS_V2.md` for details.
+The `dist:mac` and `dist:win` scripts automatically prune and bundle `vendor/openclaw` before packaging. This reduces file count from ~58K to ~7K (via esbuild bundling) and the DMG from ~360MB to ~310MB. See `docs/BUNDLE_VENDOR.md` for details.
+
+**After building**, vendor will be pruned/bundled. To restore full deps for development:
+
+```bash
+bash .claude/skills/update-vendor/scripts/provision-vendor.sh $(tr -d '[:space:]' < .openclaw-version)
+```
 
 ### macOS (DMG, universal arm64+x64)
 
 ```bash
 pnpm build
-pnpm --filter @easyclaw/desktop dist:mac
-# Output: apps/desktop/release/EasyClaw-<version>-universal.dmg
+pnpm --filter @rivonclaw/desktop dist:mac
+# Output: apps/desktop/release/RivonClaw-<version>-universal.dmg
 ```
 
 For code signing and notarization, set these environment variables:
@@ -261,8 +265,8 @@ APPLE_TEAM_ID=<team-id>
 
 ```bash
 pnpm build
-pnpm --filter @easyclaw/desktop dist:win
-# Output: apps/desktop/release/EasyClaw Setup <version>.exe
+pnpm --filter @rivonclaw/desktop dist:win
+# Output: apps/desktop/release/RivonClaw Setup <version>.exe
 ```
 
 Cross-compiling from macOS works (NSIS doesn't need Wine). For code signing on Windows, set:
@@ -317,8 +321,8 @@ pnpm test
 Run tests for a specific package:
 
 ```bash
-pnpm --filter @easyclaw/storage test
-pnpm --filter @easyclaw/gateway test
+pnpm --filter @rivonclaw/storage test
+pnpm --filter @rivonclaw/gateway test
 ```
 
 ## Code Style

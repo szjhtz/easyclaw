@@ -5,7 +5,7 @@
 export * from "./index.js";
 
 export {
-  resolveEasyClawHome,
+  resolveRivonClawHome,
   resolveDbPath,
   resolveLogDir,
   resolveSecretsDir,

@@ -59,7 +59,7 @@
     "en": [
       "Fix proxy configuration not applying correctly to all network requests",
       "Fix OAuth token acquisition failing in packaged builds",
-      "Fix usage statistics not matching between EasyClaw and gateway providers",
+      "Fix usage statistics not matching between RivonClaw and gateway providers",
       "Fix dev-only files being included in extensions package"
     ],
     "zh": [
@@ -319,14 +319,14 @@
     "en": [
       "Auto-launch on login (start on boot) setting",
       "Smarter auto-updater with install-in-progress guard",
-      "New extensions: providers tool and EasyClaw tools",
+      "New extensions: providers tool and RivonClaw tools",
       "Fix truncated chat bubbles and auto-scroll after send",
       "Upgrade OpenClaw engine to v2026.2.23"
     ],
     "zh": [
       "支持开机自启动设置",
       "更智能的自动更新，安装过程中防止重复启动",
-      "新增扩展：服务商管理工具和 EasyClaw 工具集",
+      "新增扩展：服务商管理工具和 RivonClaw 工具集",
       "修复聊天气泡截断和发送后自动滚动问题",
       "升级 OpenClaw 引擎至 v2026.2.23"
     ]

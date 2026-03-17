@@ -1,4 +1,4 @@
-const PREFIX = "[easyclaw:event-bridge]";
+const PREFIX = "[rivonclaw:event-bridge]";
 
 const CLEANUP_DELAY_MS = 30_000;
 
@@ -14,7 +14,7 @@ type AgentEventPayload = {
 type BroadcastFn = (event: string, payload: unknown) => void;
 
 /**
- * EasyClaw Event Bridge plugin.
+ * RivonClaw Event Bridge plugin.
  *
  * Mirrors agent events for ALL channels to the Chat Page by working around
  * the vendor's `isControlUiVisible` gate in server-chat.ts. External channel
@@ -27,8 +27,8 @@ type BroadcastFn = (event: string, payload: unknown) => void;
  *    sessionKey and broadcasts via `gatewayBroadcast`.
  */
 const plugin = {
-  id: "easyclaw-event-bridge",
-  name: "EasyClaw Event Bridge",
+  id: "rivonclaw-event-bridge",
+  name: "RivonClaw Event Bridge",
 
   activate(api: any): void {
     /** runId -> sessionKey mapping built from llm_input hook context. */
@@ -93,7 +93,7 @@ const plugin = {
         return;
       }
 
-      gatewayBroadcast("easyclaw.chat-mirror", {
+      gatewayBroadcast("rivonclaw.chat-mirror", {
         runId: evt.runId,
         sessionKey,
         stream: evt.stream,
@@ -109,7 +109,7 @@ const plugin = {
       gatewayBroadcast = null;
     });
 
-    console.log(PREFIX,"EasyClaw Event Bridge plugin activated");
+    console.log(PREFIX,"RivonClaw Event Bridge plugin activated");
   },
 };
 

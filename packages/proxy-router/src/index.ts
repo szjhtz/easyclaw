@@ -1,7 +1,7 @@
 import { createServer, Socket, type Server as NetServer } from "node:net";
 import { readFileSync, existsSync, watch, type FSWatcher } from "node:fs";
-import { createLogger } from "@easyclaw/logger";
-import { resolveProxyRouterPort } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveProxyRouterPort } from "@rivonclaw/core";
 import type { ProxyRouterConfig, ProxyRouterOptions } from "./types.js";
 
 const log = createLogger("proxy-router");

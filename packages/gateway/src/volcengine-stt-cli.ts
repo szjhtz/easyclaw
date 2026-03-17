@@ -8,7 +8,7 @@
  * polls for the result, and prints the transcribed text to stdout.
  *
  * This script is invoked by OpenClaw's media-understanding CLI runner
- * as a bridge between OpenClaw and EasyClaw's Volcengine STT integration.
+ * as a bridge between OpenClaw and RivonClaw's Volcengine STT integration.
  */
 
 import { readFileSync } from "node:fs";

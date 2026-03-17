@@ -58,7 +58,7 @@ extensions/mychannel/
 **`package.json`** must declare:
 ```json
 {
-  "name": "@easyclaw/mychannel",
+  "name": "@rivonclaw/mychannel",
   "extensions": "./openclaw-plugin.mjs"
 }
 ```
@@ -415,7 +415,7 @@ Pass images as `attachments` in the agent RPC call. **Also save to disk** so the
 
 ```ts
 // Save image to disk for agent file path reference
-const mediaDir = join(homedir(), ".easyclaw", "openclaw", "media", "inbound");
+const mediaDir = join(homedir(), ".rivonclaw", "openclaw", "media", "inbound");
 const fileName = `mychannel-${Date.now()}.jpg`;
 const filePath = join(mediaDir, fileName);
 await fs.mkdir(mediaDir, { recursive: true });

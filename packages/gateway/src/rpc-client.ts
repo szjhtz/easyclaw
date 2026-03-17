@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import {
   loadOrCreateDeviceIdentity,
   publicKeyToBase64Url,

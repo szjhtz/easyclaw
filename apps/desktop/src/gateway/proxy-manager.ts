@@ -1,17 +1,17 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import { session } from "electron";
-import type { ProxyRouterConfig } from "@easyclaw/proxy-router";
-import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, resolveProxyRouterPort } from "@easyclaw/core";
-import { resolveProxyRouterConfigPath } from "@easyclaw/core/node";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
+import type { ProxyRouterConfig } from "@rivonclaw/proxy-router";
+import { ALL_PROVIDERS, getProviderMeta, reconstructProxyUrl, resolveProxyRouterPort } from "@rivonclaw/core";
+import { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
 import { join, dirname } from "node:path";
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const log = createLogger("proxy-manager");
 
-// Re-export from @easyclaw/core for backward compatibility.
-export { resolveProxyRouterConfigPath } from "@easyclaw/core/node";
+// Re-export from @rivonclaw/core for backward compatibility.
+export { resolveProxyRouterConfigPath } from "@rivonclaw/core/node";
 
 /**
  * Well-known domain to provider mapping for major LLM APIs.

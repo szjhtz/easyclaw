@@ -80,7 +80,7 @@ function computePorts(workerIndex: number): WorkerPorts {
 
 /** Create a unique temp directory for data isolation. */
 function createTempDir(): string {
-  return mkdtempSync(path.join(tmpdir(), "easyclaw-e2e-"));
+  return mkdtempSync(path.join(tmpdir(), "rivonclaw-e2e-"));
 }
 
 /** Build a clean env for Electron with data + port isolation. */
@@ -89,14 +89,14 @@ function buildEnv(tempDir: string, ports: WorkerPorts): Record<string, string> {
   delete env.ELECTRON_RUN_AS_NODE;
 
   // Isolate all persistent state to the temp directory
-  env.EASYCLAW_DB_PATH = path.join(tempDir, "db.sqlite");
-  env.EASYCLAW_SECRETS_DIR = path.join(tempDir, "secrets");
+  env.RIVONCLAW_DB_PATH = path.join(tempDir, "db.sqlite");
+  env.RIVONCLAW_SECRETS_DIR = path.join(tempDir, "secrets");
   env.OPENCLAW_STATE_DIR = path.join(tempDir, "openclaw");
 
   // Assign unique ports so parallel workers don't collide
-  env.EASYCLAW_GATEWAY_PORT = String(ports.gateway);
-  env.EASYCLAW_PANEL_PORT = String(ports.panel);
-  env.EASYCLAW_PROXY_ROUTER_PORT = String(ports.proxy);
+  env.RIVONCLAW_GATEWAY_PORT = String(ports.gateway);
+  env.RIVONCLAW_PANEL_PORT = String(ports.panel);
+  env.RIVONCLAW_PROXY_ROUTER_PORT = String(ports.proxy);
 
   // Skip the file-based gateway lock (acquireGatewayLock).  The lock uses
   // os.tmpdir()/openclaw-<uid>/gateway.<hash>.lock — a shared directory.

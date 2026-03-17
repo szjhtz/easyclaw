@@ -1,6 +1,6 @@
-# EasyClaw E2E Testing
+# RivonClaw E2E Testing
 
-End-to-end integration tests for the EasyClaw Electron desktop app, powered by [Playwright](https://playwright.dev/docs/api/class-electron).
+End-to-end integration tests for the RivonClaw Electron desktop app, powered by [Playwright](https://playwright.dev/docs/api/class-electron).
 
 ## Architecture
 
@@ -8,7 +8,7 @@ End-to-end integration tests for the EasyClaw Electron desktop app, powered by [
 e2e/
 ├── playwright.config.ts   # Playwright config (timeouts, workers, reporter)
 ├── electron-fixture.ts    # Custom fixtures — `test` (returning user) & `freshTest` (fresh user)
-├── global-setup.ts        # Loads e2e/.env, kills stale EasyClaw processes
+├── global-setup.ts        # Loads e2e/.env, kills stale RivonClaw processes
 ├── smoke.spec.ts          # Returning-user smoke tests (uses `test` fixture)
 ├── onboarding.spec.ts     # Fresh-user onboarding tests (uses `freshTest` fixture)
 ├── .env                   # API keys for testing (gitignored)
@@ -22,8 +22,8 @@ Each test runs with a **fresh, isolated temp directory**. Three env vars redirec
 
 | Env Var | Points to | Isolates |
 |---------|-----------|----------|
-| `EASYCLAW_DB_PATH` | `<tempdir>/db.sqlite` | SQLite database |
-| `EASYCLAW_SECRETS_DIR` | `<tempdir>/secrets/` | API keys (bypasses macOS Keychain) |
+| `RIVONCLAW_DB_PATH` | `<tempdir>/db.sqlite` | SQLite database |
+| `RIVONCLAW_SECRETS_DIR` | `<tempdir>/secrets/` | API keys (bypasses macOS Keychain) |
 | `OPENCLAW_STATE_DIR` | `<tempdir>/openclaw/` | Gateway state files |
 
 The temp directory is deleted after each test via `rmSync`, ensuring tests are **idempotent**.
@@ -56,7 +56,7 @@ Uses the `test` fixture (skips onboarding, lands on main page).
 
 | # | Test | Steps | Requires API Key |
 |---|------|-------|-----------------|
-| 1 | App launches and window is visible | Verify 1 window exists -> Check title is "EasyClaw" | No |
+| 1 | App launches and window is visible | Verify 1 window exists -> Check title is "RivonClaw" | No |
 | 2 | Panel renders with sidebar navigation | Verify `.sidebar-brand-text` visible -> Verify >= 5 nav buttons | No |
 | 3 | Chat page is default and gateway connects | Verify first nav has `nav-active` -> Wait for `.chat-status-dot-connected` -> Verify stable for 3s | No |
 | 4 | LLM Providers page: dropdowns and pricing | Dismiss modals -> Navigate to LLM Providers -> Verify Subscription tab active -> Open provider dropdown (2-3 options) -> Verify pricing card -> Switch to API tab -> Open provider dropdown (10-18 options) -> Verify pricing table | No |
@@ -81,7 +81,7 @@ The same test suite runs against **two modes**:
 | Mode | What it launches | When to use |
 |------|-----------------|-------------|
 | **Dev** | `node_modules/.../Electron` + `dist/main.cjs` | Before packaging — validates compiled code |
-| **Prod** | Packaged `EasyClaw.app` or `EasyClaw.exe` | After packaging — validates the installer build |
+| **Prod** | Packaged `RivonClaw.app` or `RivonClaw.exe` | After packaging — validates the installer build |
 
 ## Prerequisites
 
@@ -114,15 +114,15 @@ pnpm run pack
 
 # Step 2: Run tests against the packaged binary
 # macOS (arm64):
-E2E_EXECUTABLE_PATH=release/mac-arm64/EasyClaw.app/Contents/MacOS/EasyClaw \
+E2E_EXECUTABLE_PATH=release/mac-arm64/RivonClaw.app/Contents/MacOS/RivonClaw \
   pnpm run test:e2e:prod
 
 # macOS (universal/x64):
-E2E_EXECUTABLE_PATH=release/mac/EasyClaw.app/Contents/MacOS/EasyClaw \
+E2E_EXECUTABLE_PATH=release/mac/RivonClaw.app/Contents/MacOS/RivonClaw \
   pnpm run test:e2e:prod
 
 # Windows:
-E2E_EXECUTABLE_PATH=release/win-unpacked/EasyClaw.exe \
+E2E_EXECUTABLE_PATH=release/win-unpacked/RivonClaw.exe \
   pnpm run test:e2e:prod
 ```
 
@@ -198,10 +198,10 @@ The fixture already strips this variable, but the Playwright runner itself may b
 ### Tests hang or time out at "waiting for .sidebar-brand"
 
 The gateway process failed to start, so the panel never loads. Check:
-- Is another EasyClaw instance already running? (`pkill -x EasyClaw`)
+- Is another RivonClaw instance already running? (`pkill -x RivonClaw`)
 - Are vendor dependencies present? (`ls vendor/openclaw/openclaw.mjs`)
 - Run `pnpm run dev` manually to see if the app starts at all.
 
-### "No EasyClaw.app found" in prod mode
+### "No RivonClaw.app found" in prod mode
 
 Run `pnpm run pack` first. The packaged app is written to `release/`. The directory name depends on your architecture (e.g., `mac-arm64`, `mac`, `win-unpacked`).

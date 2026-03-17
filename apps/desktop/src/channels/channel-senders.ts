@@ -1,5 +1,5 @@
-import { createLogger } from "@easyclaw/logger";
-import { resolveOpenClawConfigPath, readExistingConfig } from "@easyclaw/gateway";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveOpenClawConfigPath, readExistingConfig } from "@rivonclaw/gateway";
 
 const log = createLogger("channel-senders");
 

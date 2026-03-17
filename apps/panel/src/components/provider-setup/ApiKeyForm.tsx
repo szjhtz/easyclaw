@@ -1,6 +1,6 @@
-import { getProviderMeta, getDefaultModelForProvider } from "@easyclaw/core";
-import type { LLMProvider } from "@easyclaw/core";
-import { ModelSelect } from "../inputs/ModelSelect.js";
+import { getProviderMeta, getDefaultModelForProvider } from "@rivonclaw/core";
+import type { LLMProvider } from "@rivonclaw/core";
+import { ModelSelect } from "../ModelSelect.js";
 import type { ProviderFormState } from "./use-provider-form.js";
 
 export function ApiKeyForm({

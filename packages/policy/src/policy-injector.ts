@@ -1,12 +1,12 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type {
-  PromptBuildEvent,
-  PromptBuildResult,
+  AgentStartContext,
+  AgentStartResult,
   GuardProvider,
   PolicyProvider,
 } from "./types.js";
 
-const log = createLogger("easyclaw:policy-injector");
+const log = createLogger("rivonclaw:policy-injector");
 
 /**
  * Parse a guard artifact's JSON content into a human-readable directive
@@ -34,15 +34,15 @@ function formatGuardDirective(content: string): string | null {
 }
 
 /**
- * Creates a before_prompt_build handler that injects the compiled policy view
- * and active guard directives as prependSystemContext (system prompt layer,
- * invisible to the user chat UI).
+ * Creates a before_agent_start handler that injects the compiled policy view
+ * and active guard directives as prependContext. Both blocks are wrapped with
+ * delimiters and placed before any existing prependContext.
  */
 export function createPolicyInjector(
   provider: PolicyProvider,
   guardProvider?: GuardProvider,
-): (event: PromptBuildEvent) => PromptBuildResult {
-  return function handlePromptBuild(_event: PromptBuildEvent): PromptBuildResult {
+): (ctx: AgentStartContext) => AgentStartResult {
+  return function handleAgentStart(ctx: AgentStartContext): AgentStartResult {
     const policyView = provider.getCompiledPolicyView();
     const guards = guardProvider?.getActiveGuards() ?? [];
 
@@ -62,23 +62,32 @@ export function createPolicyInjector(
 
     if (!hasPolicy && !hasGuards) {
       log.debug("No policies or guards available; passing through context");
-      return {};
+      return { prependContext: ctx.prependContext };
     }
 
     const blocks: string[] = [];
 
     if (hasPolicy) {
-      log.info("Injecting compiled policy view into system prompt");
-      blocks.push(policyView);
+      log.info("Injecting compiled policy view into prependContext");
+      blocks.push(
+        "--- RivonClaw Policy ---\n" + policyView + "\n--- End Policy ---",
+      );
     }
 
     if (hasGuards) {
-      log.info(`Injecting ${guardDirectives.length} guard directive(s) into system prompt`);
-      blocks.push(guardDirectives.join("\n"));
+      log.info(`Injecting ${guardDirectives.length} guard directive(s) into prependContext`);
+      blocks.push(
+        "--- RivonClaw Guards (MUST enforce) ---\n" +
+          guardDirectives.join("\n") +
+          "\n--- End Guards ---",
+      );
     }
 
+    const injected = blocks.join("\n") + "\n";
+
     return {
-      prependSystemContext: blocks.join("\n\n"),
+      prependContext:
+        injected + (ctx.prependContext ? "\n" + ctx.prependContext : ""),
     };
   };
 }

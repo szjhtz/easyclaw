@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
-import type { Rule, RuleArtifact } from "@easyclaw/core";
-import { createStorage, type Storage } from "@easyclaw/storage";
+import type { Rule, RuleArtifact } from "@rivonclaw/core";
+import { createStorage, type Storage } from "@rivonclaw/storage";
 import { compileRule } from "./compiler.js";
 import { ArtifactPipeline } from "./pipeline.js";
 

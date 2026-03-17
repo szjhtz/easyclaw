@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Smoke test: verify that EasyClaw extension entry graphs do not contain
+// Smoke test: verify that RivonClaw extension entry graphs do not contain
 // unbundled external npm imports. In packaged Electron builds,
 // extensions/*/node_modules is stripped, so every non-node import reachable
 // from an extension entrypoint must be either relative or bundled inline.

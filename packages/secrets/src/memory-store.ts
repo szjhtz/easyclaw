@@ -1,5 +1,5 @@
 import type { SecretKey, SecretStore } from "./types.js";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("secrets:memory");
 

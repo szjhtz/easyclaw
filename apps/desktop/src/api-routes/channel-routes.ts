@@ -1,6 +1,6 @@
-import { createLogger } from "@easyclaw/logger";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, writeChannelAccount, removeChannelAccount } from "@easyclaw/gateway";
-import type { ChannelsStatusSnapshot } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, writeChannelAccount, removeChannelAccount } from "@rivonclaw/gateway";
+import type { ChannelsStatusSnapshot } from "@rivonclaw/core";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { sendChannelMessage } from "../channels/channel-senders.js";
@@ -115,8 +115,8 @@ async function readAllAllowFromLists(channelId: string): Promise<string[]> {
 }
 
 const APPROVAL_MESSAGES = {
-  zh: "✅ [EasyClaw] 您的访问已获批准！现在可以开始和我对话了。",
-  en: "✅ [EasyClaw] Your access has been approved! You can start chatting now.",
+  zh: "✅ [RivonClaw] 您的访问已获批准！现在可以开始和我对话了。",
+  en: "✅ [RivonClaw] Your access has been approved! You can start chatting now.",
 };
 
 export const handleChannelRoutes: RouteHandler = async (req, res, url, pathname, ctx) => {

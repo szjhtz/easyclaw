@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
-import type { Rule, RuleArtifact } from "@easyclaw/core";
-import type { Storage } from "@easyclaw/storage";
-import { createLogger } from "@easyclaw/logger";
+import type { Rule, RuleArtifact } from "@rivonclaw/core";
+import type { Storage } from "@rivonclaw/storage";
+import { createLogger } from "@rivonclaw/logger";
 import { compileRule, compileRuleWithLLM } from "./compiler.js";
 import type { LLMConfig } from "./llm-client.js";
 

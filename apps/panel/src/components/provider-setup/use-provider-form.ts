@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@apollo/client/react";
-import { getDefaultModelForProvider, getProviderMeta } from "@easyclaw/core";
-import type { LLMProvider, GQL } from "@easyclaw/core";
+import { getDefaultModelForProvider, getProviderMeta } from "@rivonclaw/core";
+import type { LLMProvider, GQL } from "@rivonclaw/core";
 import {
   fetchProviderKeys,
   updateSettings,

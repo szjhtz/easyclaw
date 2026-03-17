@@ -80,10 +80,10 @@ function logPhase(label) {
   process.stderr.write(`[startup-timer] +${elapsed}ms ${label}\n`);
 }
 
-// Verbose-only variant — gated by EASYCLAW_STARTUP_DEBUG=1.
+// Verbose-only variant — gated by RIVONCLAW_STARTUP_DEBUG=1.
 // Logs detailed diagnostics (individual slow requires, cache internals, etc.)
 // that are useful for perf debugging but noisy in production.
-const verbose = !!process.env.EASYCLAW_STARTUP_DEBUG;
+const verbose = !!process.env.RIVONCLAW_STARTUP_DEBUG;
 function logPhaseV(label) {
   if (verbose) logPhase(label);
 }

@@ -13,26 +13,26 @@ export const DEFAULT_PROXY_ROUTER_PORT = 9999;
 /** Default port for the panel Vite dev server. */
 export const DEFAULT_PANEL_DEV_PORT = 5180;
 
-/** Resolve the gateway port, respecting EASYCLAW_GATEWAY_PORT env var. */
+/** Resolve the gateway port, respecting RIVONCLAW_GATEWAY_PORT env var. */
 export function resolveGatewayPort(
   env: Record<string, string | undefined> = process.env,
 ): number {
-  const v = env.EASYCLAW_GATEWAY_PORT?.trim();
+  const v = env.RIVONCLAW_GATEWAY_PORT?.trim();
   return v ? Number(v) : DEFAULT_GATEWAY_PORT;
 }
 
-/** Resolve the panel server port, respecting EASYCLAW_PANEL_PORT env var. */
+/** Resolve the panel server port, respecting RIVONCLAW_PANEL_PORT env var. */
 export function resolvePanelPort(
   env: Record<string, string | undefined> = process.env,
 ): number {
-  const v = env.EASYCLAW_PANEL_PORT?.trim();
+  const v = env.RIVONCLAW_PANEL_PORT?.trim();
   return v ? Number(v) : DEFAULT_PANEL_PORT;
 }
 
-/** Resolve the proxy router port, respecting EASYCLAW_PROXY_ROUTER_PORT env var. */
+/** Resolve the proxy router port, respecting RIVONCLAW_PROXY_ROUTER_PORT env var. */
 export function resolveProxyRouterPort(
   env: Record<string, string | undefined> = process.env,
 ): number {
-  const v = env.EASYCLAW_PROXY_ROUTER_PORT?.trim();
+  const v = env.RIVONCLAW_PROXY_ROUTER_PORT?.trim();
   return v ? Number(v) : DEFAULT_PROXY_ROUTER_PORT;
 }

@@ -1,39 +1,39 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-/** Resolve the EasyClaw home directory. Defaults to ~/.easyclaw. */
-export function resolveEasyClawHome(
+/** Resolve the RivonClaw home directory. Defaults to ~/.rivonclaw. */
+export function resolveRivonClawHome(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return env.EASYCLAW_HOME?.trim() || join(homedir(), ".easyclaw");
+  return env.RIVONCLAW_HOME?.trim() || join(homedir(), ".rivonclaw");
 }
 
 /** Resolve the SQLite database path. */
 export function resolveDbPath(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return env.EASYCLAW_DB_PATH?.trim() || join(resolveEasyClawHome(env), "db.sqlite");
+  return env.RIVONCLAW_DB_PATH?.trim() || join(resolveRivonClawHome(env), "db.sqlite");
 }
 
 /** Resolve the log directory. */
 export function resolveLogDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return join(resolveEasyClawHome(env), "logs");
+  return join(resolveRivonClawHome(env), "logs");
 }
 
 /** Resolve the secrets directory. */
 export function resolveSecretsDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return env.EASYCLAW_SECRETS_DIR?.trim() || join(resolveEasyClawHome(env), "secrets");
+  return env.RIVONCLAW_SECRETS_DIR?.trim() || join(resolveRivonClawHome(env), "secrets");
 }
 
 /** Resolve the OpenClaw state directory. */
 export function resolveOpenClawStateDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return env.OPENCLAW_STATE_DIR?.trim() || join(resolveEasyClawHome(env), "openclaw");
+  return env.OPENCLAW_STATE_DIR?.trim() || join(resolveRivonClawHome(env), "openclaw");
 }
 
 /** Resolve the OpenClaw config file path. */
@@ -54,14 +54,14 @@ export function resolveMediaDir(
 export function resolveCdpDataDir(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return join(resolveEasyClawHome(env), "chrome-cdp");
+  return join(resolveRivonClawHome(env), "chrome-cdp");
 }
 
 /** Resolve the update-installing marker file path. */
 export function resolveUpdateMarkerPath(
   env: Record<string, string | undefined> = process.env,
 ): string {
-  return join(resolveEasyClawHome(env), "update-installing");
+  return join(resolveRivonClawHome(env), "update-installing");
 }
 
 /** Resolve the proxy router config file path. */

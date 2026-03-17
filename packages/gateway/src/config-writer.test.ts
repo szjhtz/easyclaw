@@ -18,7 +18,7 @@ describe("config-writer", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = mkdtempSync(join(tmpdir(), "easyclaw-config-test-"));
+    tmpDir = mkdtempSync(join(tmpdir(), "rivonclaw-config-test-"));
   });
 
   afterEach(() => {
@@ -36,14 +36,14 @@ describe("config-writer", () => {
       expect(result).toBe("/custom/dir");
     });
 
-    it("falls back to ~/.easyclaw/openclaw when env var is empty", () => {
+    it("falls back to ~/.rivonclaw/openclaw when env var is empty", () => {
       const result = resolveOpenClawStateDir({ OPENCLAW_STATE_DIR: "" });
-      expect(result).toContain(".easyclaw");
+      expect(result).toContain(".rivonclaw");
     });
 
-    it("falls back to ~/.easyclaw/openclaw when env var is undefined", () => {
+    it("falls back to ~/.rivonclaw/openclaw when env var is undefined", () => {
       const result = resolveOpenClawStateDir({});
-      expect(result).toContain(".easyclaw");
+      expect(result).toContain(".rivonclaw");
     });
   });
 
@@ -71,7 +71,7 @@ describe("config-writer", () => {
 
     it("uses default state dir when neither env var is set", () => {
       const result = resolveOpenClawConfigPath({});
-      expect(result).toContain(".easyclaw");
+      expect(result).toContain(".rivonclaw");
       expect(result.endsWith("openclaw.json")).toBe(true);
     });
   });
@@ -190,7 +190,7 @@ describe("config-writer", () => {
       });
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      // EasyClaw-managed fields are updated
+      // RivonClaw-managed fields are updated
       expect(config.gateway.port).toBe(18789);
       // plugins gets extensions dir auto-added
       expect(config.plugins.load.paths.some((p: string) => p.endsWith("extensions"))).toBe(true);
@@ -439,7 +439,7 @@ describe("config-writer", () => {
       // Create a real file so existsSync() passes
       const fpDir = join(tmpDir, "file-permissions-plugin");
       mkdirSync(fpDir);
-      const customPath = join(fpDir, "easyclaw-file-permissions.mjs");
+      const customPath = join(fpDir, "rivonclaw-file-permissions.mjs");
       writeFileSync(customPath, "// plugin");
 
       writeGatewayConfig({
@@ -450,7 +450,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.plugins.load.paths).toContain(customPath);
-      expect(config.plugins.entries["easyclaw-file-permissions"]).toEqual({ enabled: true });
+      expect(config.plugins.entries["rivonclaw-file-permissions"]).toEqual({ enabled: true });
     });
 
     it("falls back to auto-resolved path when filePermissionsPluginPath is omitted", () => {
@@ -462,7 +462,7 @@ describe("config-writer", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       // paths includes file-permissions plugin + extensions dir
-      expect(config.plugins.load.paths.some((p: string) => p.includes("easyclaw-file-permissions.mjs"))).toBe(true);
+      expect(config.plugins.load.paths.some((p: string) => p.includes("rivonclaw-file-permissions.mjs"))).toBe(true);
       expect(config.plugins.load.paths.some((p: string) => p.endsWith("extensions"))).toBe(true);
     });
   });
@@ -583,7 +583,7 @@ describe("config-writer", () => {
       const configPath = join(tmpDir, "openclaw.json");
       const extDir = join(tmpDir, "extensions");
       mkdirSync(extDir);
-      const fpPath = join(tmpDir, "fp-plugin", "easyclaw-file-permissions.mjs");
+      const fpPath = join(tmpDir, "fp-plugin", "rivonclaw-file-permissions.mjs");
       mkdirSync(join(tmpDir, "fp-plugin"));
       writeFileSync(fpPath, "// plugin");
 
@@ -598,7 +598,7 @@ describe("config-writer", () => {
       const paths = config.plugins.load.paths as string[];
       expect(paths).toContain(fpPath);
       expect(paths).toContain(extDir);
-      expect(config.plugins.entries["easyclaw-file-permissions"]).toEqual({ enabled: true });
+      expect(config.plugins.entries["rivonclaw-file-permissions"]).toEqual({ enabled: true });
     });
   });
 
@@ -611,8 +611,8 @@ describe("config-writer", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.gateway.port).toBe(DEFAULT_GATEWAY_PORT);
       // ensureGatewayConfig enables file permissions plugin by default
-      expect(config.plugins.entries["easyclaw-file-permissions"].enabled).toBe(true);
-      expect(config.plugins.load.paths[0]).toContain("easyclaw-file-permissions.mjs");
+      expect(config.plugins.entries["rivonclaw-file-permissions"].enabled).toBe(true);
+      expect(config.plugins.load.paths[0]).toContain("rivonclaw-file-permissions.mjs");
       expect(config.skills.load.extraDirs).toEqual([]);
     });
 
@@ -1028,7 +1028,7 @@ describe("config-writer", () => {
       expect(config.channels.discord.accounts.default.token).toBe("discord-tok");
     });
 
-    it("does not delete EasyClaw-managed keys on semantic errors", () => {
+    it("does not delete RivonClaw-managed keys on semantic errors", () => {
       const configPath = join(tmpDir, "openclaw.json");
       writeGatewayConfig({ configPath, gatewayPort: 18789 });
 

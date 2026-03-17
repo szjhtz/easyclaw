@@ -1,39 +1,39 @@
-import { createLogger } from "@easyclaw/logger";
-import { createPolicyInjector } from "@easyclaw/policy";
+import { createLogger } from "@rivonclaw/logger";
+import { createPolicyInjector } from "@rivonclaw/policy";
 import type {
   GuardProvider,
   OpenClawPluginAPI,
   PolicyProvider,
-} from "@easyclaw/policy";
+} from "@rivonclaw/policy";
 
-const log = createLogger("easyclaw:plugin");
+const log = createLogger("rivonclaw:plugin");
 
-/** Options for creating the EasyClaw OpenClaw plugin. */
-export interface EasyClawPluginOptions {
+/** Options for creating the RivonClaw OpenClaw plugin. */
+export interface RivonClawPluginOptions {
   policyProvider: PolicyProvider;
   guardProvider: GuardProvider;
 }
 
 /**
- * Creates the EasyClaw plugin that registers with the OpenClaw gateway.
- * It wires the policy injector (before_prompt_build) which injects both
- * policy fragments and guard directives into the system prompt.
+ * Creates the RivonClaw plugin that registers with the OpenClaw gateway.
+ * It wires the policy injector (before_agent_start) which injects both
+ * policy fragments and guard directives into the agent's system prompt.
  *
  * Guard enforcement via before_tool_call is intentionally disabled —
  * the current pattern matcher is too limited (only tool:/path: prefixes)
  * and risks false positives. Guards are instead injected as prompt-level
  * directives until a proper condition DSL is implemented.
  */
-export function createEasyClawPlugin(options: EasyClawPluginOptions) {
+export function createRivonClawPlugin(options: RivonClawPluginOptions) {
   return {
-    name: "easyclaw" as const,
+    name: "rivonclaw" as const,
 
     register(api: OpenClawPluginAPI): void {
       const policyHandler = createPolicyInjector(options.policyProvider, options.guardProvider);
 
-      api.registerHook("before_prompt_build", policyHandler);
+      api.registerHook("before_agent_start", policyHandler);
 
-      log.info("EasyClaw plugin registered");
+      log.info("RivonClaw plugin registered");
     },
   };
 }

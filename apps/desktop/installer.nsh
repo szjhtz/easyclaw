@@ -1,10 +1,10 @@
-; Custom NSIS macros for EasyClaw installer (included via electron-builder).
+; Custom NSIS macros for RivonClaw installer (included via electron-builder).
 ;
-; The gateway child process runs as EasyClaw.exe (with ELECTRON_RUN_AS_NODE=1,
+; The gateway child process runs as RivonClaw.exe (with ELECTRON_RUN_AS_NODE=1,
 ; detached=true) and can survive after the user quits the main Electron app.
 ; When the user manually reinstalls/upgrades, the default NSIS logic detects
 ; orphaned processes or the old uninstaller fails due to file locks, showing
-; a blocking "EasyClaw cannot be closed" dialog.
+; a blocking "RivonClaw cannot be closed" dialog.
 ;
 ; We use four hooks to prevent this:
 ;   1. customInit            — kill processes + nuke old uninstaller registry
@@ -13,16 +13,16 @@
 ;   4. customUnInit          — same cleanup for the uninstaller binary
 
 ; ---------------------------------------------------------------------------
-; Shared helper: kill all EasyClaw-related processes
+; Shared helper: kill all RivonClaw-related processes
 ; ---------------------------------------------------------------------------
-!macro _killEasyClawProcesses
-  nsExec::ExecToLog 'taskkill /f /im EasyClaw.exe'
+!macro _killRivonClawProcesses
+  nsExec::ExecToLog 'taskkill /f /im RivonClaw.exe'
   Pop $0
   nsExec::ExecToLog 'taskkill /f /t /im openclaw-gateway.exe'
   Pop $0
   nsExec::ExecToLog 'taskkill /f /t /im openclaw.exe'
   Pop $0
-  nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%easyclaw%'"'"'" call terminate'
+  nsExec::ExecToLog 'wmic process where "name='"'"'node.exe'"'"' and commandline like '"'"'%rivonclaw%'"'"'" call terminate'
   Pop $0
   Sleep 5000
 !macroend
@@ -38,7 +38,7 @@
 ; and write fresh registry entries.
 ; ---------------------------------------------------------------------------
 !macro customInit
-  !insertmacro _killEasyClawProcesses
+  !insertmacro _killRivonClawProcesses
 
   ; Wipe the old UninstallString so uninstallOldVersion() exits early.
   ; SHELL_CONTEXT is set by initMultiUser (runs before customInit).
@@ -78,7 +78,7 @@
 ; shows a blocking dialog.  We replace it with a silent kill-and-continue.
 ; ---------------------------------------------------------------------------
 !macro customCheckAppRunning
-  !insertmacro _killEasyClawProcesses
+  !insertmacro _killRivonClawProcesses
 !macroend
 
 ; ---------------------------------------------------------------------------
@@ -97,6 +97,6 @@
 ; Hook 4: customUnInit — same cleanup for the uninstaller binary
 ; ---------------------------------------------------------------------------
 !macro customUnInit
-  !insertmacro _killEasyClawProcesses
+  !insertmacro _killRivonClawProcesses
   RMDir /r "$TEMP\openclaw"
 !macroend

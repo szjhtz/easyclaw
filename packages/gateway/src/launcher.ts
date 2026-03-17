@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type {
   GatewayLaunchOptions,
   GatewayState,
@@ -280,7 +280,7 @@ export class GatewayLauncher extends EventEmitter<GatewayEvents> {
             preloadPath,
             `"use strict";
 if(process.platform==="win32"){const cp=require("child_process"),oS=cp.spawn;cp.spawn=function(c,a,o){if(a!=null&&!Array.isArray(a)){o=a;a=[]}const l=String(c).toLowerCase();if(l.includes("powershell")||l.includes("pwsh")){if(Array.isArray(a)){a=[...a];for(let i=0;i<a.length;i++){if(String(a[i]).toLowerCase()==="-command"&&i+1<a.length){a[i+1]="[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; "+a[i+1];break}}}return oS.call(this,c,a,o)}if(l.includes("cmd")){if(Array.isArray(a)){a=[...a];for(let i=0;i<a.length;i++){if(String(a[i]).toLowerCase()==="/c"&&i+1<a.length){a[i+1]="chcp 65001>nul & "+a[i+1];break}}}return oS.call(this,c,a,o)}return oS.call(this,c,a,o)}}
-const t0=performance.now(),V=!!process.env.EASYCLAW_STARTUP_DEBUG,path=require("path"),Module=require("module");
+const t0=performance.now(),V=!!process.env.RIVONCLAW_STARTUP_DEBUG,path=require("path"),Module=require("module");
 let sdkPath=null,sdkDir=null;
 const origRes=Module._resolveFilename;
 Module._resolveFilename=function(r,p,m,o){if(sdkPath){if(r==="openclaw/plugin-sdk")return sdkPath;if(r.startsWith("openclaw/plugin-sdk/"))return origRes.call(this,path.join(sdkDir,r.slice(20)),p,m,o)}return origRes.call(this,r,p,m,o)};

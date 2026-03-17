@@ -1,10 +1,10 @@
-# EasyClaw File Permissions Plugin
+# RivonClaw File Permissions Plugin
 
 OpenClaw plugin that enforces file access permissions via the `before_tool_call` hook.
 
 ## Overview
 
-This plugin intercepts tool calls before execution and validates file paths against the `EASYCLAW_FILE_PERMISSIONS` environment variable. It blocks unauthorized file access operations while allowing permitted paths.
+This plugin intercepts tool calls before execution and validates file paths against the `RIVONCLAW_FILE_PERMISSIONS` environment variable. It blocks unauthorized file access operations while allowing permitted paths.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ The plugin validates file paths for these tools:
 ## Environment Variable Format
 
 ```bash
-EASYCLAW_FILE_PERMISSIONS='read:/path1:/path2,write:/path3:/path4'
+RIVONCLAW_FILE_PERMISSIONS='read:/path1:/path2,write:/path3:/path4'
 ```
 
 - Format: `mode:path1:path2,...`
@@ -42,7 +42,7 @@ EASYCLAW_FILE_PERMISSIONS='read:/path1:/path2,write:/path3:/path4'
 The gateway package automatically loads this plugin when `enableFilePermissions: true`:
 
 ```typescript
-import { writeGatewayConfig } from "@easyclaw/gateway";
+import { writeGatewayConfig } from "@rivonclaw/gateway";
 
 writeGatewayConfig({
   enableFilePermissions: true, // Automatically adds plugin to load paths
@@ -60,7 +60,7 @@ Add to `openclaw.json`:
       "paths": ["path/to/file-permissions/dist/index.mjs"]
     },
     "entries": {
-      "easyclaw-file-permissions": {
+      "rivonclaw-file-permissions": {
         "enabled": true
       }
     }

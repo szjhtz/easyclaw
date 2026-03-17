@@ -1,6 +1,6 @@
-# EasyClaw Extensions
+# RivonClaw Extensions
 
-Extensions are OpenClaw plugins that ship with EasyClaw. They are auto-discovered
+Extensions are OpenClaw plugins that ship with RivonClaw. They are auto-discovered
 at runtime — no per-extension wiring needed in config-writer, main.ts, or
 electron-builder.yml.
 
@@ -8,24 +8,24 @@ electron-builder.yml.
 
 | Extension | Type | Description |
 |-----------|------|-------------|
-| `easyclaw-tools` | Hook + Tool | Runtime context injection + `easyclaw`/`providers` tools (ownerOnly) |
-| `easyclaw-policy` | Hook | Injects compiled policies and guard directives into system prompt |
+| `rivonclaw-tools` | Hook + Tool | Runtime context injection + `rivonclaw`/`providers` tools (ownerOnly) |
+| `rivonclaw-policy` | Hook | Injects compiled policies and guard directives into system prompt |
 | `file-permissions` | Hook | Validates file operations against permission policies |
 | `search-browser-fallback` | Hook (single-file) | Falls back to browser search when `web_search` fails |
 
-### easyclaw-tools: Tool Status
+### rivonclaw-tools: Tool Status
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| `before_prompt_build` hook | Implemented | Prepends EasyClaw runtime context via `prependContext` |
-| `easyclaw` tool | Implemented | `status` (runtime info), `help` (available tools + tips) |
+| `before_prompt_build` hook | Implemented | Prepends RivonClaw runtime context via `prependContext` |
+| `rivonclaw` tool | Implemented | `status` (runtime info), `help` (available tools + tips) |
 | `providers` tool | Implemented | list, add, activate, remove — calls panel-server HTTP API |
 | `channels` tool | Placeholder | list, status, configure — will call panel-server API |
 | `settings` tool | Placeholder | get, update — will call panel-server API |
 | `rules` tool | Placeholder | list, create, update, delete — will call panel-server API |
 | `skills` tool | Placeholder | search, install, delete, list — will call panel-server API |
 
-### easyclaw-tools: Why `prependContext` Instead of `systemPrompt` Replacement
+### rivonclaw-tools: Why `prependContext` Instead of `systemPrompt` Replacement
 
 The `before_prompt_build` hook's `event.prompt` is the **user's message**, not the
 built system prompt. The hook cannot read or modify the existing system prompt —
@@ -43,7 +43,7 @@ section remains in the system prompt but is effectively overridden.
 
 ## How Loading Works
 
-EasyClaw points `plugins.load.paths` at the **entire `extensions/` directory**.
+RivonClaw points `plugins.load.paths` at the **entire `extensions/` directory**.
 OpenClaw's `discoverInDirectory()` scans each subdirectory and discovers plugins via:
 
 1. `package.json` with `openclaw.extensions` field (channel plugins)

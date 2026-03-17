@@ -1,5 +1,5 @@
 {
-  "name": "@easyclaw/stt",
+  "name": "@rivonclaw/stt",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,8 +17,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@easyclaw/core": "workspace:*",
-    "@easyclaw/logger": "workspace:*"
+    "@rivonclaw/core": "workspace:*",
+    "@rivonclaw/logger": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "^0.20.3",

@@ -1,8 +1,8 @@
 import Database from "better-sqlite3";
 import { dirname } from "node:path";
 import { mkdirSync } from "node:fs";
-import { createLogger } from "@easyclaw/logger";
-import { resolveDbPath, resolveEasyClawHome } from "@easyclaw/core/node";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveDbPath, resolveRivonClawHome } from "@rivonclaw/core/node";
 import { migrations } from "./migrations.js";
 
 const logger = createLogger("storage");
@@ -46,7 +46,7 @@ export function openDatabase(dbPath?: string): Database.Database {
   if (resolvedPath !== ":memory:") {
     const dir =
       resolvedPath === defaultPath
-        ? resolveEasyClawHome()
+        ? resolveRivonClawHome()
         : dirname(resolvedPath);
     mkdirSync(dir, { recursive: true });
   }

@@ -1,7 +1,7 @@
 /**
- * @easyclaw/telemetry
+ * @rivonclaw/telemetry
  *
- * Privacy-first telemetry client for EasyClaw desktop application.
+ * Privacy-first telemetry client for RivonClaw desktop application.
  *
  * Features:
  * - Batch upload (10 events or 30s, whichever comes first)

@@ -1,9 +1,9 @@
-import { createLogger } from "@easyclaw/logger";
-import type { SttProvider as SttProviderType } from "@easyclaw/core";
-import { createSttProvider } from "@easyclaw/stt";
-import type { SttProvider, SttConfig } from "@easyclaw/stt";
-import type { SecretStore } from "@easyclaw/secrets";
-import type { Storage } from "@easyclaw/storage";
+import { createLogger } from "@rivonclaw/logger";
+import type { SttProvider as SttProviderType } from "@rivonclaw/core";
+import { createSttProvider } from "@rivonclaw/stt";
+import type { SttProvider, SttConfig } from "@rivonclaw/stt";
+import type { SecretStore } from "@rivonclaw/secrets";
+import type { Storage } from "@rivonclaw/storage";
 
 const log = createLogger("stt-manager");
 

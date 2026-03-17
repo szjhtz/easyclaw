@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { createEasyClawTool } from "./easyclaw-tool.js";
+import { createRivonClawTool } from "./rivonclaw-tool.js";
 
-describe("createEasyClawTool", () => {
-  const tool = createEasyClawTool({
+describe("createRivonClawTool", () => {
+  const tool = createRivonClawTool({
     config: { provider: "anthropic", model: "claude-sonnet-4-5-20250929" },
   });
 
   it("returns a valid tool definition", () => {
-    expect(tool.name).toBe("easyclaw");
-    expect(tool.label).toBe("EasyClaw");
+    expect(tool.name).toBe("rivonclaw");
+    expect(tool.label).toBe("RivonClaw");
     expect(tool.ownerOnly).toBe(true);
     expect(typeof tool.execute).toBe("function");
   });
@@ -16,7 +16,7 @@ describe("createEasyClawTool", () => {
   it("status action returns runtime info", async () => {
     const result = await tool.execute("test-id", { action: "status" });
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.runtime).toBe("easyclaw-desktop");
+    expect(parsed.runtime).toBe("rivonclaw-desktop");
     expect(parsed.gatewayStatus).toBe("running");
     expect(parsed.provider).toBe("anthropic");
     expect(parsed.model).toBe("claude-sonnet-4-5-20250929");
@@ -29,7 +29,7 @@ describe("createEasyClawTool", () => {
     expect(parsed.availableTools).toHaveLength(3);
     expect(parsed.availableTools[0].tool).toBe("gateway");
     expect(parsed.availableTools[1].tool).toBe("providers");
-    expect(parsed.availableTools[2].tool).toBe("easyclaw");
+    expect(parsed.availableTools[2].tool).toBe("rivonclaw");
     expect(parsed.tips).toBeDefined();
   });
 
@@ -40,7 +40,7 @@ describe("createEasyClawTool", () => {
   });
 
   it("handles missing config gracefully", async () => {
-    const noConfigTool = createEasyClawTool();
+    const noConfigTool = createRivonClawTool();
     const result = await noConfigTool.execute("test-id", { action: "status" });
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.provider).toBe("unknown");

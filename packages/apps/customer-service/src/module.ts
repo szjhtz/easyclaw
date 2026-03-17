@@ -10,7 +10,7 @@ import type {
   CSErrorFrame,
   CSBindingResolvedFrame,
   CSWSFrame,
-} from "@easyclaw/core";
+} from "@rivonclaw/core";
 
 export interface CustomerServiceCallbacks {
   /** Called when an inbound customer message arrives. Returns the agent's reply text. */

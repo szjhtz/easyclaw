@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
-import { DEFAULT_PANEL_DEV_PORT, DEFAULT_PANEL_PORT } from "@easyclaw/core";
+import { DEFAULT_PANEL_DEV_PORT, DEFAULT_PANEL_PORT } from "@rivonclaw/core";
 
 export default defineConfig({
   plugins: [react()],

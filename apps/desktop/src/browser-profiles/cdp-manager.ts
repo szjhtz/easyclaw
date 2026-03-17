@@ -1,10 +1,10 @@
-import { createLogger } from "@easyclaw/logger";
-import type { WriteGatewayConfigOptions } from "@easyclaw/gateway";
+import { createLogger } from "@rivonclaw/logger";
+import type { WriteGatewayConfigOptions } from "@rivonclaw/gateway";
 import { get as httpGet } from "node:http";
 import { createConnection } from "node:net";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { resolveCdpDataDir } from "@easyclaw/core/node";
+import { resolveCdpDataDir } from "@rivonclaw/core/node";
 import {
   existsSync, readFileSync, lstatSync, readlinkSync,
   readdirSync, unlinkSync, rmSync, mkdirSync, symlinkSync, copyFileSync,

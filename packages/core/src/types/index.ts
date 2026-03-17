@@ -3,8 +3,8 @@ export type { ArtifactType, ArtifactStatus, RuleArtifact } from "./artifact.js";
 export type { ChannelConfig } from "./channel.js";
 export type { PermissionConfig } from "./permission.js";
 export type { ProviderKeyEntry, ProviderKeyAuthType } from "./provider-key.js";
-export { easyClawConfigSchema } from "./config.js";
-export type { EasyClawConfig } from "./config.js";
+export { rivonClawConfigSchema } from "./config.js";
+export type { RivonClawConfig } from "./config.js";
 export type {
   ChannelsStatusSnapshot,
   ChannelAccountSnapshot,

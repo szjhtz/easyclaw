@@ -1,5 +1,5 @@
 /**
- * EasyClaw System Tool
+ * RivonClaw System Tool
  *
  * Provides system status and help information to the AI agent.
  * Runs inside the gateway process — reads config directly, no HTTP calls.
@@ -13,7 +13,7 @@ type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
 };
 
-type EasyClawToolDef = {
+type RivonClawToolDef = {
   label: string;
   name: string;
   description: string;
@@ -39,21 +39,21 @@ function stringEnum<T extends readonly string[]>(values: T) {
   return Type.Unsafe<T[number]>({ type: "string", enum: [...values] });
 }
 
-const EASYCLAW_ACTIONS = ["status", "help"] as const;
+const RIVONCLAW_ACTIONS = ["status", "help"] as const;
 
-export function createEasyClawTool(opts?: {
+export function createRivonClawTool(opts?: {
   config?: GatewayConfig;
-}): EasyClawToolDef {
+}): RivonClawToolDef {
   return {
-    label: "EasyClaw",
-    name: "easyclaw",
+    label: "RivonClaw",
+    name: "rivonclaw",
     ownerOnly: true,
     description:
-      "Get EasyClaw system status or help. " +
+      "Get RivonClaw system status or help. " +
       "Use `status` to check the current runtime state (provider, model, gateway). " +
       "Use `help` to see all available tool actions and tips.",
     parameters: Type.Object({
-      action: stringEnum(EASYCLAW_ACTIONS),
+      action: stringEnum(RIVONCLAW_ACTIONS),
     }),
     execute: async (_toolCallId: string, args: unknown): Promise<ToolResult> => {
       const action = (args as Record<string, unknown>).action as string;
@@ -69,7 +69,7 @@ export function createEasyClawTool(opts?: {
           : [];
 
         return jsonResult({
-          runtime: "easyclaw-desktop",
+          runtime: "rivonclaw-desktop",
           platform: process.platform,
           arch: process.arch,
           nodeVersion: process.version,
@@ -94,15 +94,15 @@ export function createEasyClawTool(opts?: {
               actions: ["list", "add", "activate", "remove"],
             },
             {
-              tool: "easyclaw",
-              description: "EasyClaw system status and help",
+              tool: "rivonclaw",
+              description: "RivonClaw system status and help",
               actions: ["status", "help"],
             },
           ],
           tips: [
-            "Gateway lifecycle is auto-managed by EasyClaw — no need to start/stop manually",
+            "Gateway lifecycle is auto-managed by RivonClaw — no need to start/stop manually",
             "To change provider or model, use the gateway tool's config.patch action",
-            "Do NOT run `openclaw` CLI commands — they are not available in EasyClaw",
+            "Do NOT run `openclaw` CLI commands — they are not available in RivonClaw",
             "Use the providers tool to add, list, or switch API keys through conversation",
           ],
         });

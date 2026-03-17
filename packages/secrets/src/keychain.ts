@@ -1,16 +1,16 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { SecretKey, SecretStore } from "./types.js";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const execFileAsync = promisify(execFile);
 const log = createLogger("secrets:keychain");
 
-/** Account name used for all EasyClaw keychain items. */
-const ACCOUNT = "easyclaw";
+/** Account name used for all RivonClaw keychain items. */
+const ACCOUNT = "rivonclaw";
 
 /** Prefix applied to every service name so our items are easy to find. */
-const SERVICE_PREFIX = "easyclaw/";
+const SERVICE_PREFIX = "rivonclaw/";
 
 function serviceName(key: string): string {
   return SERVICE_PREFIX + key;
@@ -74,7 +74,7 @@ export class KeychainSecretStore implements SecretStore {
     try {
       const { stdout } = await execFileAsync("security", ["dump-keychain"]);
       const keys: string[] = [];
-      const serviceRegex = /"svce"<blob>="easyclaw\/([^"]+)"/g;
+      const serviceRegex = /"svce"<blob>="rivonclaw\/([^"]+)"/g;
       let match: RegExpExecArray | null;
       while ((match = serviceRegex.exec(stdout)) !== null) {
         keys.push(match[1]);

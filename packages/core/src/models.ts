@@ -891,7 +891,7 @@ export let KNOWN_MODELS: Partial<Record<LLMProvider, ModelConfig[]>> =
 /**
  * Populate KNOWN_MODELS from the gateway's model catalog.
  *
- * Called by `readFullModelCatalog()` in @easyclaw/gateway after reading
+ * Called by `readFullModelCatalog()` in @rivonclaw/gateway after reading
  * models.json. Local supplemental models (runtime extras or fallback models)
  * are placed first because they carry richer local metadata like cost, and
  * catalog entries that don't overlap are appended after.

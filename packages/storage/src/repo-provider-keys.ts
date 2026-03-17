@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { ProviderKeyEntry, ProviderKeyAuthType } from "@easyclaw/core";
+import type { ProviderKeyEntry, ProviderKeyAuthType } from "@rivonclaw/core";
 
 interface ProviderKeyRow {
   id: string;

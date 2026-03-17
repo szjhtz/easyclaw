@@ -41,42 +41,42 @@ async function waitFor(condition, timeoutMs, intervalMs = 250) {
 async function main() {
   const executablePath = process.argv[2];
   if (!executablePath) {
-    throw new Error("Usage: node prod-model-switch-check.mjs <EasyClaw.exe>");
+    throw new Error("Usage: node prod-model-switch-check.mjs <RivonClaw.exe>");
   }
   const initialReadyBudgetSeconds = Number(
-    process.env.EASYCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS ??
+    process.env.RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS ??
       DEFAULT_INITIAL_READY_BUDGET_SECONDS,
   );
   const modelSwitchBudgetSeconds = parseOptionalPositiveNumber(
-    process.env.EASYCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS,
+    process.env.RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS,
     DEFAULT_MODEL_SWITCH_BUDGET_SECONDS,
   );
   const initialReadyTimeoutMs = Number(
-    process.env.EASYCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS ??
+    process.env.RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS ??
       DEFAULT_INITIAL_READY_TIMEOUT_MS,
   );
   const modelSwitchTimeoutMs = Number(
-    process.env.EASYCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS ??
+    process.env.RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS ??
       DEFAULT_MODEL_SWITCH_TIMEOUT_MS,
   );
 
-  const tempDir = mkdtempSync(path.join(tmpdir(), "easyclaw-prod-check-"));
+  const tempDir = mkdtempSync(path.join(tmpdir(), "rivonclaw-prod-check-"));
   const homeDir = path.join(tempDir, "home");
   const userDataDir = path.join(tempDir, "electron-data");
   const env = {
     ...process.env,
-    EASYCLAW_HOME: homeDir,
-    EASYCLAW_DB_PATH: path.join(homeDir, "db.sqlite"),
-    EASYCLAW_SECRETS_DIR: path.join(homeDir, "secrets"),
+    RIVONCLAW_HOME: homeDir,
+    RIVONCLAW_DB_PATH: path.join(homeDir, "db.sqlite"),
+    RIVONCLAW_SECRETS_DIR: path.join(homeDir, "secrets"),
     OPENCLAW_STATE_DIR: path.join(homeDir, "openclaw"),
-    EASYCLAW_GATEWAY_PORT: "29789",
-    EASYCLAW_PANEL_PORT: "29790",
-    EASYCLAW_PROXY_ROUTER_PORT: "29792",
+    RIVONCLAW_GATEWAY_PORT: "29789",
+    RIVONCLAW_PANEL_PORT: "29790",
+    RIVONCLAW_PROXY_ROUTER_PORT: "29792",
     OPENCLAW_ALLOW_MULTI_GATEWAY: "1",
   };
   delete env.ELECTRON_RUN_AS_NODE;
 
-  const logPath = path.join(homeDir, "logs", "easyclaw.log");
+  const logPath = path.join(homeDir, "logs", "rivonclaw.log");
   let app;
   let keepTempDir = false;
 

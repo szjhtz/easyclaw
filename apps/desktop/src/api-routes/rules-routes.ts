@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { ArtifactStatus, ArtifactType } from "@easyclaw/core";
-import { removeSkillFile } from "@easyclaw/rules";
+import type { ArtifactStatus, ArtifactType } from "@rivonclaw/core";
+import { removeSkillFile } from "@rivonclaw/rules";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody, extractIdFromPath } from "./route-utils.js";
 

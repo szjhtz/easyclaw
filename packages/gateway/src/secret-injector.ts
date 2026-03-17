@@ -1,7 +1,7 @@
-import type { SecretStore } from "@easyclaw/secrets";
-import type { Storage } from "@easyclaw/storage";
-import { ALL_PROVIDERS, getProviderMeta, providerSecretKey } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
+import type { SecretStore } from "@rivonclaw/secrets";
+import type { Storage } from "@rivonclaw/storage";
+import { ALL_PROVIDERS, getProviderMeta, providerSecretKey } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("gateway:secret-injector");
 
@@ -100,12 +100,12 @@ export interface FilePermissions {
 /**
  * Build file permissions environment variable for the gateway.
  *
- * Reads permissions from storage and constructs the EASYCLAW_FILE_PERMISSIONS
+ * Reads permissions from storage and constructs the RIVONCLAW_FILE_PERMISSIONS
  * environment variable as a JSON string containing workspace path and access rules.
  *
  * @param storage - Storage instance to read permissions from
  * @param workspacePath - Path to the workspace directory (default cwd)
- * @returns JSON string to inject as EASYCLAW_FILE_PERMISSIONS, or null if no storage
+ * @returns JSON string to inject as RIVONCLAW_FILE_PERMISSIONS, or null if no storage
  */
 export function buildFilePermissionsEnv(
   storage: Storage | null,
@@ -170,7 +170,7 @@ export async function buildGatewayEnv(
   if (storage) {
     const filePermissionsJson = buildFilePermissionsEnv(storage, workspacePath);
     if (filePermissionsJson) {
-      merged.EASYCLAW_FILE_PERMISSIONS = filePermissionsJson;
+      merged.RIVONCLAW_FILE_PERMISSIONS = filePermissionsJson;
     }
   }
 

@@ -53,8 +53,8 @@ async function readMediaSource(source: string): Promise<{ buf: Buffer; fileName:
 }
 
 // Ensure the local media directory exists.
-const MEDIA_DIR = join(homedir(), ".easyclaw", "openclaw", "media", "inbound", "mobile");
-const SYNC_STATE_DIR = join(homedir(), ".easyclaw", "openclaw", "mobile-sync");
+const MEDIA_DIR = join(homedir(), ".rivonclaw", "openclaw", "media", "inbound", "mobile");
+const SYNC_STATE_DIR = join(homedir(), ".rivonclaw", "openclaw", "mobile-sync");
 
 const SENT_HISTORY_LIMIT = 200;
 const OUTBOX_LIMIT = 500;

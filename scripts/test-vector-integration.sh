@@ -8,7 +8,7 @@ VECTOR_URL="${VECTOR_URL:-http://localhost:8080/v1/events}"
 CLICKHOUSE_URL="${CLICKHOUSE_URL:-http://localhost:8123}"
 
 echo "======================================"
-echo "EasyClaw Vector Integration Test"
+echo "RivonClaw Vector Integration Test"
 echo "======================================"
 echo ""
 
@@ -69,7 +69,7 @@ sleep 5
 
 # Query ClickHouse for our test events
 echo "5. Querying ClickHouse for test events..."
-RESULT=$(curl -s "${CLICKHOUSE_URL}/?query=SELECT+count(*)+FROM+easyclaw.telemetry_events+WHERE+sessionId='${SESSION_ID}'+FORMAT+JSONEachRow")
+RESULT=$(curl -s "${CLICKHOUSE_URL}/?query=SELECT+count(*)+FROM+rivonclaw.telemetry_events+WHERE+sessionId='${SESSION_ID}'+FORMAT+JSONEachRow")
 COUNT=$(echo "$RESULT" | grep -o '"count()":"[0-9]*"' | grep -o '[0-9]*' || echo "0")
 
 if [ "$COUNT" -ge 2 ]; then
@@ -79,13 +79,13 @@ else
   echo "   Debugging information:"
   echo ""
   echo "   Recent ClickHouse events:"
-  curl -s "${CLICKHOUSE_URL}/?query=SELECT+*+FROM+easyclaw.telemetry_events+ORDER+BY+timestamp+DESC+LIMIT+5+FORMAT+JSONEachRow" | head -5
+  curl -s "${CLICKHOUSE_URL}/?query=SELECT+*+FROM+rivonclaw.telemetry_events+ORDER+BY+timestamp+DESC+LIMIT+5+FORMAT+JSONEachRow" | head -5
   exit 1
 fi
 
 # Display the test events
 echo "6. Displaying test events:"
-curl -s "${CLICKHOUSE_URL}/?query=SELECT+eventType,timestamp,sessionId,version,platform,metadata,received_at+FROM+easyclaw.telemetry_events+WHERE+sessionId='${SESSION_ID}'+FORMAT+JSONEachRow" | while read -r line; do
+curl -s "${CLICKHOUSE_URL}/?query=SELECT+eventType,timestamp,sessionId,version,platform,metadata,received_at+FROM+rivonclaw.telemetry_events+WHERE+sessionId='${SESSION_ID}'+FORMAT+JSONEachRow" | while read -r line; do
   echo "   $line"
 done
 

@@ -8,7 +8,7 @@ import {
   fetchUpdateDownloadStatus,
   triggerUpdateInstall,
 } from "../api/index.js";
-import { formatError } from "@easyclaw/core";
+import { formatError } from "@rivonclaw/core";
 import type { UpdateInfo, UpdateDownloadStatus } from "../api/index.js";
 import { ThemeToggle } from "../components/ThemeToggle.js";
 import { LangToggle } from "../components/LangToggle.js";

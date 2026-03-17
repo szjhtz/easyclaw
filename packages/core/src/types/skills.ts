@@ -1,4 +1,4 @@
-/** Editorial labels set by EasyClaw admins. Values are admin-controlled and finite. */
+/** Editorial labels set by RivonClaw admins. Values are admin-controlled and finite. */
 export enum SkillLabel {
   RECOMMENDED = "推荐",
 }

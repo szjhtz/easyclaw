@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join } from "node:path";
 import type { CatalogModelEntry } from "./model-catalog.js";
-import { ALL_PROVIDERS, getProviderMeta } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta } from "@rivonclaw/core";
 
 // vi.hoisted runs before vi.mock hoisting, so mocks are available in the factory
 const mocks = vi.hoisted(() => ({
@@ -137,7 +137,7 @@ describe("readGatewayModelCatalog", () => {
 
   it("should return empty object when models.json does not exist", () => {
     mocks.existsSync.mockReturnValue(false);
-    const result = readGatewayModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = readGatewayModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     expect(result).toEqual({});
   });
 
@@ -159,7 +159,7 @@ describe("readGatewayModelCatalog", () => {
       },
     }));
 
-    const result = readGatewayModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = readGatewayModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     expect(Object.keys(result)).toContain("openai");
     expect(Object.keys(result)).toContain("anthropic");
     expect(result.openai).toHaveLength(2);
@@ -175,7 +175,7 @@ describe("readGatewayModelCatalog", () => {
       },
     }));
 
-    const result = readGatewayModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = readGatewayModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     expect(result.openai).toBeUndefined();
     expect(result.anthropic).toHaveLength(1);
   });
@@ -190,7 +190,7 @@ describe("readFullModelCatalog", () => {
   it("should return local supplemental models when no vendor or gateway data exists", async () => {
     // existsSync returns false → no vendor models.generated.js, no gateway models.json
     mocks.existsSync.mockReturnValue(false);
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // Should contain providers backed by local supplemental models.
     for (const provider of ALL_PROVIDERS) {
@@ -203,7 +203,7 @@ describe("readFullModelCatalog", () => {
 
   it("should NOT contain phantom models (modelId === provider name)", async () => {
     mocks.existsSync.mockReturnValue(false);
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     for (const [provider, models] of Object.entries(result)) {
       for (const model of models) {
@@ -225,7 +225,7 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // Gateway provider
     expect(result.openai).toBeDefined();
@@ -238,9 +238,9 @@ describe("readFullModelCatalog", () => {
 
   it("should always populate KNOWN_MODELS (even with only local supplemental models)", async () => {
     mocks.existsSync.mockReturnValue(false);
-    await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
-    const { KNOWN_MODELS } = await import("@easyclaw/core");
+    const { KNOWN_MODELS } = await import("@rivonclaw/core");
     // At minimum, local supplemental providers should be in KNOWN_MODELS
     expect(KNOWN_MODELS.volcengine).toBeDefined();
     expect(KNOWN_MODELS.volcengine!.length).toBeGreaterThan(0);
@@ -263,9 +263,9 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
-    const { KNOWN_MODELS } = await import("@easyclaw/core");
+    const { KNOWN_MODELS } = await import("@rivonclaw/core");
     expect(KNOWN_MODELS.openai).toBeDefined();
     expect(KNOWN_MODELS.openai!.length).toBeGreaterThan(0);
     expect(KNOWN_MODELS.openai![0].modelId).toBe("gpt-4o");
@@ -298,7 +298,7 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // "claude" subscription plan should inherit anthropic's models
     expect(result.claude).toBeDefined();
@@ -316,7 +316,7 @@ describe("readFullModelCatalog", () => {
 
   it("should keep subscription plans with local supplemental models separate", async () => {
     mocks.existsSync.mockReturnValue(false);
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // "zhipu-coding" has its own extraModels and should keep them (not inherit zhipu's)
     expect(result["zhipu-coding"]).toBeDefined();
@@ -342,7 +342,7 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // Should contain both gateway model AND extraModels
     const ids = result.volcengine!.map((m) => m.id);
@@ -370,7 +370,7 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
 
     // Duplicate should not appear — gateway model kept, extraModels appends non-overlapping
     const matchingIds = result.volcengine!.filter((m) => m.id === firstExtra.modelId);
@@ -389,7 +389,7 @@ describe("readFullModelCatalog", () => {
       },
     }));
 
-    const result = await readFullModelCatalog({ EASYCLAW_STATE_DIR: "/tmp/fake" });
+    const result = await readFullModelCatalog({ RIVONCLAW_STATE_DIR: "/tmp/fake" });
     const ids = result["openai-codex"]!.map((m) => m.id);
 
     expect(ids).toContain("vendor-only-codex");

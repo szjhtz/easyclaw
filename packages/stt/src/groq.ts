@@ -1,4 +1,4 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type { SttProvider, SttResult } from "./types.js";
 
 const log = createLogger("stt:groq");

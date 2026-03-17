@@ -8,12 +8,12 @@ import {
   unlinkSync,
 } from "node:fs";
 import { join } from "node:path";
-import { resolveLogDir } from "@easyclaw/core/node";
+import { resolveLogDir } from "@rivonclaw/core/node";
 
 export const LOG_DIR = resolveLogDir();
 
-const LOG_FILENAME = "easyclaw.log";
-const LOG_FILENAME_PREV = "easyclaw.log.1";
+const LOG_FILENAME = "rivonclaw.log";
+const LOG_FILENAME_PREV = "rivonclaw.log.1";
 const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB per file
 
 // --- Module state ---
@@ -29,15 +29,15 @@ export function ensureLogDir(): void {
 export interface FileLoggingOptions {
   /** Max size per log file in bytes. Default: 5 MB. Total on disk ~ 2x this value. */
   maxFileSize?: number;
-  /** Override log directory (for testing). Default: ~/.easyclaw/logs */
+  /** Override log directory (for testing). Default: ~/.rivonclaw/logs */
   logDir?: string;
 }
 
 /**
  * Enable file-based log persistence. Call once at app startup.
  *
- * Writes to `{logDir}/easyclaw.log`. When the file exceeds `maxFileSize`,
- * it is rotated to `easyclaw.log.1` (one backup). Total disk usage <= 2x maxFileSize.
+ * Writes to `{logDir}/rivonclaw.log`. When the file exceeds `maxFileSize`,
+ * it is rotated to `rivonclaw.log.1` (one backup). Total disk usage <= 2x maxFileSize.
  *
  * Loggers created before AND after this call will write to disk.
  */

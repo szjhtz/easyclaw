@@ -1,6 +1,6 @@
 /**
  * Configuration for the proxy router.
- * This file is written by EasyClaw desktop app and watched by the router.
+ * This file is written by RivonClaw desktop app and watched by the router.
  */
 export interface ProxyRouterConfig {
   /** Timestamp of last update */
@@ -19,7 +19,7 @@ export interface ProxyRouterConfig {
  * Options for creating a proxy router.
  */
 export interface ProxyRouterOptions {
-  /** Port to listen on (default: DEFAULT_PROXY_ROUTER_PORT from @easyclaw/core) */
+  /** Port to listen on (default: DEFAULT_PROXY_ROUTER_PORT from @rivonclaw/core) */
   port?: number;
   /** Path to the config file to watch */
   configPath: string;

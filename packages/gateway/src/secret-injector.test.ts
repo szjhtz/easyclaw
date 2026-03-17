@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveSecretEnv, buildGatewayEnv } from "./secret-injector.js";
-import type { SecretStore } from "@easyclaw/secrets";
+import type { SecretStore } from "@rivonclaw/secrets";
 
 class MockSecretStore implements SecretStore {
   private store = new Map<string, string>();

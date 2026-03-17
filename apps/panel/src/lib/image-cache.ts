@@ -20,7 +20,7 @@ interface CachedImageRecord {
   savedAt: number;         // for 30-day expiry
 }
 
-const DB_NAME = "easyclaw-image-cache";
+const DB_NAME = "rivonclaw-image-cache";
 const DB_VERSION = 1;
 const STORE = "images";
 const TIMESTAMP_TOLERANCE_MS = 5_000;

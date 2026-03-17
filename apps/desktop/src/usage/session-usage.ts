@@ -1,7 +1,7 @@
 /**
- * EasyClaw-owned session usage service.
+ * RivonClaw-owned session usage service.
  *
- * Re-implements the subset of vendor session-cost-usage logic that EasyClaw
+ * Re-implements the subset of vendor session-cost-usage logic that RivonClaw
  * consumers actually use, avoiding direct vendor imports.
  */
 
@@ -9,7 +9,7 @@ import { createReadStream } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { join } from "node:path";
-import { resolveOpenClawStateDir } from "@easyclaw/gateway";
+import { resolveOpenClawStateDir } from "@rivonclaw/gateway";
 
 // ---------------------------------------------------------------------------
 // Types

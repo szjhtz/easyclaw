@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { createLogger } from "@easyclaw/logger";
-import { resolveProxyRouterPort } from "@easyclaw/core";
-import { resolveUserSkillsDir, resolveOpenClawStateDir } from "@easyclaw/core/node";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveProxyRouterPort } from "@rivonclaw/core";
+import { resolveUserSkillsDir, resolveOpenClawStateDir } from "@rivonclaw/core/node";
 
 const log = createLogger("panel-server");
 

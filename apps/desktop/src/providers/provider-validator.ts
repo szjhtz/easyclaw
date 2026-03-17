@@ -1,8 +1,8 @@
-import { createLogger } from "@easyclaw/logger";
-import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, resolveProxyRouterPort } from "@easyclaw/core";
-import type { LLMProvider } from "@easyclaw/core";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
+import { createLogger } from "@rivonclaw/logger";
+import { getProviderMeta, getDefaultModelForProvider, providerSecretKey, formatError, resolveProxyRouterPort } from "@rivonclaw/core";
+import type { LLMProvider } from "@rivonclaw/core";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
 
 const log = createLogger("provider-validator");
 

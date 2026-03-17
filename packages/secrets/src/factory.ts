@@ -2,7 +2,7 @@ import { platform } from "node:os";
 import type { SecretStore } from "./types.js";
 import { KeychainSecretStore } from "./keychain.js";
 import { FileSecretStore } from "./file-store.js";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("secrets:factory");
 
@@ -15,7 +15,7 @@ const log = createLogger("secrets:factory");
  */
 export function createSecretStore(): SecretStore {
   // Allow overriding secrets directory via env var (e.g. for E2E tests)
-  const customDir = process.env.EASYCLAW_SECRETS_DIR;
+  const customDir = process.env.RIVONCLAW_SECRETS_DIR;
   if (customDir) {
     log.info("using FileSecretStore with custom dir: " + customDir);
     return new FileSecretStore(customDir);

@@ -67,7 +67,7 @@ Requires: `gh` CLI authenticated, draft release exists on GitHub.
 
 ### audit-provider-sync.mjs
 
-Audits provider/model sync between EasyClaw and vendor. Compares the pi-ai vendor catalog, OpenClaw's `resolveImplicitProviders`, and EasyClaw's `ALL_PROVIDERS` to detect invisible providers or new upstream additions. Used by the `update-vendor` skill (Step 7).
+Audits provider/model sync between RivonClaw and vendor. Compares the pi-ai vendor catalog, OpenClaw's `resolveImplicitProviders`, and RivonClaw's `ALL_PROVIDERS` to detect invisible providers or new upstream additions. Used by the `update-vendor` skill (Step 7).
 
 ```bash
 node scripts/audit-provider-sync.mjs   # exit 0 = no gaps, exit 1 = critical gaps
@@ -85,7 +85,7 @@ pnpm verify-proxy   # exit 0 = all present, exit 1 = missing domains
 
 ### reset-user-data.sh
 
-Wipes all EasyClaw + OpenClaw user data to simulate fresh onboarding. Cleans SQLite DB, gateway state, logs, workspace, subagents, canvas, and macOS Keychain entries.
+Wipes all RivonClaw + OpenClaw user data to simulate fresh onboarding. Cleans SQLite DB, gateway state, logs, workspace, subagents, canvas, and macOS Keychain entries.
 
 ```bash
 ./scripts/reset-user-data.sh           # interactive (asks for confirmation)

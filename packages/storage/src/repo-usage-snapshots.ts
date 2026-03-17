@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { UsageSnapshot } from "@easyclaw/core";
+import type { UsageSnapshot } from "@rivonclaw/core";
 
 interface SnapshotRow {
   id: number;

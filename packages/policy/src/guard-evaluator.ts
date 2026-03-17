@@ -1,11 +1,11 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import type {
   GuardProvider,
   ToolCallContext,
   ToolCallResult,
 } from "./types.js";
 
-const log = createLogger("easyclaw:guard-evaluator");
+const log = createLogger("rivonclaw:guard-evaluator");
 
 /**
  * Parsed representation of a guard artifact's content.

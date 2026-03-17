@@ -245,7 +245,7 @@ function createStagingDir() {
   }
 
   // Create temp directory
-  stagingParent = fs.mkdtempSync(path.join(os.tmpdir(), "easyclaw-runtime-"));
+  stagingParent = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-runtime-"));
 
   // Copy vendor/openclaw to staging, dereferencing symlinks.
   //
@@ -756,7 +756,7 @@ const VENDOR_HEALTH_HANDLER_MARKER = "background health refresh failed";
 
 function createVendorHealthIntervalPatchPlugin() {
   return {
-    name: "easyclaw-vendor-health-interval-patch",
+    name: "rivonclaw-vendor-health-interval-patch",
     /** @param {any} build */
     setup(build) {
       let patchedFiles = 0;
@@ -1398,7 +1398,7 @@ function verifyExternalImports(/** @type {Set<string>} */ allExternals, /** @typ
 function smokeTestGateway() {
   log("Smoke testing bundled gateway...");
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "easyclaw-archive-smoke-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-archive-smoke-"));
   const openclawMjs = path.join(stagingDir, "openclaw.mjs");
 
   const minimalConfig = {
@@ -1505,7 +1505,7 @@ function generateCompileCache() {
   const startupTimerPath = path.resolve(ROOT_DIR, "packages", "gateway", "src", "startup-timer.cjs");
   const hasStartupTimer = fs.existsSync(startupTimerPath);
 
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "easyclaw-compile-cache-"));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rivonclaw-compile-cache-"));
   const minimalConfig = {
     gateway: { port: 59998, mode: "local" },
     models: {},

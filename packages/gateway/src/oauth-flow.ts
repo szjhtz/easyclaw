@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@easyclaw/logger";
-import type { ProviderKeyEntry } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import type { ProviderKeyEntry } from "@rivonclaw/core";
 import {
   loginGeminiCliOAuth,
   isGeminiCliAvailable,
@@ -57,7 +57,7 @@ export async function acquireGeminiOAuthToken(
 
   // Auto-install Gemini CLI if not available (extracts OAuth client credentials)
   if (!isGeminiCliAvailable()) {
-    log.info("Gemini CLI not found, attempting auto-install to ~/.easyclaw/gemini-cli/");
+    log.info("Gemini CLI not found, attempting auto-install to ~/.rivonclaw/gemini-cli/");
     callbacks.onStatusUpdate?.("Installing Gemini CLI...");
     const installed = await installGeminiCliLocal((msg) => {
       log.info(msg);
@@ -226,7 +226,7 @@ export async function startManualOAuthFlow(
 ): Promise<{ authUrl: string; verifier: string }> {
   // Auto-install Gemini CLI if not available (same check as acquireGeminiOAuthToken)
   if (!isGeminiCliAvailable()) {
-    log.info("Gemini CLI not found, attempting auto-install to ~/.easyclaw/gemini-cli/");
+    log.info("Gemini CLI not found, attempting auto-install to ~/.rivonclaw/gemini-cli/");
     callbacks.onStatusUpdate?.("Installing Gemini CLI...");
     const installed = await installGeminiCliLocal((msg) => {
       log.info(msg);
@@ -261,7 +261,7 @@ export async function startHybridGeminiOAuthFlow(
 ): Promise<HybridGeminiOAuthFlow> {
   // Auto-install Gemini CLI if not available
   if (!isGeminiCliAvailable()) {
-    log.info("Gemini CLI not found, attempting auto-install to ~/.easyclaw/gemini-cli/");
+    log.info("Gemini CLI not found, attempting auto-install to ~/.rivonclaw/gemini-cli/");
     callbacks.onStatusUpdate?.("Installing Gemini CLI...");
     const installed = await installGeminiCliLocal((msg) => {
       log.info(msg);

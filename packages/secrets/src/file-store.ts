@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { hostname, userInfo } from "node:os";
-import { resolveSecretsDir } from "@easyclaw/core/node";
+import { resolveSecretsDir } from "@rivonclaw/core/node";
 import {
   createCipheriv,
   createDecipheriv,
@@ -15,7 +15,7 @@ import {
   scryptSync,
 } from "node:crypto";
 import type { SecretKey, SecretStore } from "./types.js";
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("secrets:file");
 
@@ -37,8 +37,8 @@ const AUTH_TAG_LENGTH = 16;
 function deriveKey(): Buffer {
   const user = userInfo().username;
   const host = hostname();
-  const salt = "easyclaw-" + host + "-" + user;
-  return scryptSync(salt, "easyclaw-v0-salt", 32);
+  const salt = "rivonclaw-" + host + "-" + user;
+  return scryptSync(salt, "rivonclaw-v0-salt", 32);
 }
 
 function sanitizeFilename(key: string): string {
@@ -51,7 +51,7 @@ function sanitizeFilename(key: string): string {
  * Used as a fallback on platforms without a native secret manager
  * (Linux, or as a Windows DPAPI placeholder in V0).
  *
- * Each secret is stored as a separate file in ~/.easyclaw/secrets/
+ * Each secret is stored as a separate file in ~/.rivonclaw/secrets/
  * encrypted with AES-256-GCM using a machine-derived key.
  */
 export class FileSecretStore implements SecretStore {

@@ -1,13 +1,13 @@
 import { mkdirSync, writeFileSync, unlinkSync, readdirSync, rmdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
-import { resolveUserSkillsDir } from "@easyclaw/core/node";
-import { createLogger } from "@easyclaw/logger";
+import { resolveUserSkillsDir } from "@rivonclaw/core/node";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("rules:skill-writer");
 
 /**
  * Resolve the skills directory path.
- * Returns the custom directory if provided, otherwise the default (~/.easyclaw/openclaw/skills/).
+ * Returns the custom directory if provided, otherwise the default (~/.rivonclaw/openclaw/skills/).
  */
 export function resolveSkillsDir(customDir?: string): string {
   return customDir ?? resolveUserSkillsDir();
@@ -74,7 +74,7 @@ export function extractSkillName(artifactContent: string): string {
  *
  * @param skillName - The skill name (used as the directory name)
  * @param content - The full SKILL.md content (frontmatter + body)
- * @param skillsDir - Optional custom skills directory (defaults to ~/.easyclaw/openclaw/skills/)
+ * @param skillsDir - Optional custom skills directory (defaults to ~/.rivonclaw/openclaw/skills/)
  * @returns The absolute path to the written SKILL.md file
  */
 export function writeSkillFile(skillName: string, content: string, skillsDir?: string): string {

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, watch, type FSWatcher } from "node:fs";
 import { join } from "node:path";
-import { resolveOpenClawStateDir as _resolveOpenClawStateDir } from "@easyclaw/core/node";
-import { createLogger } from "@easyclaw/logger";
+import { resolveOpenClawStateDir as _resolveOpenClawStateDir } from "@rivonclaw/core/node";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("gateway:skill-reload");
 

@@ -39,6 +39,6 @@ export const BUILTIN_CHANNELS: readonly ChannelType[] = [
 ];
 
 /**
- * Channels that are custom EasyClaw extensions (WIP or planned).
+ * Channels that are custom RivonClaw extensions (WIP or planned).
  */
 export const CUSTOM_CHANNELS: readonly ChannelType[] = [];

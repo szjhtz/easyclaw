@@ -1,5 +1,5 @@
-import { readExistingConfig, resolveOpenClawConfigPath } from "@easyclaw/gateway";
-import type { Storage } from "@easyclaw/storage";
+import { readExistingConfig, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
+import type { Storage } from "@rivonclaw/storage";
 import { writeFileSync } from "node:fs";
 
 /**

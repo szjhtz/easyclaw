@@ -2,7 +2,7 @@
  * Providers Tool
  *
  * Lets the AI agent manage LLM provider API keys through conversation
- * instead of requiring the panel UI.  Calls the EasyClaw panel-server
+ * instead of requiring the panel UI.  Calls the RivonClaw panel-server
  * HTTP API at http://127.0.0.1:{PANEL_PORT}/api/provider-keys.
  */
 
@@ -13,7 +13,7 @@ type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
 };
 
-type EasyClawToolDef = {
+type RivonClawToolDef = {
   label: string;
   name: string;
   description: string;
@@ -32,7 +32,7 @@ function stringEnum<T extends readonly string[]>(values: T) {
   return Type.Unsafe<T[number]>({ type: "string", enum: [...values] });
 }
 
-/** Must match DEFAULT_PANEL_PORT in @easyclaw/core (packages/core/src/ports.ts). */
+/** Must match DEFAULT_PANEL_PORT in @rivonclaw/core (packages/core/src/ports.ts). */
 const PANEL_BASE_URL = "http://127.0.0.1:3210";
 
 const PROVIDER_ACTIONS = ["list", "add", "activate", "remove"] as const;
@@ -49,7 +49,7 @@ async function panelFetch(
   return { status: res.status, body };
 }
 
-export function createProvidersTool(): EasyClawToolDef {
+export function createProvidersTool(): RivonClawToolDef {
   return {
     label: "Providers",
     name: "providers",
@@ -144,7 +144,7 @@ export function createProvidersTool(): EasyClawToolDef {
         const message =
           err instanceof Error ? err.message : "Unknown error";
         return jsonResult({
-          error: `Failed to reach EasyClaw panel server: ${message}`,
+          error: `Failed to reach RivonClaw panel server: ${message}`,
         });
       }
     },

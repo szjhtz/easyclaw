@@ -1,5 +1,5 @@
-import type { ArtifactType } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
+import type { ArtifactType } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
 import type { LLMConfig } from "./llm-client.js";
 import { chatCompletion } from "./llm-client.js";
 
@@ -14,7 +14,7 @@ export interface CompileResult {
 // LLM-based compilation
 // ---------------------------------------------------------------------------
 
-const CLASSIFICATION_SYSTEM_PROMPT = `You are a rule classifier for EasyClaw, a desktop runtime manager.
+const CLASSIFICATION_SYSTEM_PROMPT = `You are a rule classifier for RivonClaw, a desktop runtime manager.
 
 Given a user-written rule in natural language, classify it into exactly ONE of these artifact types:
 
@@ -30,7 +30,7 @@ Given a user-written rule in natural language, classify it into exactly ONE of t
 Respond with ONLY a JSON object (no markdown fences, no extra text):
 {"type": "<policy-fragment|guard|action-bundle>", "reasoning": "<one sentence explaining why>"}`;
 
-const POLICY_GENERATION_PROMPT = `You are a policy writer for EasyClaw, a desktop runtime manager.
+const POLICY_GENERATION_PROMPT = `You are a policy writer for RivonClaw, a desktop runtime manager.
 
 Given a user-written rule, produce a concise, clear policy directive that will be prepended to the agent's system prompt.
 
@@ -40,7 +40,7 @@ Requirements:
 - Keep it to 1-3 sentences
 - Do NOT add commentary — output ONLY the policy text`;
 
-const GUARD_GENERATION_PROMPT = `You are a guard specification writer for EasyClaw, a desktop runtime manager.
+const GUARD_GENERATION_PROMPT = `You are a guard specification writer for RivonClaw, a desktop runtime manager.
 
 Given a user-written rule, produce a JSON guard specification that will be used to intercept tool calls.
 
@@ -54,7 +54,7 @@ Output ONLY a valid JSON object (no markdown fences):
   "params": {}
 }`;
 
-const SKILL_GENERATION_PROMPT = `You are a skill author for EasyClaw, a desktop runtime manager.
+const SKILL_GENERATION_PROMPT = `You are a skill author for RivonClaw, a desktop runtime manager.
 
 Given a user-written rule describing a capability, produce a SKILL.md file with YAML frontmatter.
 

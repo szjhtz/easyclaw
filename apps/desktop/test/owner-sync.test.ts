@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createStorage, type Storage } from "@easyclaw/storage";
-import { syncOwnerAllowFrom, buildOwnerAllowFrom } from "../src/auth/owner-sync.js";
+import { createStorage, type Storage } from "@rivonclaw/storage";
+import { syncOwnerAllowFrom, buildOwnerAllowFrom } from "../src/owner-sync.js";
 
 describe("owner-sync", () => {
   let storage: Storage;

@@ -1,4 +1,4 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 
 const log = createLogger("rules:llm-client");
 
@@ -51,8 +51,8 @@ export async function chatCompletion(
       messages,
       temperature: 0,
       // Tag as internal so the gateway generates a deterministic session key
-      // (`openai-user:easyclaw-rule-compile`) that the panel can filter out.
-      user: "easyclaw-rule-compile",
+      // (`openai-user:rivonclaw-rule-compile`) that the panel can filter out.
+      user: "rivonclaw-rule-compile",
     }),
   });
 

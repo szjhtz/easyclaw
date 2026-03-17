@@ -2,23 +2,23 @@ import { createServer } from "node:http";
 import type { ServerResponse, Server } from "node:http";
 import { readFileSync, existsSync, statSync, watch } from "node:fs";
 import { join, extname, resolve, normalize } from "node:path";
-import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort } from "@easyclaw/core";
-import { createLogger } from "@easyclaw/logger";
-import type { Storage } from "@easyclaw/storage";
-import type { SecretStore } from "@easyclaw/secrets";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, GatewayRpcClient } from "@easyclaw/gateway";
-import { discoverAllSessions, loadSessionCostSummary } from "./usage/session-usage.js";
+import { formatError, IMAGE_EXT_TO_MIME, resolvePanelPort } from "@rivonclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import type { Storage } from "@rivonclaw/storage";
+import type { SecretStore } from "@rivonclaw/secrets";
+import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, GatewayRpcClient } from "@rivonclaw/gateway";
+import { discoverAllSessions, loadSessionCostSummary } from "./services/session-usage.js";
 import { promises as fs } from "node:fs";
-import { resolveMediaBase } from "./utils/media-paths.js";
-import { UsageSnapshotEngine } from "./usage/usage-snapshot-engine.js";
-import type { ModelUsageTotals } from "./usage/usage-snapshot-engine.js";
-import { UsageQueryService } from "./usage/usage-query-service.js";
-import { MobileManager } from "./mobile/mobile-manager.js";
-import type { AuthSessionManager } from "./auth/auth-session.js";
+import { resolveMediaBase } from "./media-paths.js";
+import { UsageSnapshotEngine } from "./usage-snapshot-engine.js";
+import type { ModelUsageTotals } from "./usage-snapshot-engine.js";
+import { UsageQueryService } from "./usage-query-service.js";
+import { MobileManager } from "./mobile-manager.js";
+import type { AuthSessionManager } from "./auth-session.js";
 import type { SessionLifecycleManager } from "./browser-profiles/session-lifecycle-manager.js";
 import type { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
-import { initCSBridge, restoreCS } from "./channels/customer-service-bridge.js";
-import { sendChannelMessage } from "./channels/channel-senders.js";
+import { initCSBridge, restoreCS } from "./customer-service-bridge.js";
+import { sendChannelMessage } from "./channel-senders.js";
 import type { ApiContext, RouteHandler } from "./api-routes/api-context.js";
 import { sendJson } from "./api-routes/route-utils.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
@@ -88,12 +88,12 @@ function getSystemLocale(): "zh" | "en" {
 
 const PAIRING_MESSAGES = {
   zh: [
-    "💡 [EasyClaw] 您的配对请求已收到。",
+    "💡 [RivonClaw] 您的配对请求已收到。",
     "",
     "请前往管理面板 → 通道，选择要配对的通道并点击「白名单」完成配对。",
   ].join("\n"),
   en: [
-    "💡 [EasyClaw] Your pairing request has been received.",
+    "💡 [RivonClaw] Your pairing request has been received.",
     "",
     "Please go to the panel → Channels, find the channel you want to match and click the \"Whitelist\" button.",
   ].join("\n"),
@@ -199,7 +199,6 @@ export interface PanelServerOptions {
   onExtrasChange?: () => void;
   onPermissionsChange?: () => void;
   onBrowserChange?: () => void;
-  onAuthChange?: () => void;
   onAutoLaunchChange?: (enabled: boolean) => void;
   onChannelConfigured?: (channelId: string) => void;
   onOAuthFlow?: (provider: string) => Promise<{ providerKeyId: string; email?: string; provider: string }>;
@@ -256,7 +255,7 @@ const routeHandlers: RouteHandler[] = [
 export function startPanelServer(options: PanelServerOptions): Server {
   const port = options.port ?? resolvePanelPort();
   const distDir = resolve(options.panelDistDir);
-  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAuthChange, onAutoLaunchChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
+  const { storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog, sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAutoLaunchChange, onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll, onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo, changelogPath, onUpdateDownload, onUpdateCancel, onUpdateInstall, getUpdateDownloadState, authSession, sessionLifecycleManager, managedBrowserService } = options;
 
   // Initialize the customer service bridge
   initCSBridge({ storage, secretStore, getGatewayInfo, deviceId });
@@ -271,7 +270,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
     }
   }
 
-  // Ensure vendor OpenClaw functions read from EasyClaw's state dir
+  // Ensure vendor OpenClaw functions read from RivonClaw's state dir
   process.env.OPENCLAW_STATE_DIR = resolveOpenClawStateDir();
 
   // --- Per-Key/Model Usage Tracking ---
@@ -330,7 +329,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
   // Build the ApiContext object passed to all route handlers
   const ctx: ApiContext = {
     storage, secretStore, getRpcClient, onRuleChange, onProviderChange, onOpenFileDialog,
-    sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAuthChange, onAutoLaunchChange,
+    sttManager, onSttChange, onExtrasChange, onPermissionsChange, onBrowserChange, onAutoLaunchChange,
     onChannelConfigured, onOAuthFlow, onOAuthAcquire, onOAuthSave, onOAuthManualComplete, onOAuthPoll,
     onTelemetryTrack, vendorDir, nodeBin, deviceId, getUpdateResult, getGatewayInfo,
     snapshotEngine, queryService, mobileManager, authSession, sessionLifecycleManager,
@@ -367,7 +366,7 @@ export function startPanelServer(options: PanelServerOptions): Server {
       return;
     }
 
-    // Serve media files from ~/.easyclaw/openclaw/media/
+    // Serve media files from ~/.rivonclaw/openclaw/media/
     if (pathname.startsWith("/api/media/") && req.method === "GET") {
       const mediaBase = resolveMediaBase();
       const relPath = decodeURIComponent(pathname.replace("/api/media/", ""));

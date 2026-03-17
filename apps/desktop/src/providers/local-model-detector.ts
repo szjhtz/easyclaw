@@ -1,4 +1,4 @@
-import { createLogger } from "@easyclaw/logger";
+import { createLogger } from "@rivonclaw/logger";
 import { request } from "node:http";
 
 const log = createLogger("local-model-detector");

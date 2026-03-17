@@ -11,7 +11,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync, mkdirSync, writeFi
 import { createServer } from "node:http";
 import { execFile, execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { resolveEasyClawHome } from "@easyclaw/core/node";
+import { resolveRivonClawHome } from "@rivonclaw/core/node";
 import { enrichedPath, findInPath } from "./cli-utils.js";
 
 /** Error that carries a user-friendly message plus technical detail for hover tooltip. */
@@ -185,11 +185,11 @@ function findFile(dir: string, name: string, depth: number): string | null {
   return null;
 }
 
-/** Default directory for EasyClaw-managed Gemini CLI install. */
-const LOCAL_GEMINI_DIR = join(resolveEasyClawHome(), "gemini-cli");
+/** Default directory for RivonClaw-managed Gemini CLI install. */
+const LOCAL_GEMINI_DIR = join(resolveRivonClawHome(), "gemini-cli");
 
 /**
- * Extract OAuth credentials from the EasyClaw-managed local Gemini CLI install.
+ * Extract OAuth credentials from the RivonClaw-managed local Gemini CLI install.
  */
 function extractFromLocalInstall(): { clientId: string; clientSecret: string } | null {
   const coreDir = join(LOCAL_GEMINI_DIR, "node_modules", "@google", "gemini-cli-core");
@@ -222,7 +222,7 @@ function extractFromLocalInstall(): { clientId: string; clientSecret: string } |
 }
 
 /**
- * Install Gemini CLI to ~/.easyclaw/gemini-cli/ using npm.
+ * Install Gemini CLI to ~/.rivonclaw/gemini-cli/ using npm.
  * Returns true on success, false on failure.
  */
 async function installViaNpm(
@@ -319,7 +319,7 @@ async function installViaDirectDownload(
 }
 
 /**
- * Install Gemini CLI credentials to ~/.easyclaw/gemini-cli/.
+ * Install Gemini CLI credentials to ~/.rivonclaw/gemini-cli/.
  * Tries npm first, falls back to direct tarball download from npm registry.
  */
 export async function installGeminiCliLocal(
@@ -369,7 +369,7 @@ function resolveOAuthClientConfig(): { clientId: string; clientSecret?: string }
     return extracted;
   }
 
-  // 3. Try to extract from EasyClaw-managed local install
+  // 3. Try to extract from RivonClaw-managed local install
   const localExtracted = extractFromLocalInstall();
   if (localExtracted) {
     return localExtracted;
@@ -489,7 +489,7 @@ export async function waitForLocalCallback(params: {
             "<!doctype html><html><head><meta charset='utf-8'/></head>" +
               "<body><h2>Session expired</h2>" +
               "<p>This authorization link is from a previous attempt. " +
-              "Please go back to EasyClaw and click the login button again.</p></body></html>",
+              "Please go back to RivonClaw and click the login button again.</p></body></html>",
           );
           return;
         }
@@ -499,7 +499,7 @@ export async function waitForLocalCallback(params: {
         res.end(
           "<!doctype html><html><head><meta charset='utf-8'/></head>" +
             "<body><h2>Gemini CLI OAuth complete</h2>" +
-            "<p>You can close this window and return to EasyClaw.</p></body></html>",
+            "<p>You can close this window and return to RivonClaw.</p></body></html>",
         );
 
         finish(undefined, { code, state });

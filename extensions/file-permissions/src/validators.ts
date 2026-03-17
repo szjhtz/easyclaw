@@ -12,7 +12,7 @@ export interface FilePermissions {
 }
 
 /**
- * Parse EASYCLAW_FILE_PERMISSIONS environment variable.
+ * Parse RIVONCLAW_FILE_PERMISSIONS environment variable.
  *
  * Accepts two formats:
  * - JSON: {"readPaths":[...],"writePaths":[...],"workspacePath":"..."}

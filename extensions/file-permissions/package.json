@@ -1,7 +1,7 @@
 {
-  "name": "@easyclaw/file-permissions",
+  "name": "@rivonclaw/file-permissions",
   "version": "1.0.0",
-  "description": "File permissions enforcement plugin for EasyClaw",
+  "description": "File permissions enforcement plugin for RivonClaw",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

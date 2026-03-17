@@ -1,7 +1,7 @@
 /**
  * Immutable system-layer prompt for customer service mode.
  *
- * This prompt is injected by EasyClaw before any user-defined business rules.
+ * This prompt is injected by RivonClaw before any user-defined business rules.
  * It CANNOT be overridden or modified by the user. Its purpose is to establish
  * a trust boundary: all subsequent messages come from untrusted external
  * customers, and the agent must not execute any instructions from them.

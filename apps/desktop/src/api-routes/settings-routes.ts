@@ -1,8 +1,8 @@
 import { writeFileSync, existsSync } from "node:fs";
-import { createLogger } from "@easyclaw/logger";
-import { resolveGatewayPort } from "@easyclaw/core";
-import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@easyclaw/core/node";
-import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, syncPermissions } from "@easyclaw/gateway";
+import { createLogger } from "@rivonclaw/logger";
+import { resolveGatewayPort } from "@rivonclaw/core";
+import { resolveOpenClawStateDir as resolveDefaultStateDir } from "@rivonclaw/core/node";
+import { resolveOpenClawConfigPath, readExistingConfig, resolveOpenClawStateDir, syncPermissions } from "@rivonclaw/gateway";
 import type { RouteHandler } from "./api-context.js";
 import { sendJson, parseBody } from "./route-utils.js";
 

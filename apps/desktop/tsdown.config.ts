@@ -10,7 +10,7 @@ export default defineConfig({
     "better-sqlite3",
   ],
   noExternal: [
-    /^@easyclaw\//,
+    /^@rivonclaw\//,
   ],
   treeshake: true,
   inlineOnly: false,

@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { RuleArtifact, ArtifactType, ArtifactStatus } from "@easyclaw/core";
+import type { RuleArtifact, ArtifactType, ArtifactStatus } from "@rivonclaw/core";
 
 interface ArtifactRow {
   id: string;

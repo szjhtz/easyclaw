@@ -1,5 +1,5 @@
-import { createLogger } from "@easyclaw/logger";
-import type { Storage } from "@easyclaw/storage";
+import { createLogger } from "@rivonclaw/logger";
+import type { Storage } from "@rivonclaw/storage";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { syncOwnerAllowFrom } from "./owner-sync.js";

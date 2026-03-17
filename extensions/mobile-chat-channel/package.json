@@ -1,5 +1,5 @@
 {
-    "name": "@easyclaw/mobile-chat-channel",
+    "name": "@rivonclaw/mobile-chat-channel",
     "version": "0.0.0",
     "private": true,
     "type": "module",
@@ -17,7 +17,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@easyclaw/logger": "workspace:*",
+        "@rivonclaw/logger": "workspace:*",
         "ws": "^8.18.0"
     },
     "openclaw": {

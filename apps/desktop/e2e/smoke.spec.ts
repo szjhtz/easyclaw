@@ -1,12 +1,12 @@
 import { test, expect } from "./electron-fixture.js";
 
-test.describe("EasyClaw Smoke Tests", () => {
+test.describe("RivonClaw Smoke Tests", () => {
   test("app launches and window is visible", async ({ electronApp, window }) => {
     const windows = electronApp.windows();
     expect(windows.length).toBe(1);
 
     const title = await window.title();
-    expect(title).toBe("EasyClaw");
+    expect(title).toBe("RivonClaw");
   });
 
   test("panel renders with sidebar navigation", async ({ window }) => {

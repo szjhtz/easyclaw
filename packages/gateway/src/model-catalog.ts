@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveOpenClawStateDir } from "./config-writer.js";
 import { resolveVendorDir } from "./vendor.js";
-import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type LLMProvider, type RootProvider } from "@easyclaw/core";
+import { ALL_PROVIDERS, getProviderMeta, initKnownModels, PROVIDERS, type LLMProvider, type RootProvider } from "@rivonclaw/core";
 
 /** A minimal model entry for the UI (no secrets, no cost data). */
 export interface CatalogModelEntry {

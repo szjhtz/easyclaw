@@ -1,6 +1,6 @@
 /**
  * Simplified WebSocket client for connecting to the OpenClaw gateway from
- * the EasyClaw panel (browser).  Handles the challenge-response handshake,
+ * the RivonClaw panel (browser).  Handles the challenge-response handshake,
  * JSON-RPC request/response, event streaming, and auto-reconnect.
  *
  * Compared to OpenClaw's GatewayBrowserClient this version skips device

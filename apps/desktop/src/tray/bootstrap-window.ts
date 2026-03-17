@@ -30,7 +30,7 @@ function buildHtml(locale: Locale): string {
 <html lang="${locale === "zh" ? "zh-CN" : "en"}">
 <head>
 <meta charset="utf-8">
-<title>EasyClaw</title>
+<title>RivonClaw</title>
 <style>
   :root {
     --bg-primary: #1a1a2e;
@@ -171,7 +171,7 @@ function buildHtml(locale: Locale): string {
 </style>
 </head>
 <body>
-  <div class="title">EasyClaw</div>
+  <div class="title">RivonClaw</div>
 
   <div id="progressSection" class="progress-section">
     <div id="message" class="message">${t.initializing}</div>

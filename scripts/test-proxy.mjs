@@ -169,7 +169,7 @@ server.listen(PORT, "127.0.0.1", () => {
   log(`🚀 Test proxy listening on http://127.0.0.1:${PORT}`);
   log(`   Authentication required: ${AUTH_USER}:${AUTH_PASS}`);
   log("");
-  log("   Set this as your upstream proxy in EasyClaw provider settings:");
+  log("   Set this as your upstream proxy in RivonClaw provider settings:");
   log(`   - Without auth: http://127.0.0.1:${PORT}`);
   log(`   - With auth:    http://${AUTH_USER}:${AUTH_PASS}@127.0.0.1:${PORT}`);
   log("");

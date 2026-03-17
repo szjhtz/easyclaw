@@ -33,9 +33,9 @@ function makeArtifactContent(name: string, description: string, body: string): s
 // ---------------------------------------------------------------------------
 
 describe("resolveSkillsDir", () => {
-  it("returns the default ~/.easyclaw/openclaw/skills/ path when no custom dir is provided", () => {
+  it("returns the default ~/.rivonclaw/openclaw/skills/ path when no custom dir is provided", () => {
     const result = resolveSkillsDir();
-    expect(result).toContain(".easyclaw");
+    expect(result).toContain(".rivonclaw");
     expect(result).toContain("skills");
     // Should be an absolute path
     expect(result.startsWith("/") || /^[A-Z]:\\/i.test(result)).toBe(true);
@@ -49,7 +49,7 @@ describe("resolveSkillsDir", () => {
 
   it("returns the default when undefined is explicitly passed", () => {
     const result = resolveSkillsDir(undefined);
-    expect(result).toContain(".easyclaw");
+    expect(result).toContain(".rivonclaw");
     expect(result).toContain("skills");
   });
 });
@@ -104,7 +104,7 @@ describe("writeSkillFile", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-writer-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "rivonclaw-skill-writer-test-"));
   });
 
   afterEach(() => {
@@ -159,7 +159,7 @@ describe("writeSkillFile", () => {
     // returned path includes the default directory structure.
     // To avoid polluting the real filesystem, we test only the path resolution.
     const defaultDir = resolveSkillsDir();
-    expect(defaultDir).toContain(".easyclaw");
+    expect(defaultDir).toContain(".rivonclaw");
     expect(defaultDir).toContain("skills");
   });
 });
@@ -172,7 +172,7 @@ describe("removeSkillFile", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-writer-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "rivonclaw-skill-writer-test-"));
   });
 
   afterEach(() => {
@@ -239,7 +239,7 @@ describe("skill-writer integration", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "easyclaw-skill-writer-integ-"));
+    tempDir = mkdtempSync(join(tmpdir(), "rivonclaw-skill-writer-integ-"));
   });
 
   afterEach(() => {

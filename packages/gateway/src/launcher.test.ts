@@ -57,7 +57,7 @@ vi.mock("node:child_process", () => ({
   execSync: (...args: unknown[]) => mockExecSync(...args),
 }));
 
-vi.mock("@easyclaw/logger", () => ({
+vi.mock("@rivonclaw/logger", () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),

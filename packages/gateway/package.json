@@ -1,5 +1,5 @@
 {
-  "name": "@easyclaw/gateway",
+  "name": "@rivonclaw/gateway",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,10 +17,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@easyclaw/core": "workspace:*",
-    "@easyclaw/logger": "workspace:*",
-    "@easyclaw/secrets": "workspace:*",
-    "@easyclaw/storage": "workspace:*",
+    "@rivonclaw/core": "workspace:*",
+    "@rivonclaw/logger": "workspace:*",
+    "@rivonclaw/secrets": "workspace:*",
+    "@rivonclaw/storage": "workspace:*",
     "undici": "^7.21.0",
     "zod": "^4.3.0",
     "ws": "^8.18.0"

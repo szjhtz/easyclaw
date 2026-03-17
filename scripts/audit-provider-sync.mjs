@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Audit provider/model sync between EasyClaw and vendor (OpenClaw + pi-ai).
+ * Audit provider/model sync between RivonClaw and vendor (OpenClaw + pi-ai).
  *
  * Compares three sources:
  *   A) pi-ai vendor catalog provider keys (models.generated.js)
  *   B) OpenClaw resolveImplicitProviders provider keys (regex-parsed)
- *   C) EasyClaw ALL_PROVIDERS + extraModels status (compiled core)
+ *   C) RivonClaw ALL_PROVIDERS + extraModels status (compiled core)
  *
  * Reports:
  *   1) Critical: in ALL_PROVIDERS, no extraModels, NOT in pi-ai → invisible
@@ -75,9 +75,9 @@ function getOpenClawImplicitProviders() {
 }
 
 // ---------------------------------------------------------------------------
-// Source C: EasyClaw core
+// Source C: RivonClaw core
 // ---------------------------------------------------------------------------
-async function getEasyClawProviders() {
+async function getRivonClawProviders() {
   // Import from compiled output
   const corePath = join(rootDir, "packages/core/dist/index.mjs");
   if (!existsSync(corePath)) {
@@ -104,7 +104,7 @@ async function main() {
 
   const piAi = await getPiAiProviders();
   const openClaw = getOpenClawImplicitProviders();
-  const { allProviders, withExtraModels, subscriptionSet, localSet } = await getEasyClawProviders();
+  const { allProviders, withExtraModels, subscriptionSet, localSet } = await getRivonClawProviders();
 
   // Category 1: CRITICAL — in ALL_PROVIDERS, no extraModels, not in pi-ai,
   // not a subscription plan (inherits from parent), not a local provider (runtime discovery)
@@ -170,13 +170,13 @@ async function main() {
   }
 
   if (newUpstream.length > 0) {
-    console.log("[2] New upstream providers (not in EasyClaw):");
+    console.log("[2] New upstream providers (not in RivonClaw):");
     for (const p of newUpstream) {
       console.log(`    - ${p}`);
     }
     console.log();
-    console.log("    INFO: These providers exist in the vendor but are not registered in EasyClaw.");
-    console.log("    This is informational — not all vendor providers need to be in EasyClaw.");
+    console.log("    INFO: These providers exist in the vendor but are not registered in RivonClaw.");
+    console.log("    This is informational — not all vendor providers need to be in RivonClaw.");
     console.log("    To add one, you need to manually curate these fields (not available from vendor):");
     console.log();
     console.log("    1. Add the provider ID to the LLMProvider union type in packages/core/src/models.ts");
@@ -202,7 +202,7 @@ async function main() {
 
   // Summary
   console.log("--- Summary ---");
-  console.log(`  EasyClaw providers: ${allProviders.size}`);
+  console.log(`  RivonClaw providers: ${allProviders.size}`);
   console.log(`  With extraModels:   ${withExtraModels.size}`);
   console.log(`  Pi-ai providers:    ${piAi.size}`);
   console.log(`  OpenClaw implicit:  ${openClaw.size}`);

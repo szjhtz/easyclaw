@@ -1,5 +1,5 @@
-import { createLogger } from "@easyclaw/logger";
-import type { SttProvider as SttProviderType } from "@easyclaw/core";
+import { createLogger } from "@rivonclaw/logger";
+import type { SttProvider as SttProviderType } from "@rivonclaw/core";
 
 const log = createLogger("gateway:audio-config");
 
@@ -18,7 +18,7 @@ interface AudioModelConfig {
 }
 
 /**
- * Generate OpenClaw audio understanding configuration based on EasyClaw STT settings.
+ * Generate OpenClaw audio understanding configuration based on RivonClaw STT settings.
  *
  * This function creates the `tools.media.audio` configuration that tells OpenClaw
  * how to transcribe voice messages.

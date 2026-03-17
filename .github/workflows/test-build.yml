@@ -104,12 +104,12 @@ jobs:
         # a real signing identity is configured.
         continue-on-error: true
         run: |
-          node apps/desktop/scripts/prod-model-switch-check.mjs apps/desktop/release/win-unpacked/EasyClaw.exe
+          node apps/desktop/scripts/prod-model-switch-check.mjs apps/desktop/release/win-unpacked/RivonClaw.exe
         env:
-          EASYCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
-          EASYCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
-          EASYCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 0
-          EASYCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
+          RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
+          RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
+          RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 0
+          RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
 
   test-build-macos:
     needs: [validate-vendor-patches, vendor-boundary]
@@ -140,7 +140,7 @@ jobs:
 
       - name: Verify runtime archive in package
         run: |
-          ARCHIVE_DIR=$(find apps/desktop/release -path "*/EasyClaw.app/Contents/Resources/runtime-archive" -type d 2>/dev/null | head -1)
+          ARCHIVE_DIR=$(find apps/desktop/release -path "*/RivonClaw.app/Contents/Resources/runtime-archive" -type d 2>/dev/null | head -1)
           if [ -z "$ARCHIVE_DIR" ]; then
             echo "ERROR: runtime-archive not found in macOS .app bundle"
             find apps/desktop/release -maxdepth 5 -type d | head -30
@@ -166,14 +166,14 @@ jobs:
         continue-on-error: true
         run: |
           # Find the .app bundle executable
-          APP_PATH=$(find apps/desktop/release -name "EasyClaw.app" -type d 2>/dev/null | head -1)
+          APP_PATH=$(find apps/desktop/release -name "RivonClaw.app" -type d 2>/dev/null | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: EasyClaw.app not found in release directory"
+            echo "ERROR: RivonClaw.app not found in release directory"
             exit 1
           fi
           node apps/desktop/scripts/prod-model-switch-check.mjs "$APP_PATH"
         env:
-          EASYCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
-          EASYCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
-          EASYCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 0
-          EASYCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
+          RIVONCLAW_PROD_CHECK_INITIAL_BUDGET_SECONDS: 0
+          RIVONCLAW_PROD_CHECK_INITIAL_TIMEOUT_MS: 120000
+          RIVONCLAW_PROD_CHECK_SWITCH_BUDGET_SECONDS: 0
+          RIVONCLAW_PROD_CHECK_SWITCH_TIMEOUT_MS: 90000
