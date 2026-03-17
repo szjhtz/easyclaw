@@ -67,7 +67,7 @@ export class GatewayChatClient {
   stop(): void {
     this.closed = true;
     this.stopKeepalive();
-    this.ws?.close();
+    this.ws?.close(1000, "client stopped");
     this.ws = null;
     this.flushPending(new Error("client stopped"));
   }
@@ -152,7 +152,7 @@ export class GatewayChatClient {
       })
       .catch((err) => {
         console.warn("[gateway-client] connect handshake failed:", err);
-        this.ws?.close();
+        this.ws?.close(1000, "handshake failed");
       });
   }
 
@@ -174,7 +174,7 @@ export class GatewayChatClient {
     // Set a deadline — if no response arrives, force-close so onDisconnected fires.
     this.keepaliveTimeout = setTimeout(() => {
       console.warn("[gateway-client] keepalive timeout — closing connection");
-      this.ws?.close();
+      this.ws?.close(1000, "keepalive timeout");
     }, KEEPALIVE_TIMEOUT_MS);
 
     // Use a lightweight RPC call as an application-level ping.

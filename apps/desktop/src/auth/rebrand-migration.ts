@@ -31,7 +31,22 @@ const PATHS_TO_COPY = [
   "openclaw/feishu",
   "openclaw/mobile-sync",
   "openclaw/media",
+  "openclaw/cron",
+  "openclaw/identity",
+  "openclaw/workspace",
+  "openclaw/browser",
 ];
+
+/**
+ * Check whether migration is needed (old dir exists and no marker).
+ * Call this before showing a UI dialog so we only prompt when necessary.
+ */
+export function needsMigration(): boolean {
+  const home = homedir();
+  const oldDir = join(home, OLD_DIR_NAME);
+  const marker = join(home, NEW_DIR_NAME, ".migrated-from-easyclaw");
+  return existsSync(oldDir) && !existsSync(marker);
+}
 
 /**
  * One-time migration from EasyClaw → RivonClaw.
@@ -52,16 +67,8 @@ export async function migrateFromEasyClaw(): Promise<void> {
     const oldDir = join(home, OLD_DIR_NAME);
     const newDir = join(home, NEW_DIR_NAME);
 
-    // Skip if old directory doesn't exist (fresh install, nothing to migrate)
-    if (!existsSync(oldDir)) {
-      log.debug("~/.easyclaw does not exist — nothing to migrate");
-      return;
-    }
-
-    // One-time guard: marker file ensures we never run twice.
-    const marker = join(newDir, ".migrated-from-easyclaw");
-    if (existsSync(marker)) {
-      log.debug("Migration marker exists — already migrated");
+    if (!needsMigration()) {
+      log.debug("Migration not needed — skipping");
       return;
     }
 
@@ -81,6 +88,7 @@ export async function migrateFromEasyClaw(): Promise<void> {
     }
 
     // Write marker — after this point migration never runs again
+    const marker = join(newDir, ".migrated-from-easyclaw");
     writeFileSync(marker, new Date().toISOString(), "utf-8");
     log.info("Rebrand migration complete");
 
