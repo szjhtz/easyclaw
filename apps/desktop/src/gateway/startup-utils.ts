@@ -5,9 +5,7 @@ import { join } from "node:path";
 import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { app } from "electron";
 import { createLogger } from "@rivonclaw/logger";
-import { ALL_PROVIDERS, getDefaultModelForProvider, providerSecretKey } from "@rivonclaw/core";
-import type { Storage } from "@rivonclaw/storage";
-import type { SecretStore } from "@rivonclaw/secrets";
+
 
 const log = createLogger("main");
 
@@ -81,34 +79,3 @@ export function applyAutoLaunch(enabled: boolean): void {
   }
 }
 
-/**
- * Migrate old-style `{provider}-api-key` secrets to the new provider_keys table.
- * Only runs if the provider_keys table is empty (first upgrade).
- */
-export async function migrateOldProviderKeys(
-  storage: Storage,
-  secretStore: SecretStore,
-): Promise<void> {
-  const existing = storage.providerKeys.getAll();
-  if (existing.length > 0) return;
-
-  for (const provider of ALL_PROVIDERS) {
-    const secretKey = providerSecretKey(provider);
-    const keyValue = await secretStore.get(secretKey);
-    if (keyValue && keyValue !== "") {
-      const id = crypto.randomUUID();
-      const model = getDefaultModelForProvider(provider)?.modelId ?? "";
-      storage.providerKeys.create({
-        id,
-        provider,
-        label: "Default",
-        model,
-        isDefault: true,
-        createdAt: "",
-        updatedAt: "",
-      });
-      await secretStore.set(`provider-key-${id}`, keyValue);
-      log.info(`Migrated ${provider} key to provider_keys table (id: ${id})`);
-    }
-  }
-}

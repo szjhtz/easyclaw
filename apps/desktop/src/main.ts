@@ -41,28 +41,28 @@ import { createConnection } from "node:net";
 import { existsSync, unlinkSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import { createTrayIcon } from "./tray-icon.js";
-import { buildTrayMenu } from "./tray-menu.js";
+import { createTrayIcon } from "./tray/tray-icon.js";
+import { buildTrayMenu } from "./tray/tray-menu.js";
 import { startPanelServer, pushChatSSE } from "./panel-server.js";
-import { stopCS } from "./customer-service-bridge.js";
-import { SttManager } from "./stt-manager.js";
-import { createCdpManager } from "./cdp-manager.js";
+import { stopCS } from "./channels/customer-service-bridge.js";
+import { SttManager } from "./utils/stt-manager.js";
+import { createCdpManager } from "./browser-profiles/cdp-manager.js";
 import { CdpCookieAdapter } from "./browser-profiles/cdp-cookie-adapter.js";
-import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "./proxy-manager.js";
-import { createAutoUpdater } from "./auto-updater.js";
-import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch, migrateOldProviderKeys } from "./startup-utils.js";
-import { initTelemetry } from "./telemetry-init.js";
-import { createGatewayConfigBuilder } from "./gateway-config-builder.js";
-import { AuthSessionManager } from "./auth-session.js";
+import { resolveProxyRouterConfigPath, detectSystemProxy, writeProxyRouterConfig, buildProxyEnv, writeProxySetupModule } from "./gateway/proxy-manager.js";
+import { createAutoUpdater } from "./utils/auto-updater.js";
+import { resetDevicePairing, cleanupGatewayLock, applyAutoLaunch } from "./gateway/startup-utils.js";
+import { initTelemetry } from "./utils/telemetry-init.js";
+import { createGatewayConfigBuilder } from "./gateway/gateway-config-builder.js";
+import { AuthSessionManager } from "./auth/auth-session.js";
 import { createSessionStateStack, type SessionStateStack } from "./browser-profiles/session-state-wiring.js";
 import { createCloudBackupProvider } from "./browser-profiles/session-state/backup-provider.js";
 import type { ProfilePolicyResolver } from "./browser-profiles/runtime-service.js";
 import type { BrowserProfileSessionStatePolicy } from "@rivonclaw/core";
 import { ManagedBrowserService } from "./browser-profiles/managed-browser-service.js";
 import { proxiedFetch } from "./api-routes/route-utils.js";
-import { buildToolContext } from "./tool-context-builder.js";
-import { checkRuntimeReady, hydrateRuntime } from "./runtime-hydrator.js";
-import { createBootstrapWindow } from "./bootstrap-window.js";
+import { buildToolContext } from "./utils/tool-context-builder.js";
+import { checkRuntimeReady, hydrateRuntime } from "./gateway/runtime-hydrator.js";
+import { createBootstrapWindow } from "./tray/bootstrap-window.js";
 
 const log = createLogger("desktop");
 
@@ -297,6 +297,12 @@ app.whenReady().then(async () => {
     deviceId = "unknown";
   }
 
+  // --- Rebrand migration (EasyClaw → RivonClaw) ---
+  // TODO(cleanup): Remove after v1.8.0 (see auth/rebrand-migration.ts)
+  // One-time: rename ~/.easyclaw → ~/.rivonclaw and migrate keychain entries.
+  const { migrateFromEasyClaw } = await import("./auth/rebrand-migration.js");
+  await migrateFromEasyClaw();
+
   // Initialize storage and secrets
   const storage = createStorage();
   const secretStore = createSecretStore();
@@ -382,11 +388,6 @@ app.whenReady().then(async () => {
     log.error("Failed to start proxy router:", err);
   });
 
-  // Migrate old-style provider secrets to provider_keys table
-  migrateOldProviderKeys(storage, secretStore).catch((err) => {
-    log.error("Failed to migrate old provider keys:", err);
-  });
-
   // Initialize gateway launcher
   const stateDir = resolveOpenClawStateDir();
   resetDevicePairing(stateDir);
@@ -431,7 +432,7 @@ app.whenReady().then(async () => {
   }, 5 * 60 * 1000);
 
   // One-time backfill: ensure existing allowFrom entries have channel_recipients rows as owners
-  const { backfillOwnerMigration } = await import("./owner-migration.js");
+  const { backfillOwnerMigration } = await import("./auth/owner-migration.js");
   await backfillOwnerMigration(storage, stateDir, configPath);
 
   // Build gateway config helpers (closures bound to current settings)

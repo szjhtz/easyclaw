@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { resolveOpenClawStateDir, resolveOpenClawConfigPath } from "@rivonclaw/gateway";
-import { syncOwnerAllowFrom } from "../owner-sync.js";
-import { PAIRING_CODE_TTL_MS } from "../mobile-manager.js";
+import { syncOwnerAllowFrom } from "../auth/owner-sync.js";
+import { PAIRING_CODE_TTL_MS } from "../mobile/mobile-manager.js";
 import type { ApiContext } from "./api-context.js";
 import { parseBody, sendJson } from "./route-utils.js";
 

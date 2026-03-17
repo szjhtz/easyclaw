@@ -1,6 +1,6 @@
 import { getProviderMeta, getDefaultModelForProvider } from "@rivonclaw/core";
 import type { LLMProvider } from "@rivonclaw/core";
-import { ModelSelect } from "../ModelSelect.js";
+import { ModelSelect } from "../inputs/ModelSelect.js";
 import type { ProviderFormState } from "./use-provider-form.js";
 
 export function OAuthProviderForm({

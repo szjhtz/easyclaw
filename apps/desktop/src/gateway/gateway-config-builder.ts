@@ -3,7 +3,7 @@ import type { LLMProvider } from "@rivonclaw/core";
 import { resolveModelConfig, LOCAL_PROVIDER_IDS, getProviderMeta, resolveGatewayPort } from "@rivonclaw/core";
 import { buildExtraProviderConfigs, writeGatewayConfig } from "@rivonclaw/gateway";
 import type { Storage } from "@rivonclaw/storage";
-import { buildOwnerAllowFrom } from "./owner-sync.js";
+import { buildOwnerAllowFrom } from "../auth/owner-sync.js";
 
 export interface GatewayConfigDeps {
   storage: Storage;

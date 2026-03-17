@@ -97,24 +97,6 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
     devDependencies:
-      '@rivonclaw/browser-profiles-tools':
-        specifier: workspace:*
-        version: link:../../extensions/browser-profiles-tools
-      '@rivonclaw/rivonclaw-event-bridge':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-event-bridge
-      '@rivonclaw/rivonclaw-policy':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-policy
-      '@rivonclaw/rivonclaw-tools':
-        specifier: workspace:*
-        version: link:../../extensions/rivonclaw-tools
-      '@rivonclaw/file-permissions':
-        specifier: workspace:*
-        version: link:../../extensions/file-permissions
-      '@rivonclaw/mobile-chat-channel':
-        specifier: workspace:*
-        version: link:../../extensions/mobile-chat-channel
       '@electron/notarize':
         specifier: ^3.0.0
         version: 3.1.1
@@ -154,15 +136,15 @@ importers:
       '@apollo/client':
         specifier: ^4.1.6
         version: 4.1.6(graphql@16.13.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rxjs@7.8.2)
-      '@rivonclaw/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@rivonclaw/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       emoji-picker-react:
         specifier: ^4.18.0
         version: 4.18.0(react@19.2.4)
@@ -252,6 +234,46 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
 
+  extensions/file-permissions:
+    devDependencies:
+      '@mariozechner/openclaw':
+        specifier: file:../../vendor/openclaw
+        version: openclaw@file:vendor/openclaw(@discordjs/opus@0.10.0(encoding@0.1.13))(@napi-rs/canvas@0.1.96)(@types/express@5.0.6)(encoding@0.1.13)(hono@4.11.8)(node-llama-cpp@3.15.1(typescript@5.9.3))
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.19.9
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+
+  extensions/mobile-chat-channel:
+    dependencies:
+      '@rivonclaw/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
+    devDependencies:
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      oxlint:
+        specifier: ^1.43.0
+        version: 1.43.0
+      tsdown:
+        specifier: ^0.20.3
+        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
+
   extensions/rivonclaw-event-bridge:
     devDependencies:
       oxlint:
@@ -285,46 +307,6 @@ importers:
       '@sinclair/typebox':
         specifier: ^0.34.0
         version: 0.34.48
-      oxlint:
-        specifier: ^1.43.0
-        version: 1.43.0
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@25.2.2)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
-
-  extensions/file-permissions:
-    devDependencies:
-      '@mariozechner/openclaw':
-        specifier: file:../../vendor/openclaw
-        version: openclaw@file:vendor/openclaw(@discordjs/opus@0.10.0(encoding@0.1.13))(@napi-rs/canvas@0.1.96)(@types/express@5.0.6)(encoding@0.1.13)(hono@4.11.8)(node-llama-cpp@3.15.1(typescript@5.9.3))
-      '@types/node':
-        specifier: ^22.10.5
-        version: 22.19.9
-      tsdown:
-        specifier: ^0.20.3
-        version: 0.20.3(synckit@0.11.12)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@22.19.9)(jiti@2.6.1)(jsdom@28.1.0)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2)
-
-  extensions/mobile-chat-channel:
-    dependencies:
-      '@rivonclaw/logger':
-        specifier: workspace:*
-        version: link:../../packages/logger
-      ws:
-        specifier: ^8.18.0
-        version: 8.19.0
-    devDependencies:
-      '@types/ws':
-        specifier: ^8.18.1
-        version: 8.18.1
       oxlint:
         specifier: ^1.43.0
         version: 1.43.0
@@ -2146,7 +2128,6 @@ packages:
   '@rolldown/binding-darwin-arm64@1.0.0-rc.3':
     resolution: {integrity: sha512-JWWLzvcmc/3pe7qdJqPpuPk91SoE/N+f3PcWx/6ZwuyDVyungAEJPvKm/eEldiDdwTmaEzWfIR+HORxYWrCi1A==}
     engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
     os: [darwin]
 
   '@rolldown/binding-darwin-x64@1.0.0-rc.3':
