@@ -3,10 +3,16 @@
     "version": "1.7.1",
     "date": "2026-03-17",
     "en": [
-      "Fix rebrand migration missing agents directory for session history"
+      "Fix rebrand migration missing agents and skills directories",
+      "Fix garbled dependency installer output on Windows Chinese locale",
+      "Fix chat session tabs not refreshing after sending a message",
+      "Fix Codex OAuth helper missing in production builds"
     ],
     "zh": [
-      "修复品牌迁移时遗漏 agents 目录导致会话历史丢失的问题"
+      "修复品牌迁移时遗漏 agents 和 skills 目录",
+      "修复 Windows 中文系统下依赖安装器显示乱码",
+      "修复发送消息后会话标签页未刷新",
+      "修复生产构建中缺少 Codex OAuth 组件"
     ]
   },
   {
