@@ -22,6 +22,12 @@ interface SpawnOpts {
   timeout?: number;
 }
 
+/** Env vars that force child processes to emit UTF-8 on Windows (GBK default). */
+const UTF8_ENV: Record<string, string> =
+  process.platform === "win32"
+    ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" }
+    : {};
+
 function spawnAsync(
   cmd: string,
   args: string[],
@@ -29,7 +35,10 @@ function spawnAsync(
   opts: SpawnOpts = {},
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const env = opts.env ?? { ...process.env, PATH: getAugmentedPath() };
+    const env = {
+      ...(opts.env ?? { ...process.env, PATH: getAugmentedPath() }),
+      ...UTF8_ENV,
+    };
     const child = spawn(cmd, args, {
       env,
       shell: opts.shell ?? false,
@@ -38,7 +47,8 @@ function spawnAsync(
     });
 
     const handleData = (data: Buffer): void => {
-      const text = data.toString("utf-8");
+      // Replace invalid UTF-8 sequences with U+FFFD to avoid garbled output
+      const text = data.toString("utf-8").replace(/\uFFFD/g, "");
       for (const line of text.split(/\r?\n/)) {
         if (line.length > 0) {
           onOutput(line);
