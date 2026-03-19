@@ -9,6 +9,7 @@ export default defineConfig({
   clean: true,
   sourcemap: false,
   external: [/^@mariozechner\/openclaw/],
+  noExternal: ["@rivonclaw/plugin-sdk"],
   // Copy openclaw.plugin.json to dist
   onSuccess: async () => {
     const { copyFileSync } = await import("node:fs");

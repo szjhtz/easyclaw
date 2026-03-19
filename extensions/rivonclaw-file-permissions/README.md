@@ -57,7 +57,7 @@ Add to `openclaw.json`:
 {
   "plugins": {
     "load": {
-      "paths": ["path/to/file-permissions/dist/index.mjs"]
+      "paths": ["path/to/rivonclaw-file-permissions/dist/index.mjs"]
     },
     "entries": {
       "rivonclaw-file-permissions": {

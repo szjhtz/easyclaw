@@ -1,5 +1,5 @@
 {
-  "name": "@rivonclaw/file-permissions",
+  "name": "@rivonclaw/rivonclaw-file-permissions",
   "version": "1.0.0",
   "description": "File permissions enforcement plugin for RivonClaw",
   "type": "module",
@@ -11,6 +11,11 @@
       "import": "./dist/index.js"
     }
   },
+  "openclaw": {
+    "extensions": [
+      "./dist/rivonclaw-file-permissions.mjs"
+    ]
+  },
   "files": [
     "dist"
   ],
@@ -19,7 +24,9 @@
     "test": "vitest",
     "test:run": "vitest run"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@rivonclaw/plugin-sdk": "workspace:*"
+  },
   "devDependencies": {
     "@mariozechner/openclaw": "file:../../vendor/openclaw",
     "@types/node": "^22.10.5",

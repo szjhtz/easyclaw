@@ -13,8 +13,9 @@ import {
 } from "../api/index.js";
 import type { InstalledSkill } from "../api/index.js";
 import { ConfirmDialog } from "../components/modals/ConfirmDialog.js";
+import { DEFAULTS } from "@rivonclaw/core";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = DEFAULTS.pagination.skills;
 
 /** Map GQL SkillLabel enum values to badge CSS classes */
 const LABEL_BADGE_MAP: Record<string, string> = {
