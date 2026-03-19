@@ -16,6 +16,7 @@ const i18n = {
     configuring: "Configuring mirrors...",
     done: "Setup complete",
     allPresent: "All dependencies found!",
+    failedToInstall: (names: string) => `Failed to install ${names}`,
   },
   zh: {
     subtitle: "正在配置系统依赖",
@@ -28,6 +29,7 @@ const i18n = {
     configuring: "正在配置镜像源...",
     done: "配置完成",
     allPresent: "所有依赖已就绪！",
+    failedToInstall: (names: string) => `${names} 安装失败`,
   },
 } as const;
 
@@ -394,6 +396,20 @@ function buildHtml(locale: Locale): string {
         if (icon) icon.className = "dep-icon dep-icon-failed";
       }
 
+      // Show error details for failed deps in the log area
+      if (result.failed.length > 0) {
+        logArea.classList.remove("hidden");
+        for (const f of result.failed) {
+          const div = document.createElement("div");
+          div.className = "log-line";
+          div.style.color = "var(--error)";
+          const displayName = {git:"Git",python:"Python",node:"Node.js",uv:"uv"}[f.dep] || f.dep;
+          div.textContent = "[" + displayName + "] " + f.error;
+          logArea.appendChild(div);
+          logArea.scrollTop = logArea.scrollHeight;
+        }
+      }
+
       // Show result actions
       actions.classList.remove("hidden");
       primaryBtn.textContent = "${t.continue}";
@@ -499,7 +515,15 @@ export function createProvisionerWindow(): ProvisionerWindow {
       if (win.isDestroyed()) return Promise.resolve("continue");
 
       const allGood = result.failed.length === 0;
-      const statusMsg = allGood ? t.allPresent : t.done;
+      let statusMsg: string;
+      if (allGood) {
+        statusMsg = t.allPresent;
+      } else {
+        const failedNames = result.failed
+          .map((f) => depDisplayNames[f.dep] ?? f.dep)
+          .join(", ");
+        statusMsg = t.failedToInstall(failedNames);
+      }
       win.webContents.send("provision-progress", { phase: "done", message: statusMsg });
       win.webContents.send("provision-result", result);
 

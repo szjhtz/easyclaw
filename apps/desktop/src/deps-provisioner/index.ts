@@ -82,10 +82,12 @@ export async function runDepsProvisioner(opts: {
         win.updateStatuses(statuses);
 
         result.installed.push(dep);
+        win.sendLog(`\u2713 ${dep} installed successfully`);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         log.error(`Failed to install ${dep}: ${errorMsg}`);
         currentFailed.push({ dep, error: errorMsg });
+        win.sendLog(`\u2717 ${dep}: ${errorMsg}`);
       }
     }
 
